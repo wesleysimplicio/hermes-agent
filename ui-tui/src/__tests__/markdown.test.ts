@@ -37,9 +37,10 @@ const renderPlain = (node: React.ReactNode) => {
   instance.unmount()
   instance.cleanup()
 
-  return stripAnsi(output)
+  return output
+    .replace(OSC_RE, '')
     .split('\n')
-    .map(line => line.replace(OSC_RE, '').replace(CSI_RE, '').trimEnd())
+    .map(line => stripAnsi(line).replace(CSI_RE, '').trimEnd())
 }
 
 describe('INLINE_RE emphasis', () => {
