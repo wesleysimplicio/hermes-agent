@@ -669,7 +669,7 @@ function MdImpl({ compact, t, text }: MdProps) {
           }
 
           nodes.push(
-            <Text key={`${key}-def-${i}`}>
+            <Text key={`${key}-def-${i}`} wrap="wrap-trim">
               <Text color={t.color.muted}> · </Text>
               <MdInline t={t} text={def} />
             </Text>
