@@ -787,3 +787,67 @@ class TestPlannedStopMarker:
         ok = status.write_planned_stop_marker(target_pid=12345)
 
         assert ok is False
+
+
+class TestGetProcessStartTime:
+    """Cross-platform PID start-time lookup (regression for #21613).
+
+    macOS / BSD have no /proc filesystem, so the original Linux-only
+    implementation always returned None there.  That made every gateway lock
+    record ``start_time=null`` and disabled the PID-reuse guard, so a stale
+    Telegram bot lock could permanently block a fresh gateway from starting.
+    """
+
+    def test_linux_proc_path_returns_field_22(self, monkeypatch):
+        fields = ["0"] * 52
+        fields[21] = "987654321"
+        proc_line = " ".join(fields)
+
+        def fake_read_text(self, *args, **kwargs):
+            if str(self).startswith("/proc/"):
+                return proc_line
+            raise FileNotFoundError(self)
+
+        monkeypatch.setattr(Path, "read_text", fake_read_text)
+
+        assert status._get_process_start_time(4321) == 987654321
+
+    def test_macos_falls_back_to_ps_lstart(self, monkeypatch):
+        def raise_not_found(self, *args, **kwargs):
+            raise FileNotFoundError(self)
+
+        monkeypatch.setattr(Path, "read_text", raise_not_found)
+
+        captured = {}
+
+        def fake_check_output(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return "Fri May  9 10:23:45 2026\n"
+
+        import subprocess as _subprocess
+        monkeypatch.setattr(_subprocess, "check_output", fake_check_output)
+
+        from datetime import datetime
+        expected = int(datetime.strptime(
+            "Fri May 9 10:23:45 2026", "%a %b %d %H:%M:%S %Y"
+        ).timestamp())
+
+        result = status._get_process_start_time(4321)
+
+        assert result == expected
+        assert captured["cmd"] == ["ps", "-p", "4321", "-o", "lstart="]
+
+    def test_returns_none_when_proc_and_ps_both_fail(self, monkeypatch):
+        def raise_not_found(self, *args, **kwargs):
+            raise FileNotFoundError(self)
+
+        monkeypatch.setattr(Path, "read_text", raise_not_found)
+
+        import subprocess as _subprocess
+
+        def raise_called_process(*args, **kwargs):
+            raise _subprocess.CalledProcessError(1, args[0])
+
+        monkeypatch.setattr(_subprocess, "check_output", raise_called_process)
+
+        assert status._get_process_start_time(4321) is None

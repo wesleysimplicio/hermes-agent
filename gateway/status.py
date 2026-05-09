@@ -109,13 +109,39 @@ def _get_scope_lock_path(scope: str, identity: str) -> Path:
 
 
 def _get_process_start_time(pid: int) -> Optional[int]:
-    """Return the kernel start time for a process when available."""
+    """Return the kernel start time for a process when available.
+
+    Linux: read field 22 of ``/proc/<pid>/stat`` (clock ticks since boot).
+
+    macOS / BSD (no procfs): fall back to ``ps -p <pid> -o lstart=`` and
+    convert the wall-clock timestamp to an epoch integer.  Without this
+    fallback every gateway lock on macOS records ``start_time=null`` and
+    the PID-reuse guard never activates -- see #21613.
+    """
     stat_path = Path(f"/proc/{pid}/stat")
     try:
         # Field 22 in /proc/<pid>/stat is process start time (clock ticks).
         return int(stat_path.read_text(encoding="utf-8").split()[21])
     except (FileNotFoundError, IndexError, PermissionError, ValueError, OSError):
-        return None
+        pass
+
+    try:
+        import subprocess
+        from datetime import datetime
+        out = subprocess.check_output(
+            ["ps", "-p", str(pid), "-o", "lstart="],
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=2,
+        ).strip()
+        if out:
+            normalized = " ".join(out.split())
+            dt = datetime.strptime(normalized, "%a %b %d %H:%M:%S %Y")
+            return int(dt.timestamp())
+    except (FileNotFoundError, subprocess.SubprocessError, ValueError, OSError):
+        pass
+
+    return None
 
 
 def get_process_start_time(pid: int) -> Optional[int]:
