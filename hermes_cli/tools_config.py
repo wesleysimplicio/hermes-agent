@@ -972,6 +972,36 @@ def _get_platform_tools(
             ts for ts in toolset_names
             if ts in configurable_keys and _toolset_allowed_for_platform(ts, platform)
         }
+        # Also expand any composite toolset names (e.g. "hermes-cli") that appear
+        # alongside explicit configurable keys.  Composites are not in
+        # configurable_keys so the filter above silently drops them, causing the
+        # entire native toolset to disappear (issue #22601).
+        composite_names = [
+            ts for ts in toolset_names
+            if ts not in configurable_keys
+            and ts not in plugin_ts_keys
+            and ts in TOOLSETS
+        ]
+        if composite_names:
+            composite_tools: set = set()
+            for ts_name in composite_names:
+                composite_tools.update(resolve_toolset(ts_name))
+            for ts_key, _, _ in CONFIGURABLE_TOOLSETS:
+                if not _toolset_allowed_for_platform(ts_key, platform):
+                    continue
+                ts_tools = set(resolve_toolset(ts_key))
+                if ts_tools and ts_tools.issubset(composite_tools):
+                    enabled_toolsets.add(ts_key)
+            # Strip _DEFAULT_OFF_TOOLSETS from the composite-inferred portion,
+            # but keep any keys the user explicitly listed in toolset_names
+            # (e.g. [hermes-cli, spotify] must preserve spotify).
+            explicit_configurable = {ts for ts in toolset_names if ts in configurable_keys}
+            default_off = set(_DEFAULT_OFF_TOOLSETS)
+            if platform in default_off and platform not in _TOOLSET_PLATFORM_RESTRICTIONS:
+                default_off.remove(platform)
+            if "homeassistant" in default_off and os.getenv("HASS_TOKEN"):
+                default_off.remove("homeassistant")
+            enabled_toolsets -= (default_off - explicit_configurable)
     else:
         # No explicit config — fall back to resolving composite toolset names
         # (e.g. "hermes-cli") to individual tool names and reverse-mapping.

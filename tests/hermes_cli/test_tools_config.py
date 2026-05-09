@@ -925,3 +925,41 @@ def test_reconfigure_browser_provider_overwrites_stale_use_gateway():
     provider = {"name": "Browserbase", "browser_provider": "browserbase", "env_vars": []}
     _reconfigure_provider(provider, config)
     assert config["browser"]["use_gateway"] is False
+
+
+def test_get_platform_tools_composite_plus_configurable_keeps_composite_tools():
+    """Regression test for issue #22601.
+
+    When platform_toolsets contains a composite name (e.g. "hermes-cli") *and*
+    at least one configurable key (e.g. "spotify"), _get_platform_tools must
+    still expand the composite — not silently drop it.
+
+    Before the fix the has_explicit_config branch only admitted configurable
+    keys, so "hermes-cli" was dropped and the session had only {spotify, kanban}.
+    """
+    config = {
+        "platform_toolsets": {
+            "cli": ["hermes-cli", "spotify"],
+        }
+    }
+
+    # spotify is in _DEFAULT_OFF_TOOLSETS but was explicitly listed — must stay.
+    enabled = _get_platform_tools(config, "cli", include_default_mcp_servers=False)
+
+    # Core toolsets that hermes-cli expands into must all be present.
+    for core_ts in ("terminal", "web", "file", "memory"):
+        assert core_ts in enabled, f"Expected '{core_ts}' in enabled but got: {sorted(enabled)}"
+
+    # The explicit configurable key must also survive.
+    assert "spotify" in enabled, f"Expected 'spotify' in enabled but got: {sorted(enabled)}"
+
+
+def test_get_platform_tools_composite_only_unaffected():
+    """Composite-only list (no configurable keys) must still work as before."""
+    config_composite = {"platform_toolsets": {"cli": ["hermes-cli"]}}
+    config_default = {}
+
+    enabled_composite = _get_platform_tools(config_composite, "cli", include_default_mcp_servers=False)
+    enabled_default = _get_platform_tools(config_default, "cli", include_default_mcp_servers=False)
+
+    assert enabled_composite == enabled_default
