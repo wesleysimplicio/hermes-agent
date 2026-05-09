@@ -499,23 +499,31 @@ class TestSessionSearch:
         assert result["results"] == []
         assert result["sessions_searched"] == 0
 
-    def test_source_from_resolved_parent_not_fts5_child(self):
-        """source in output must reflect the resolved parent session, not the child that matched FTS5.
+    def test_content_and_meta_routed_to_fts5_child_not_parent(self):
+        """Content and meta must come from the FTS5-matched child, not the parent.
 
-        Regression test for #15909: when a delegation child session (source='telegram')
-        resolves to a parent (source='api_server'), the result entry must report
-        'api_server', not 'telegram'.
+        Regression test for #22150: previously `result['session_id']` was
+        overwritten with the resolved parent sid before
+        `get_messages_as_conversation` ran, so the summarizer received the
+        parent's transcript while the matched query was in the child. The
+        fix preserves the child sid for content/meta retrieval and surfaces
+        the parent only as `resolved_session_id`.
+
+        This supersedes the prior #15909 expectation that `source` reflect
+        the parent — that was the cause of the content/meta mismatch
+        reported in #22150. The user-facing entry now consistently
+        describes the session whose content the summary actually came
+        from (the child), with the parent linked separately.
         """
         from unittest.mock import MagicMock, AsyncMock, patch as _patch
         from tools.session_search_tool import session_search
 
         mock_db = MagicMock()
-        # FTS5 hit is in the child delegation session which carries source='telegram'
         mock_db.search_messages.return_value = [
             {
                 "session_id": "child_sid",
                 "content": "hello world",
-                "source": "telegram",       # child session source — wrong value to surface
+                "source": "telegram",
                 "session_started": 1709400000,
                 "model": "gpt-4o-mini",
             },
@@ -534,17 +542,30 @@ class TestSessionSearch:
                 return {
                     "id": "parent_sid",
                     "parent_session_id": None,
-                    "source": "api_server",  # correct parent source
+                    "source": "api_server",
                     "started_at": 1709300000,
                     "model": "gpt-4o-mini",
                 }
             return None
 
-        mock_db.get_session.side_effect = _get_session
-        mock_db.get_messages_as_conversation.return_value = [
+        child_messages = [
             {"role": "user", "content": "hello world"},
             {"role": "assistant", "content": "hi there"},
         ]
+        parent_messages = [
+            {"role": "user", "content": "totally unrelated topic"},
+            {"role": "assistant", "content": "completely different reply"},
+        ]
+
+        def _get_messages(sid):
+            if sid == "child_sid":
+                return child_messages
+            if sid == "parent_sid":
+                return parent_messages
+            return []
+
+        mock_db.get_session.side_effect = _get_session
+        mock_db.get_messages_as_conversation.side_effect = _get_messages
 
         with _patch(
             "tools.session_search_tool.async_call_llm",
@@ -556,7 +577,93 @@ class TestSessionSearch:
         assert result["success"] is True
         assert result["count"] == 1
         entry = result["results"][0]
-        assert entry["session_id"] == "parent_sid", "should report resolved parent session ID"
-        assert entry["source"] == "api_server", (
-            f"source should be parent's 'api_server', got {entry['source']!r}"
+        assert entry["session_id"] == "child_sid", (
+            "session_id must be the FTS5-matched child where content lives (#22150)"
         )
+        assert entry["resolved_session_id"] == "parent_sid", (
+            "parent sid is exposed separately for navigation/grouping"
+        )
+        assert entry["source"] == "telegram", (
+            "source must match the session whose content was actually fetched"
+        )
+        assert "hello world" in entry["summary"]
+        assert "unrelated topic" not in entry["summary"]
+        called_with = [c.args[0] for c in mock_db.get_messages_as_conversation.call_args_list]
+        assert "child_sid" in called_with
+        assert "parent_sid" not in called_with
+
+    def test_dedup_collapses_multiple_children_of_same_parent(self):
+        """Multiple FTS5 hits in different children of the same parent → 1 entry.
+
+        Regression for #22150 dedup invariant: keying dedup on resolved
+        parent sid still collapses fragments of the same logical
+        conversation, even though the first child's content is what gets
+        surfaced.
+        """
+        from unittest.mock import MagicMock, AsyncMock, patch as _patch
+        from tools.session_search_tool import session_search
+
+        mock_db = MagicMock()
+        mock_db.search_messages.return_value = [
+            {"session_id": "child_a", "source": "cli",
+             "session_started": 1709400000, "model": "test"},
+            {"session_id": "child_b", "source": "cli",
+             "session_started": 1709400100, "model": "test"},
+        ]
+
+        def _get_session(sid):
+            if sid in ("child_a", "child_b"):
+                return {"id": sid, "parent_session_id": "parent_sid",
+                        "source": "cli", "started_at": 1709400000}
+            if sid == "parent_sid":
+                return {"id": "parent_sid", "parent_session_id": None,
+                        "source": "cli", "started_at": 1709300000}
+            return None
+
+        mock_db.get_session.side_effect = _get_session
+        mock_db.get_messages_as_conversation.return_value = [
+            {"role": "user", "content": "match"},
+            {"role": "assistant", "content": "reply"},
+        ]
+
+        with _patch(
+            "tools.session_search_tool.async_call_llm",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("no provider"),
+        ):
+            result = json.loads(session_search(query="match", db=mock_db))
+
+        assert result["count"] == 1, "two children of same parent must dedup to one entry"
+        assert result["sessions_searched"] == 1
+        assert result["results"][0]["session_id"] == "child_a"
+        assert result["results"][0]["resolved_session_id"] == "parent_sid"
+
+    def test_no_resolved_session_id_when_already_root(self):
+        """When the FTS5 hit is already a root session, no `resolved_session_id` annotation."""
+        from unittest.mock import MagicMock, AsyncMock, patch as _patch
+        from tools.session_search_tool import session_search
+
+        mock_db = MagicMock()
+        mock_db.search_messages.return_value = [
+            {"session_id": "root_only", "source": "cli",
+             "session_started": 1709400000, "model": "test"},
+        ]
+        mock_db.get_session.side_effect = lambda sid: (
+            {"id": sid, "parent_session_id": None, "source": "cli",
+             "started_at": 1709400000} if sid == "root_only" else None
+        )
+        mock_db.get_messages_as_conversation.return_value = [
+            {"role": "user", "content": "match"},
+            {"role": "assistant", "content": "reply"},
+        ]
+
+        with _patch(
+            "tools.session_search_tool.async_call_llm",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("no provider"),
+        ):
+            result = json.loads(session_search(query="match", db=mock_db))
+
+        entry = result["results"][0]
+        assert entry["session_id"] == "root_only"
+        assert "resolved_session_id" not in entry

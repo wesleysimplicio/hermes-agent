@@ -411,10 +411,15 @@ def session_search(
             _resolve_to_parent(current_session_id) if current_session_id else None
         )
 
-        # Group by resolved (parent) session_id, dedup, skip the current
-        # session lineage. Compression and delegation create child sessions
-        # that still belong to the same active conversation.
-        seen_sessions = {}
+        # Dedup by resolved (parent) session_id so multiple FTS5 hits in
+        # different fragments of the same logical conversation collapse to
+        # one entry; skip the current session lineage. Content/meta are
+        # still pulled from the original child sid where the FTS5 match
+        # actually lives — overwriting `session_id` with the parent caused
+        # `get_messages_as_conversation` to fetch from the wrong session
+        # and return content that didn't contain the matched text (#22150).
+        selected = []
+        seen_parents = set()
         for result in raw_results:
             raw_sid = result["session_id"]
             resolved_sid = _resolve_to_parent(raw_sid)
@@ -424,16 +429,20 @@ def session_search(
                 continue
             if current_session_id and raw_sid == current_session_id:
                 continue
-            if resolved_sid not in seen_sessions:
-                result = dict(result)
-                result["session_id"] = resolved_sid
-                seen_sessions[resolved_sid] = result
-            if len(seen_sessions) >= limit:
+            if resolved_sid in seen_parents:
+                continue
+            seen_parents.add(resolved_sid)
+            result = dict(result)
+            if resolved_sid != raw_sid:
+                result["resolved_session_id"] = resolved_sid
+            selected.append(result)
+            if len(selected) >= limit:
                 break
 
         # Prepare all sessions for parallel summarization
         tasks = []
-        for session_id, match_info in seen_sessions.items():
+        for match_info in selected:
+            session_id = match_info["session_id"]
             try:
                 messages = db.get_messages_as_conversation(session_id)
                 if not messages:
@@ -494,11 +503,12 @@ def session_search(
                 )
                 result = None
 
-            # Prefer resolved parent session metadata over FTS5 match metadata.
-            # match_info carries source/model from the *child* session that contained
-            # the FTS5 hit; after _resolve_to_parent() the session_id points to the
-            # root, so session_meta has the authoritative platform/source for the
-            # session the user actually cares about (#15909).
+            # session_meta is fetched from the child session where the FTS5
+            # hit lives (so its content matches the summary). match_info also
+            # comes from the same child row, so both sources agree; the
+            # original #15909 concern (mismatched parent vs child meta) was
+            # introduced by overwriting session_id with the parent — fixed
+            # in #22150 by keeping content keyed to the child.
             entry = {
                 "session_id": session_id,
                 "when": _format_timestamp(
@@ -507,6 +517,8 @@ def session_search(
                 "source": session_meta.get("source") or match_info.get("source", "unknown"),
                 "model": session_meta.get("model") or match_info.get("model"),
             }
+            if "resolved_session_id" in match_info:
+                entry["resolved_session_id"] = match_info["resolved_session_id"]
 
             if result:
                 entry["summary"] = result
@@ -523,7 +535,7 @@ def session_search(
             "query": query,
             "results": summaries,
             "count": len(summaries),
-            "sessions_searched": len(seen_sessions),
+            "sessions_searched": len(selected),
         }, ensure_ascii=False)
 
     except Exception as e:
