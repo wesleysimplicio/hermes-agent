@@ -172,6 +172,12 @@ class MemoryStore:
                 fact_id: int = cur.lastrowid  # type: ignore[assignment]
             except sqlite3.IntegrityError:
                 # Duplicate content — return existing id.
+                # Roll back the failed INSERT so the connection doesn't keep
+                # an open write transaction holding locks until the next commit.
+                try:
+                    self._conn.rollback()
+                except sqlite3.Error:
+                    pass
                 # Guard against the (rare) cross-process concurrent-delete case
                 # where the row is gone by the time we SELECT it.
                 row = self._conn.execute(
@@ -265,10 +271,12 @@ class MemoryStore:
         """
         with self._lock:
             row = self._conn.execute(
-                "SELECT fact_id, trust_score FROM facts WHERE fact_id = ?", (fact_id,)
+                "SELECT fact_id, trust_score, category FROM facts WHERE fact_id = ?",
+                (fact_id,),
             ).fetchone()
             if row is None:
                 return False
+            existing_category = row["category"]
 
             assignments: list[str] = ["updated_at = CURRENT_TIMESTAMP"]
             params: list = []
@@ -310,13 +318,19 @@ class MemoryStore:
             # Rebuild bank for relevant category.
             # Guard fetchone() — fact could be removed by a concurrent process
             # between the initial existence check and this second SELECT.
+            # Fall back to the category captured in the initial existence query
+            # so a concurrent delete doesn't leave the original bank stale.
             if category is not None:
                 cat = category
             else:
                 _cat_row = self._conn.execute(
                     "SELECT category FROM facts WHERE fact_id = ?", (fact_id,)
                 ).fetchone()
-                cat = _cat_row["category"] if _cat_row is not None else "general"
+                cat = (
+                    _cat_row["category"]
+                    if _cat_row is not None
+                    else existing_category
+                )
             self._rebuild_bank(cat)
 
             return True
