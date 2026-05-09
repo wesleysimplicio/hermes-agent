@@ -108,3 +108,35 @@ class TestEditFactNullGuard:
             assert result is True
         finally:
             store._conn = real_conn
+
+
+class TestSearchFactsFTS5ErrorGuard:
+    """search_facts() must return [] instead of raising OperationalError when
+    the FTS5 query expression is syntactically invalid (#holographic-2)."""
+
+    def test_search_facts_valid_query_returns_results(self, store):
+        """Sanity check: valid query still works after the guard is in place."""
+        store.add_fact("Python is a programming language", category="tech")
+        results = store.search_facts("Python")
+        assert len(results) >= 1
+        assert any("Python" in r["content"] for r in results)
+
+    def test_search_facts_malformed_fts5_returns_empty(self, store):
+        """Invalid FTS5 syntax must return [] not raise OperationalError."""
+        store.add_fact("some fact to ensure FTS5 table exists")
+        # These are all invalid FTS5 expressions that trigger OperationalError
+        malformed_queries = [
+            '"unclosed phrase',
+            "AND",
+            "OR",
+            "NOT",
+            "hello AND OR world",
+        ]
+        for q in malformed_queries:
+            result = store.search_facts(q)
+            assert result == [], f"Expected [] for malformed query {q!r}, got {result}"
+
+    def test_search_facts_empty_query_returns_empty(self, store):
+        """Empty/whitespace query returns [] (existing guard)."""
+        assert store.search_facts("") == []
+        assert store.search_facts("   ") == []

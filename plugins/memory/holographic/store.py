@@ -232,7 +232,12 @@ class MemoryStore:
                 LIMIT ?
             """
 
-            rows = self._conn.execute(sql, params).fetchall()
+            try:
+                rows = self._conn.execute(sql, params).fetchall()
+            except sqlite3.OperationalError:
+                # FTS5 query syntax error (e.g. unclosed quote, bare boolean
+                # operator) — return empty rather than propagating a crash.
+                return []
             results = [self._row_to_dict(r) for r in rows]
 
             if results:
