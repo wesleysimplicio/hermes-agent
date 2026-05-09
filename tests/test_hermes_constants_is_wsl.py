@@ -9,8 +9,14 @@ from hermes_constants import is_wsl
 
 
 @pytest.fixture(autouse=True)
-def _reset_cache(monkeypatch):
-    monkeypatch.setattr(hermes_constants, "_wsl_detected", None, raising=False)
+def _reset_cache():
+    # Force-clear any cached value from previous tests/workers and clear again
+    # after each test so we don't restore a stale True/False into the module.
+    hermes_constants._wsl_detected = None
+    is_wsl.__globals__["_wsl_detected"] = None
+    yield
+    hermes_constants._wsl_detected = None
+    is_wsl.__globals__["_wsl_detected"] = None
 
 
 class TestIsWsl:
