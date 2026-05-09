@@ -121,25 +121,25 @@ TypeScript test suite powered by [Vitest](https://vitest.dev). If you change
 anything under `ui-tui/src/`, run the suite locally before opening a PR:
 
 ```bash
-# From the repo root — pnpm picks up the workspace package automatically
-pnpm --filter @hermes/ui-tui test            # one-shot run
-pnpm --filter @hermes/ui-tui test:watch      # watch mode while iterating
+# From the repo root
+npm --prefix ui-tui test                     # one-shot run
+npm --prefix ui-tui run test:watch           # watch mode while iterating
 
 # Or from inside the package
 cd ui-tui
-pnpm test                                    # one-shot run
-pnpm vitest run src/__tests__/foo.test.ts    # single file
-pnpm vitest run -t "decideRightClickAction"  # by test name pattern
+npm test                                     # one-shot run
+npm test -- src/__tests__/foo.test.ts        # single file
+npm test -- -t "cursorLayout"                # by test name pattern
 ```
 
 Conventions used by the existing TUI tests:
 
 - Test files live in `ui-tui/src/__tests__/` with the `.test.ts` suffix and
-  are auto-discovered by `ui-tui/vitest.config.ts` — no need to register
-  them anywhere.
-- Prefer extracting pure helpers (e.g. `cursorLayout`, `lineNav`,
-  `decideRightClickAction`) and unit-testing them directly rather than
-  rendering the full Ink component. Tests stay fast and don't need a TTY.
+  are picked up by Vitest's default discovery; `ui-tui/vitest.config.ts`
+  only excludes `dist/` and `node_modules/`, so no registration is needed.
+- Prefer extracting pure helpers (e.g. `cursorLayout`, `lineNav`) and
+  unit-testing them directly rather than rendering the full Ink component.
+  Tests stay fast and don't need a TTY.
 - For composer/state behavior, exercise the corresponding `useComposerState`
   / `useInputHandlers` hooks; they have dedicated test files that work as
   templates.
