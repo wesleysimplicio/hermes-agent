@@ -5093,6 +5093,42 @@ class TestMemoryNudgeCounterPersistence:
         assert "self._turns_since_memory = 0" not in preamble
         assert "self._iters_since_skill = 0" not in preamble
 
+    def test_hydrates_counter_from_history_in_fresh_agent(self):
+        """Gateway sessions construct a fresh AIAgent per inbound message but
+        keep conversation_history alive across turns (#22357). Without
+        hydration the counter starts at 0 every turn and nudge_interval is
+        never reached. The hydration block must seed _turns_since_memory
+        from prior user turns when the counter is at its initial value."""
+        import inspect
+        src = inspect.getsource(AIAgent.run_conversation)
+        # The hydration block lives inside the memory-nudge gate, before
+        # the unconditional `self._turns_since_memory += 1`.
+        nudge_idx = src.index("self._turns_since_memory += 1")
+        # Capture a window large enough to contain the block (~1k chars back).
+        window = src[max(0, nudge_idx - 2000):nudge_idx]
+        assert "prior_user_turns" in window, (
+            "Counter hydration from conversation_history must precede the "
+            "increment so gateway sessions reach nudge_interval (#22357)."
+        )
+        # Modulo against nudge_interval keeps the counter bounded so a long
+        # backlog doesn't fire memory review for every subsequent turn.
+        assert "% self._memory_nudge_interval" in window
+
+    def test_hydration_guards_against_clobber_and_empty_history(self):
+        """Hydration must only fire when counter is at its initial value and
+        conversation_history is non-empty — otherwise it would clobber a
+        running counter or seed from nothing."""
+        import inspect
+        src = inspect.getsource(AIAgent.run_conversation)
+        nudge_idx = src.index("self._turns_since_memory += 1")
+        window = src[max(0, nudge_idx - 2000):nudge_idx]
+        assert "self._turns_since_memory == 0" in window, (
+            "Hydration guard missing: would clobber a counter the current "
+            "process has been incrementing."
+        )
+        # Truthiness check on conversation_history covers None and [].
+        assert "and conversation_history" in window
+
 
 class TestDeadRetryCode:
     """Unreachable retry_count >= max_retries after raise must not exist."""

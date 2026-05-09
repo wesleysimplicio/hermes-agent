@@ -11145,6 +11145,21 @@ class AIAgent:
         if (self._memory_nudge_interval > 0
                 and "memory" in self.valid_tool_names
                 and self._memory_store):
+            # Gateway / messaging-platform sessions construct a fresh AIAgent
+            # per inbound message while the conversation history persists.
+            # Without this hydration the counter starts at 0 every turn and
+            # nudge_interval is never reached (#22357). Only seed when the
+            # in-memory counter is at its initial value, so we never clobber
+            # a counter that the current process has been incrementing.
+            if self._turns_since_memory == 0 and conversation_history:
+                prior_user_turns = sum(
+                    1 for msg in conversation_history
+                    if isinstance(msg, dict) and msg.get("role") == "user"
+                )
+                if prior_user_turns > 0:
+                    self._turns_since_memory = (
+                        prior_user_turns % self._memory_nudge_interval
+                    )
             self._turns_since_memory += 1
             if self._turns_since_memory >= self._memory_nudge_interval:
                 _should_review_memory = True
