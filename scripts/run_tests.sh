@@ -63,6 +63,9 @@ while IFS='=' read -r name _; do
 done < <(env)
 
 # Unset HERMES_* behavioral vars too.
+# HERMES_CRON_SESSION is set by the scheduler when invoking jobs; if leaked
+# into pytest (e.g. running this script from a Hermes cron job) it flips
+# approval mode and makes interactive-callback tests fail.
 unset HERMES_YOLO_MODE HERMES_INTERACTIVE HERMES_QUIET HERMES_TOOL_PROGRESS \
       HERMES_TOOL_PROGRESS_MODE HERMES_MAX_ITERATIONS HERMES_SESSION_PLATFORM \
       HERMES_SESSION_CHAT_ID HERMES_SESSION_CHAT_NAME HERMES_SESSION_THREAD_ID \
@@ -70,7 +73,7 @@ unset HERMES_YOLO_MODE HERMES_INTERACTIVE HERMES_QUIET HERMES_TOOL_PROGRESS \
       HERMES_PLATFORM HERMES_INFERENCE_PROVIDER HERMES_MANAGED HERMES_DEV \
       HERMES_CONTAINER HERMES_EPHEMERAL_SYSTEM_PROMPT HERMES_TIMEZONE \
       HERMES_REDACT_SECRETS HERMES_BACKGROUND_NOTIFICATIONS HERMES_EXEC_ASK \
-      HERMES_HOME_MODE 2>/dev/null || true
+      HERMES_HOME_MODE HERMES_CRON_SESSION 2>/dev/null || true
 
 # Pin deterministic runtime.
 export TZ=UTC
