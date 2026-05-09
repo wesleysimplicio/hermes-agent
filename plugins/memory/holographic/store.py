@@ -171,10 +171,17 @@ class MemoryStore:
                 self._conn.commit()
                 fact_id: int = cur.lastrowid  # type: ignore[assignment]
             except sqlite3.IntegrityError:
-                # Duplicate content — return existing id
+                # Duplicate content — return existing id.
+                # Guard against the (rare) cross-process concurrent-delete case
+                # where the row is gone by the time we SELECT it.
                 row = self._conn.execute(
                     "SELECT fact_id FROM facts WHERE content = ?", (content,)
                 ).fetchone()
+                if row is None:
+                    raise RuntimeError(
+                        "Fact content violated UNIQUE constraint but the row "
+                        "could not be found; possible concurrent deletion."
+                    ) from None
                 return int(row["fact_id"])
 
             # Entity extraction and linking
@@ -295,10 +302,16 @@ class MemoryStore:
             # Recompute HRR vector if content changed
             if content is not None:
                 self._compute_hrr_vector(fact_id, content)
-            # Rebuild bank for relevant category
-            cat = category or self._conn.execute(
-                "SELECT category FROM facts WHERE fact_id = ?", (fact_id,)
-            ).fetchone()["category"]
+            # Rebuild bank for relevant category.
+            # Guard fetchone() — fact could be removed by a concurrent process
+            # between the initial existence check and this second SELECT.
+            if category is not None:
+                cat = category
+            else:
+                _cat_row = self._conn.execute(
+                    "SELECT category FROM facts WHERE fact_id = ?", (fact_id,)
+                ).fetchone()
+                cat = _cat_row["category"] if _cat_row is not None else "general"
             self._rebuild_bank(cat)
 
             return True
