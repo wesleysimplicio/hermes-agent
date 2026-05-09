@@ -42,9 +42,20 @@ fi
 PYTHON="$VENV/bin/python"
 
 # ── Ensure pytest-split is installed (required for shard-equivalent runs) ──
+# Declared in pyproject.toml's [project.optional-dependencies].dev — usually
+# already there. Bootstrap path covers older venvs and supports uv-created
+# venvs without pip (#22401).
 if ! "$PYTHON" -c "import pytest_split" 2>/dev/null; then
   echo "→ installing pytest-split into $VENV"
-  "$PYTHON" -m pip install --quiet "pytest-split>=0.9,<1"
+  if "$PYTHON" -m pip --version >/dev/null 2>&1; then
+    "$PYTHON" -m pip install --quiet "pytest-split>=0.9,<1"
+  elif command -v uv >/dev/null 2>&1; then
+    VIRTUAL_ENV="$VENV" uv pip install --quiet "pytest-split>=0.9,<1"
+  else
+    echo "error: cannot install pytest-split — venv has no pip and 'uv' is not on PATH" >&2
+    echo "       install it manually:  uv pip install --python '$PYTHON' 'pytest-split>=0.9,<1'" >&2
+    exit 1
+  fi
 fi
 
 # ── Hermetic environment ────────────────────────────────────────────────────
