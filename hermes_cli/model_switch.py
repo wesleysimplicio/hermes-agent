@@ -1644,6 +1644,24 @@ def list_authenticated_providers(
                     if m and m not in groups[group_key]["models"]:
                         groups[group_key]["models"].append(m)
 
+        # Multiple (base_url, api_key) groups can share the same base_url; if
+        # several were marked ``endpoint_is_current`` (URL match), keep at
+        # most one so the picker shows a single current row. Prefer the
+        # group containing ``current_model``; fall back to the first match.
+        _current_groups = [g for g in groups.values() if g.get("endpoint_is_current")]
+        if len(_current_groups) > 1:
+            preferred = None
+            if current_model:
+                for g in _current_groups:
+                    if current_model in g.get("models", []):
+                        preferred = g
+                        break
+            if preferred is None:
+                preferred = _current_groups[0]
+            for g in _current_groups:
+                if g is not preferred:
+                    g["endpoint_is_current"] = False
+
         _section4_emitted_slugs: set = set()
         for grp_key, grp in groups.items():
             api_url, api_key = grp_key
