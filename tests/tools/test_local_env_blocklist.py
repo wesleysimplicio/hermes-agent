@@ -299,6 +299,73 @@ class TestBlocklistCoverage:
         assert extras.issubset(_HERMES_PROVIDER_ENV_BLOCKLIST)
 
 
+class TestCloudCredentialBlocklist:
+    """Cloud provider credentials must not leak into subprocess env."""
+
+    def test_aws_credentials_blocked(self):
+        aws_vars = {
+            "AWS_ACCESS_KEY_ID": "AKIAIOSFODNN7EXAMPLE",
+            "AWS_SECRET_ACCESS_KEY": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "AWS_SESSION_TOKEN": "session-token-value",
+            "AWS_SECURITY_TOKEN": "security-token-value",
+        }
+        result_env = _run_with_env(extra_os_env=aws_vars)
+        for var in aws_vars:
+            assert var not in result_env, f"{var} leaked into subprocess env"
+
+    def test_azure_credentials_blocked(self):
+        azure_vars = {
+            "AZURE_CLIENT_SECRET": "azure-secret",
+            "AZURE_CLIENT_ID": "azure-client-id",
+            "AZURE_TENANT_ID": "azure-tenant-id",
+        }
+        result_env = _run_with_env(extra_os_env=azure_vars)
+        for var in azure_vars:
+            assert var not in result_env, f"{var} leaked into subprocess env"
+
+    def test_gcp_and_infra_credentials_blocked(self):
+        infra_vars = {
+            "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/key.json",
+            "KUBECONFIG": "/home/user/.kube/config",
+            "DOCKER_HOST": "tcp://localhost:2376",
+            "DOCKER_CERT_PATH": "/home/user/.docker/certs",
+            "NPM_TOKEN": "npm_token_value",
+            "PYPI_TOKEN": "pypi-token-value",
+            "SSH_AUTH_SOCK": "/run/user/1000/ssh-agent.socket",
+            "GPG_AGENT_INFO": "/run/user/1000/gnupg/S.gpg-agent:0:1",
+        }
+        result_env = _run_with_env(extra_os_env=infra_vars)
+        for var in infra_vars:
+            assert var not in result_env, f"{var} leaked into subprocess env"
+
+    def test_cloud_creds_in_blocklist_constant(self):
+        cloud_vars = {
+            "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN", "AWS_SECURITY_TOKEN",
+            "AZURE_CLIENT_SECRET", "AZURE_CLIENT_ID", "AZURE_TENANT_ID",
+            "GOOGLE_APPLICATION_CREDENTIALS", "KUBECONFIG",
+            "DOCKER_HOST", "DOCKER_CERT_PATH",
+            "NPM_TOKEN", "PYPI_TOKEN",
+            "SSH_AUTH_SOCK", "GPG_AGENT_INFO",
+        }
+        assert cloud_vars.issubset(_HERMES_PROVIDER_ENV_BLOCKLIST)
+
+
+class TestGitHardeningVars:
+    """GIT_TERMINAL_PROMPT must be set to 0 in all subprocess envs."""
+
+    def test_git_terminal_prompt_set_to_zero(self):
+        result_env = _run_with_env()
+        assert result_env.get("GIT_TERMINAL_PROMPT") == "0", (
+            "GIT_TERMINAL_PROMPT must be '0' to disable git credential prompts"
+        )
+
+    def test_git_terminal_prompt_not_overrideable_from_os(self):
+        """User env GIT_TERMINAL_PROMPT=1 must be overridden by hardening."""
+        result_env = _run_with_env(extra_os_env={"GIT_TERMINAL_PROMPT": "1"})
+        assert result_env.get("GIT_TERMINAL_PROMPT") == "0"
+
+
 class TestSanePathIncludesHomebrew:
     """Verify _SANE_PATH includes macOS Homebrew directories."""
 

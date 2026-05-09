@@ -133,6 +133,22 @@ def _build_provider_env_blocklist() -> frozenset:
         "MODAL_TOKEN_ID",
         "MODAL_TOKEN_SECRET",
         "DAYTONA_API_KEY",
+        # Cloud provider credentials
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "AWS_SECURITY_TOKEN",
+        "AZURE_CLIENT_SECRET",
+        "AZURE_CLIENT_ID",
+        "AZURE_TENANT_ID",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "KUBECONFIG",
+        "DOCKER_HOST",
+        "DOCKER_CERT_PATH",
+        "NPM_TOKEN",
+        "PYPI_TOKEN",
+        "SSH_AUTH_SOCK",
+        "GPG_AGENT_INFO",
         "VERCEL_OIDC_TOKEN",
         "VERCEL_TOKEN",
         "VERCEL_PROJECT_ID",
@@ -142,6 +158,12 @@ def _build_provider_env_blocklist() -> frozenset:
 
 
 _HERMES_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
+
+
+# Git hardening: disable credential prompts in all subprocesses.
+_GIT_HARDENING_VARS = {
+    "GIT_TERMINAL_PROMPT": "0",
+}
 
 
 def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = None) -> dict:
@@ -172,6 +194,8 @@ def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = Non
     if _profile_home:
         sanitized["HOME"] = _profile_home
 
+    # Apply git hardening: disable credential prompts in subprocesses
+    sanitized.update(_GIT_HARDENING_VARS)
     return sanitized
 
 
@@ -274,6 +298,8 @@ def _make_run_env(env: dict) -> dict:
     if _profile_home:
         run_env["HOME"] = _profile_home
 
+    # Apply git hardening: disable credential prompts in subprocesses
+    run_env.update(_GIT_HARDENING_VARS)
     return run_env
 
 
