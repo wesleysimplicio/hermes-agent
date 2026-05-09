@@ -560,3 +560,85 @@ class TestSessionSearch:
         assert entry["source"] == "api_server", (
             f"source should be parent's 'api_server', got {entry['source']!r}"
         )
+
+    def test_content_retrieved_from_fts5_child_not_resolved_parent(self):
+        """Regression for #22150: when FTS5 hits a child, content must come from the child.
+
+        Delegation/compression stores the matched conversation in the child session.
+        The resolved parent often does NOT contain the matched text. Calling
+        ``get_messages_as_conversation()`` with the parent SID returned the wrong
+        content. The fix preserves the original child SID for content retrieval
+        while still surfacing the resolved parent in the output ``session_id``
+        (per #15909).
+        """
+        from unittest.mock import MagicMock, AsyncMock, patch as _patch
+        from tools.session_search_tool import session_search
+
+        mock_db = MagicMock()
+        mock_db.search_messages.return_value = [
+            {
+                "session_id": "child_sid",
+                "content": "headless-chatgpt run",
+                "source": "cli",
+                "session_started": 1709400000,
+                "model": "test",
+            },
+        ]
+
+        def _get_session(session_id):
+            if session_id == "child_sid":
+                return {
+                    "id": "child_sid",
+                    "parent_session_id": "parent_sid",
+                    "source": "cli",
+                    "started_at": 1709400000,
+                    "model": "test",
+                }
+            if session_id == "parent_sid":
+                return {
+                    "id": "parent_sid",
+                    "parent_session_id": None,
+                    "source": "cli",
+                    "started_at": 1709300000,
+                    "model": "test",
+                }
+            return None
+
+        mock_db.get_session.side_effect = _get_session
+
+        # Different content per session — child has the FTS5 hit, parent doesn't.
+        def _conversation_for(session_id):
+            if session_id == "child_sid":
+                return [
+                    {"role": "user", "content": "run headless-chatgpt"},
+                    {"role": "assistant", "content": "headless-chatgpt running"},
+                ]
+            return [
+                {"role": "user", "content": "unrelated parent topic"},
+                {"role": "assistant", "content": "no match here"},
+            ]
+
+        mock_db.get_messages_as_conversation.side_effect = _conversation_for
+
+        with _patch(
+            "tools.session_search_tool.async_call_llm",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("no provider"),
+        ):
+            result = json.loads(session_search(query="headless-chatgpt", db=mock_db))
+
+        assert result["success"] is True
+        assert result["count"] == 1
+        # Output still surfaces the resolved parent (preserves #15909 contract).
+        assert result["results"][0]["session_id"] == "parent_sid"
+        # But content retrieval used the child SID — this is the #22150 fix.
+        called_sids = [
+            call.args[0] if call.args else call.kwargs.get("session_id")
+            for call in mock_db.get_messages_as_conversation.call_args_list
+        ]
+        assert "child_sid" in called_sids, (
+            f"content must be retrieved from FTS5 child sid; got calls {called_sids!r}"
+        )
+        assert "parent_sid" not in called_sids, (
+            f"must NOT retrieve content from resolved parent sid; got calls {called_sids!r}"
+        )

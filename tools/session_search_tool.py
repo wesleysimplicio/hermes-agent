@@ -416,6 +416,10 @@ def session_search(
         # session lineage. Compression and delegation create child sessions
         # that still belong to the same active conversation.
         seen_sessions = {}
+        # Map resolved parent sid → original FTS5 child sid for content lookup.
+        # The resolved parent may not contain the matched text — delegation/
+        # compression stores the actual conversation in the child (#22150).
+        content_source_sid = {}
         for result in raw_results:
             raw_sid = result["session_id"]
             resolved_sid = _resolve_to_parent(raw_sid)
@@ -429,6 +433,7 @@ def session_search(
                 result = dict(result)
                 result["session_id"] = resolved_sid
                 seen_sessions[resolved_sid] = result
+                content_source_sid[resolved_sid] = raw_sid
             if len(seen_sessions) >= limit:
                 break
 
@@ -436,7 +441,10 @@ def session_search(
         tasks = []
         for session_id, match_info in seen_sessions.items():
             try:
-                messages = db.get_messages_as_conversation(session_id)
+                # Fetch content from the FTS5-matched child, not the resolved
+                # parent — the parent may not contain the matched text (#22150).
+                content_sid = content_source_sid.get(session_id, session_id)
+                messages = db.get_messages_as_conversation(content_sid)
                 if not messages:
                     continue
                 session_meta = db.get_session(session_id) or {}
