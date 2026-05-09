@@ -483,8 +483,12 @@ def write_runtime_status(
     path = _get_runtime_status_path()
     payload = _read_json_file(path) or _build_runtime_status_record()
     payload.setdefault("platforms", {})
-    payload.setdefault("kind", _GATEWAY_KIND)
+    # Identity fields must be refreshed on every write — the previous payload
+    # may have been written by a different process (different argv after an
+    # upstream binary path change, e.g. brew → venv handoff in #22560).
+    payload["kind"] = _GATEWAY_KIND
     payload["pid"] = os.getpid()
+    payload["argv"] = list(sys.argv)
     payload["start_time"] = _get_process_start_time(os.getpid())
     payload["updated_at"] = _utc_now_iso()
 

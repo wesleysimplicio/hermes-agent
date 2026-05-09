@@ -287,6 +287,35 @@ class TestGatewayRuntimeStatus:
         assert payload["pid"] == os.getpid(), "PID should be overwritten, not preserved via setdefault"
         assert payload["start_time"] != 1000.0, "start_time should be overwritten on restart"
 
+    def test_write_runtime_status_overwrites_stale_argv_on_restart(self, tmp_path, monkeypatch):
+        """Regression #22560: argv preserved across restarts even after the
+        upstream binary path changed (e.g. brew uninstall → venv handoff)."""
+        import sys
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+
+        # Simulate a state file written by a previous process whose argv[0]
+        # points at a binary path that no longer exists.
+        stale_argv = ["/opt/homebrew/bin/hermes", "gateway", "run"]
+        state_path = tmp_path / "gateway_state.json"
+        state_path.write_text(json.dumps({
+            "pid": 99999,
+            "start_time": 1000.0,
+            "kind": "hermes-gateway",
+            "argv": stale_argv,
+            "platforms": {},
+            "updated_at": "2025-01-01T00:00:00Z",
+        }))
+
+        status.write_runtime_status(gateway_state="running")
+
+        payload = status.read_runtime_status()
+        assert payload["argv"] == list(sys.argv), (
+            "argv should reflect the running process's sys.argv, not stale "
+            "metadata inherited from a prior process"
+        )
+        assert payload["argv"] != stale_argv
+
     def test_write_runtime_status_records_platform_failure(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
 
