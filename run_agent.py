@@ -544,7 +544,7 @@ def _trajectory_normalize_msg(msg: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(content, list):
         cleaned = []
         for p in content:
-            if isinstance(p, dict) and p.get("type") in ("image", "image_url", "input_image"):
+            if isinstance(p, dict) and p.get("type") in {"image", "image_url", "input_image"}:
                 cleaned.append({"type": "text", "text": "[screenshot]"})
             else:
                 cleaned.append(p)
@@ -908,7 +908,7 @@ def _strip_images_from_messages(messages: list) -> bool:
             continue
         new_parts = []
         for part in content:
-            if isinstance(part, dict) and part.get("type") in ("image_url", "image", "input_image"):
+            if isinstance(part, dict) and part.get("type") in {"image_url", "image", "input_image"}:
                 found = True
             else:
                 new_parts.append(part)
@@ -1393,13 +1393,28 @@ class AIAgent:
         # 1h tier costs 2x on write vs 1.25x for 5m, but amortizes across long
         # sessions with >5-minute pauses between turns (#14971).
         self._cache_ttl = "5m"
+        # Long-lived prefix caching: when enabled and supported by the
+        # current provider, splits the system prompt into a stable prefix
+        # (cached cross-session at 1h TTL) and a volatile suffix
+        # (memory/timestamp — never cached), and attaches a 1h cache_control
+        # marker to the last tool in the schema array.  Restricted to
+        # Claude on Anthropic / OpenRouter / Nous Portal; see
+        # ``_supports_long_lived_anthropic_cache``.
+        self._use_long_lived_prefix_cache = False
+        self._long_lived_cache_ttl = "1h"
         try:
             from hermes_cli.config import load_config as _load_pc_cfg
 
             _pc_cfg = _load_pc_cfg().get("prompt_caching", {}) or {}
             _ttl = _pc_cfg.get("cache_ttl", "5m")
-            if _ttl in ("5m", "1h"):
+            if _ttl in {"5m", "1h"}:
                 self._cache_ttl = _ttl
+            _ll_enabled = _pc_cfg.get("long_lived_prefix", True)
+            _ll_ttl = _pc_cfg.get("long_lived_ttl", "1h")
+            if _ll_ttl in ("5m", "1h"):
+                self._long_lived_cache_ttl = _ll_ttl
+            if _ll_enabled and self._use_prompt_caching and self._supports_long_lived_anthropic_cache():
+                self._use_long_lived_prefix_cache = True
         except Exception:
             pass
 
@@ -1438,19 +1453,18 @@ class AIAgent:
         if self.verbose_logging:
             setup_verbose_logging()
             logger.info("Verbose logging enabled (third-party library logs suppressed)")
-        else:
-            if self.quiet_mode:
-                # In quiet mode (CLI default), keep console output clean —
-                # but DO NOT raise per-logger levels. Doing so prevents the
-                # root logger's file handlers (agent.log, errors.log) from
-                # ever seeing the records, because Python checks
-                # logger.isEnabledFor() before handler propagation. We rely
-                # on the fact that hermes_logging.setup_logging() does not
-                # install a console StreamHandler in quiet mode — so INFO
-                # records flow to the file handlers but never reach a
-                # console. Any future noise reduction belongs at the
-                # handler level inside hermes_logging.py, not here.
-                pass
+        elif self.quiet_mode:
+            # In quiet mode (CLI default), keep console output clean —
+            # but DO NOT raise per-logger levels. Doing so prevents the
+            # root logger's file handlers (agent.log, errors.log) from
+            # ever seeing the records, because Python checks
+            # logger.isEnabledFor() before handler propagation. We rely
+            # on the fact that hermes_logging.setup_logging() does not
+            # install a console StreamHandler in quiet mode — so INFO
+            # records flow to the file handlers but never reach a
+            # console. Any future noise reduction belongs at the
+            # handler level inside hermes_logging.py, not here.
+            pass
         
         # Internal stream callback (set during streaming TTS).
         # Initialized here so _vprint can reference it before run_conversation.
@@ -1646,7 +1660,7 @@ class AIAgent:
                     # but no credentials were found, fail fast with a clear
                     # message instead of silently routing through OpenRouter.
                     _explicit = (self.provider or "").strip().lower()
-                    if _explicit and _explicit not in ("auto", "openrouter", "custom"):
+                    if _explicit and _explicit not in {"auto", "openrouter", "custom"}:
                         # Look up the actual env var name from the provider
                         # config — some providers use non-standard names
                         # (e.g. alibaba → DASHSCOPE_API_KEY, not ALIBABA_API_KEY).
@@ -1828,7 +1842,20 @@ class AIAgent:
             timestamp_str = self.session_start.strftime("%Y%m%d_%H%M%S")
             short_uuid = uuid.uuid4().hex[:6]
             self.session_id = f"{timestamp_str}_{short_uuid}"
-        
+
+        # Expose session ID to tools (terminal, execute_code) so agents can
+        # reference their own session for --resume commands, cross-session
+        # coordination, and logging.  Uses the ContextVar system from
+        # session_context.py for concurrency safety (gateway runs multiple
+        # sessions in one process).  Also writes os.environ as fallback for
+        # CLI mode where ContextVars aren't used.
+        os.environ["HERMES_SESSION_ID"] = self.session_id
+        try:
+            from gateway.session_context import _SESSION_ID
+            _SESSION_ID.set(self.session_id)
+        except Exception:
+            pass  # CLI/test mode — ContextVar not needed
+
         # Session logs go into ~/.hermes/sessions/ alongside gateway sessions
         hermes_home = get_hermes_home()
         self.logs_dir = hermes_home / "sessions"
@@ -2025,8 +2052,7 @@ class AIAgent:
         try:
             _raw_api_retries = _agent_section.get("api_max_retries", 3)
             _api_retries = int(_raw_api_retries)
-            if _api_retries < 1:
-                _api_retries = 1  # 1 = no retry (single attempt)
+            _api_retries = max(_api_retries, 1)  # 1 = no retry (single attempt)
         except (TypeError, ValueError):
             _api_retries = 3
         self._api_max_retries = _api_retries
@@ -2045,7 +2071,7 @@ class AIAgent:
                 compression_threshold = _model_cthresh
         except Exception:
             pass
-        compression_enabled = str(_compression_cfg.get("enabled", True)).lower() in ("true", "1", "yes")
+        compression_enabled = str(_compression_cfg.get("enabled", True)).lower() in {"true", "1", "yes"}
         compression_target_ratio = float(_compression_cfg.get("target_ratio", 0.20))
         compression_protect_last = int(_compression_cfg.get("protect_last_n", 20))
 
@@ -2402,6 +2428,7 @@ class AIAgent:
             "client_kwargs": dict(self._client_kwargs),
             "use_prompt_caching": self._use_prompt_caching,
             "use_native_cache_layout": self._use_native_cache_layout,
+            "use_long_lived_prefix_cache": self._use_long_lived_prefix_cache,
             # Context engine state that _try_activate_fallback() overwrites.
             # Use getattr for model/base_url/api_key/provider since plugin
             # engines may not have these (they're ContextCompressor-specific).
@@ -2559,7 +2586,7 @@ class AIAgent:
         # tests) can't reintroduce the double-/v1 404 bug.
         if (
             api_mode == "anthropic_messages"
-            and new_provider in ("opencode-zen", "opencode-go")
+            and new_provider in {"opencode-zen", "opencode-go"}
             and isinstance(base_url, str)
             and base_url
         ):
@@ -2632,6 +2659,15 @@ class AIAgent:
                 model=new_model,
             )
         )
+        self._use_long_lived_prefix_cache = bool(
+            self._use_prompt_caching
+            and self._supports_long_lived_anthropic_cache(
+                provider=new_provider,
+                base_url=self.base_url,
+                api_mode=api_mode,
+                model=new_model,
+            )
+        )
 
         # ── LM Studio: preload before probing context length ──
         self._ensure_lmstudio_runtime_loaded()
@@ -2680,6 +2716,7 @@ class AIAgent:
             "client_kwargs": dict(self._client_kwargs),
             "use_prompt_caching": self._use_prompt_caching,
             "use_native_cache_layout": self._use_native_cache_layout,
+            "use_long_lived_prefix_cache": self._use_long_lived_prefix_cache,
             "compressor_model": getattr(_cc, "model", self.model) if _cc else self.model,
             "compressor_base_url": getattr(_cc, "base_url", self.base_url) if _cc else self.base_url,
             "compressor_api_key": getattr(_cc, "api_key", "") if _cc else "",
@@ -3428,6 +3465,10 @@ class AIAgent:
         provider_lower = eff_provider.lower()
         is_claude = "claude" in model_lower
         is_openrouter = base_url_host_matches(eff_base_url, "openrouter.ai")
+        # Nous Portal proxies to OpenRouter behind the scenes — identical
+        # OpenAI-wire envelope cache_control semantics. Treat it as an
+        # OpenRouter-equivalent endpoint for caching layout purposes.
+        is_nous_portal = "nousresearch" in eff_base_url.lower()
         is_anthropic_wire = eff_api_mode == "anthropic_messages"
         is_native_anthropic = (
             is_anthropic_wire
@@ -3436,7 +3477,7 @@ class AIAgent:
 
         if is_native_anthropic:
             return True, True
-        if is_openrouter and is_claude:
+        if (is_openrouter or is_nous_portal) and is_claude:
             return True, False
         if is_anthropic_wire and is_claude:
             # Third-party Anthropic-compatible gateway.
@@ -3476,6 +3517,61 @@ class AIAgent:
             return True, False
 
         return False, False
+
+    def _supports_long_lived_anthropic_cache(
+        self,
+        *,
+        provider: Optional[str] = None,
+        base_url: Optional[str] = None,
+        api_mode: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> bool:
+        """Decide whether the long-lived (1h cross-session) cache layout applies.
+
+        Narrower than ``_anthropic_prompt_cache_policy`` — only enabled
+        for Claude models on the four endpoints whose cross-session
+        cache_control behavior we have explicitly validated:
+
+          * Native Anthropic API (``api_mode == 'anthropic_messages'`` +
+            host ``api.anthropic.com``)
+          * Anthropic OAuth subscription (same transport as native API)
+          * OpenRouter (``base_url`` contains ``openrouter.ai``)
+          * Nous Portal (``base_url`` contains ``nousresearch`` — proxies
+            to OpenRouter, so identical wire-format)
+
+        All four honour ``cache_control`` on both the tools array and the
+        first system content block, and bill cross-session cache reads at
+        the documented 0.1× rate.
+
+        Other endpoints covered by the standard ``system_and_3`` policy
+        (third-party Anthropic gateways, MiniMax, opencode-go Qwen, etc.)
+        keep that layout — they support cache_control but their behavior
+        with mixed-TTL multi-block system content has not been validated
+        against this codebase.
+        """
+        eff_provider = (provider if provider is not None else self.provider) or ""
+        eff_base_url = base_url if base_url is not None else (self.base_url or "")
+        eff_api_mode = api_mode if api_mode is not None else (self.api_mode or "")
+        eff_model = (model if model is not None else self.model) or ""
+
+        if "claude" not in eff_model.lower():
+            return False
+
+        # Native Anthropic + Anthropic OAuth subscription
+        if eff_api_mode == "anthropic_messages":
+            if eff_provider == "anthropic" or base_url_hostname(eff_base_url) == "api.anthropic.com":
+                return True
+
+        # OpenRouter
+        if base_url_host_matches(eff_base_url, "openrouter.ai"):
+            return True
+
+        # Nous Portal — front-ends OpenRouter behind the scenes; identical
+        # wire format and cache_control semantics.
+        if "nousresearch" in eff_base_url.lower():
+            return True
+
+        return False
 
     @staticmethod
     def _model_requires_responses_api(model: str) -> bool:
@@ -4296,7 +4392,7 @@ class AIAgent:
             metadata["task_id"] = task_id
         if tool_call_id:
             metadata["tool_call_id"] = tool_call_id
-        return {k: v for k, v in metadata.items() if v not in (None, "")}
+        return {k: v for k, v in metadata.items() if v not in {None, ""}}
 
     def _apply_persist_user_message_override(self, messages: List[Dict]) -> None:
         """Rewrite the current-turn user message before persistence/return.
@@ -4510,7 +4606,7 @@ class AIAgent:
                     for p in content:
                         if isinstance(p, dict) and p.get("type") == "text":
                             _txt.append(str(p.get("text", "")))
-                        elif isinstance(p, dict) and p.get("type") in ("image", "image_url", "input_image"):
+                        elif isinstance(p, dict) and p.get("type") in {"image", "image_url", "input_image"}:
                             _txt.append("[screenshot]")
                     content = "\n".join(_txt) if _txt else None
                 tool_calls_data = None
@@ -4869,11 +4965,11 @@ class AIAgent:
                 context["message"] = message.strip()
             for key in ("resets_at", "reset_at"):
                 value = payload.get(key)
-                if value not in (None, ""):
+                if value not in {None, ""}:
                     context["reset_at"] = value
                     break
             retry_after = payload.get("retry_after")
-            if retry_after not in (None, "") and "reset_at" not in context:
+            if retry_after not in {None, ""} and "reset_at" not in context:
                 try:
                     context["reset_at"] = time.time() + float(retry_after)
                 except (TypeError, ValueError):
@@ -5624,22 +5720,24 @@ class AIAgent:
 
 
 
+    def _build_system_prompt_segments(self, system_message: str = None) -> List[ContextSegment]:
+        """Build ordered system-prompt segments for stable-prefix rendering.
 
-    def _build_system_prompt(self, system_message: str = None) -> str:
+        The returned order is cache-friendly: stable identity/guidance first,
+        then session-stable context files, then volatile content (memory,
+        timestamp). This preserves the stable-context-prefix feature from this
+        branch while also giving ``_build_system_prompt_parts()`` enough
+        structure to split the prompt for Anthropic long-lived prefix caching.
         """
-        Assemble the full system prompt from all layers.
-
-        Called once per session (cached on self._cached_system_prompt) and only
-        rebuilt after context compression events. This ensures the system prompt
-        is stable across all turns in a session, maximizing prefix cache hits.
-        """
-        segments = []
+        stable_segments: List[ContextSegment] = []
+        context_segments: List[ContextSegment] = []
+        volatile_segments: List[ContextSegment] = []
 
         _soul_loaded = False
         if self.load_soul_identity or not self.skip_context_files:
             _soul_content = load_soul_md()
             if _soul_content:
-                segments.append(
+                stable_segments.append(
                     ContextSegment(
                         name="agent_identity",
                         kind=ContextSegmentKind.AGENT_IDENTITY,
@@ -5649,7 +5747,7 @@ class AIAgent:
                 _soul_loaded = True
 
         if not _soul_loaded:
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="agent_identity",
                     kind=ContextSegmentKind.AGENT_IDENTITY,
@@ -5657,7 +5755,7 @@ class AIAgent:
                 )
             )
 
-        segments.append(
+        stable_segments.append(
             ContextSegment(
                 name="hermes_help_guidance",
                 kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
@@ -5675,7 +5773,7 @@ class AIAgent:
         if "kanban_show" in self.valid_tool_names:
             tool_guidance.append(KANBAN_GUIDANCE)
         if tool_guidance:
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="tool_guidance",
                     kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
@@ -5686,7 +5784,7 @@ class AIAgent:
         if "computer_use" in self.valid_tool_names:
             from agent.prompt_builder import COMPUTER_USE_GUIDANCE
 
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="computer_use_guidance",
                     kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
@@ -5696,7 +5794,7 @@ class AIAgent:
 
         nous_subscription_prompt = build_nous_subscription_prompt(self.valid_tool_names)
         if nous_subscription_prompt:
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="nous_subscription_prompt",
                     kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
@@ -5704,12 +5802,19 @@ class AIAgent:
                 )
             )
 
+        # Tool-use enforcement: tells the model to actually call tools instead
+        # of describing intended actions. Controlled by config.yaml
+        # agent.tool_use_enforcement:
+        #   "auto" (default) — matches TOOL_USE_ENFORCEMENT_MODELS
+        #   true  — always inject (all models)
+        #   false — never inject
+        #   list  — custom model-name substrings to match
         if self.valid_tool_names:
             _enforce = self._tool_use_enforcement
             _inject = False
-            if _enforce is True or (isinstance(_enforce, str) and _enforce.lower() in ("true", "always", "yes", "on")):
+            if _enforce is True or (isinstance(_enforce, str) and _enforce.lower() in {"true", "always", "yes", "on"}):
                 _inject = True
-            elif _enforce is False or (isinstance(_enforce, str) and _enforce.lower() in ("false", "never", "no", "off")):
+            elif _enforce is False or (isinstance(_enforce, str) and _enforce.lower() in {"false", "never", "no", "off"}):
                 _inject = False
             elif isinstance(_enforce, list):
                 model_lower = (self.model or "").lower()
@@ -5718,7 +5823,7 @@ class AIAgent:
                 model_lower = (self.model or "").lower()
                 _inject = any(p in model_lower for p in TOOL_USE_ENFORCEMENT_MODELS)
             if _inject:
-                segments.append(
+                stable_segments.append(
                     ContextSegment(
                         name="tool_use_enforcement",
                         kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
@@ -5727,66 +5832,23 @@ class AIAgent:
                 )
                 _model_lower = (self.model or "").lower()
                 if "gemini" in _model_lower or "gemma" in _model_lower:
-                    segments.append(
+                    stable_segments.append(
                         ContextSegment(
                             name="google_model_operational_guidance",
                             kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
                             content=GOOGLE_MODEL_OPERATIONAL_GUIDANCE,
                         )
                     )
+                # OpenAI GPT/Codex execution discipline (tool persistence,
+                # prerequisite checks, verification, anti-hallucination).
                 if "gpt" in _model_lower or "codex" in _model_lower:
-                    segments.append(
+                    stable_segments.append(
                         ContextSegment(
                             name="openai_model_execution_guidance",
                             kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
                             content=OPENAI_MODEL_EXECUTION_GUIDANCE,
                         )
                     )
-
-        if system_message is not None:
-            segments.append(
-                ContextSegment(
-                    name="system_message",
-                    kind=ContextSegmentKind.SYSTEM,
-                    content=system_message,
-                )
-            )
-
-        if self._memory_store:
-            if self._memory_enabled:
-                mem_block = self._memory_store.format_for_system_prompt("memory")
-                if mem_block:
-                    segments.append(
-                        ContextSegment(
-                            name="memory",
-                            kind=ContextSegmentKind.MEMORY,
-                            content=mem_block,
-                        )
-                    )
-            if self._user_profile_enabled:
-                user_block = self._memory_store.format_for_system_prompt("user")
-                if user_block:
-                    segments.append(
-                        ContextSegment(
-                            name="user_profile",
-                            kind=ContextSegmentKind.MEMORY,
-                            content=user_block,
-                        )
-                    )
-
-        if self._memory_manager:
-            try:
-                _ext_mem_block = self._memory_manager.build_system_prompt()
-                if _ext_mem_block:
-                    segments.append(
-                        ContextSegment(
-                            name="external_memory",
-                            kind=ContextSegmentKind.MEMORY,
-                            content=_ext_mem_block,
-                        )
-                    )
-            except Exception:
-                pass
 
         has_skills_tools = any(name in self.valid_tool_names for name in ["skills_list", "skill_view", "skill_manage"])
         if has_skills_tools:
@@ -5804,7 +5866,7 @@ class AIAgent:
         else:
             skills_prompt = ""
         if skills_prompt:
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="skills",
                     kind=ContextSegmentKind.SKILLS,
@@ -5812,38 +5874,14 @@ class AIAgent:
                 )
             )
 
-        if not self.skip_context_files:
-            _context_cwd = os.getenv("TERMINAL_CWD") or None
-            context_files_prompt = build_context_files_prompt(cwd=_context_cwd, skip_soul=_soul_loaded)
-            if context_files_prompt:
-                segments.append(
-                    ContextSegment(
-                        name="context_files",
-                        kind=ContextSegmentKind.CONTEXT_FILES,
-                        content=context_files_prompt,
-                    )
-                )
-
-        from hermes_time import now as _hermes_now
-        now = _hermes_now()
-        timestamp_line = f"Conversation started: {now.strftime('%A, %B %d, %Y %I:%M %p')}"
-        if self.pass_session_id and self.session_id:
-            timestamp_line += f"\nSession ID: {self.session_id}"
-        if self.model:
-            timestamp_line += f"\nModel: {self.model}"
-        if self.provider:
-            timestamp_line += f"\nProvider: {self.provider}"
-        segments.append(
-            ContextSegment(
-                name="timestamp",
-                kind=ContextSegmentKind.TIMESTAMP,
-                content=timestamp_line,
-            )
-        )
-
+        # Alibaba Coding Plan API always returns "glm-4.7" as model name regardless
+        # of the requested model. Inject explicit model identity into the system prompt
+        # so the agent can correctly report which model it is (workaround for API bug).
+        # Stable for the lifetime of an agent instance — model and provider are fixed
+        # at construction time.
         if self.provider == "alibaba":
             _model_short = self.model.split("/")[-1] if "/" in self.model else self.model
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="alibaba_model_identity",
                     kind=ContextSegmentKind.AGENT_INSTRUCTIONS,
@@ -5858,7 +5896,7 @@ class AIAgent:
 
         _env_hints = build_environment_hints()
         if _env_hints:
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="environment_hints",
                     kind=ContextSegmentKind.ENVIRONMENT,
@@ -5879,7 +5917,7 @@ class AIAgent:
             except Exception:
                 pass
         if platform_hint:
-            segments.append(
+            stable_segments.append(
                 ContextSegment(
                     name="platform_hint",
                     kind=ContextSegmentKind.PLATFORM,
@@ -5887,12 +5925,152 @@ class AIAgent:
                 )
             )
 
+        if system_message is not None:
+            context_segments.append(
+                ContextSegment(
+                    name="system_message",
+                    kind=ContextSegmentKind.SYSTEM,
+                    content=system_message,
+                )
+            )
+
+        if not self.skip_context_files:
+            _context_cwd = os.getenv("TERMINAL_CWD") or None
+            context_files_prompt = build_context_files_prompt(cwd=_context_cwd, skip_soul=_soul_loaded)
+            if context_files_prompt:
+                context_segments.append(
+                    ContextSegment(
+                        name="context_files",
+                        kind=ContextSegmentKind.CONTEXT_FILES,
+                        content=context_files_prompt,
+                    )
+                )
+
+        if self._memory_store:
+            if self._memory_enabled:
+                mem_block = self._memory_store.format_for_system_prompt("memory")
+                if mem_block:
+                    volatile_segments.append(
+                        ContextSegment(
+                            name="memory",
+                            kind=ContextSegmentKind.MEMORY,
+                            content=mem_block,
+                            stable=False,
+                        )
+                    )
+            if self._user_profile_enabled:
+                user_block = self._memory_store.format_for_system_prompt("user")
+                if user_block:
+                    volatile_segments.append(
+                        ContextSegment(
+                            name="user_profile",
+                            kind=ContextSegmentKind.MEMORY,
+                            content=user_block,
+                            stable=False,
+                        )
+                    )
+
+        if self._memory_manager:
+            try:
+                _ext_mem_block = self._memory_manager.build_system_prompt()
+                if _ext_mem_block:
+                    volatile_segments.append(
+                        ContextSegment(
+                            name="external_memory",
+                            kind=ContextSegmentKind.MEMORY,
+                            content=_ext_mem_block,
+                            stable=False,
+                        )
+                    )
+            except Exception:
+                pass
+
+        from hermes_time import now as _hermes_now
+        now = _hermes_now()
+        timestamp_line = f"Conversation started: {now.strftime('%A, %B %d, %Y %I:%M %p')}"
+        if self.pass_session_id and self.session_id:
+            timestamp_line += f"\nSession ID: {self.session_id}"
+        if self.model:
+            timestamp_line += f"\nModel: {self.model}"
+        if self.provider:
+            timestamp_line += f"\nProvider: {self.provider}"
+        volatile_segments.append(
+            ContextSegment(
+                name="timestamp",
+                kind=ContextSegmentKind.TIMESTAMP,
+                content=timestamp_line,
+                stable=False,
+            )
+        )
+
+        return stable_segments + context_segments + volatile_segments
+
+    @staticmethod
+    def _split_system_prompt_segments(segments: List[ContextSegment]) -> Dict[str, str]:
+        """Collapse prompt segments into stable/context/volatile text blocks."""
+        stable_parts: List[str] = []
+        context_parts: List[str] = []
+        volatile_parts: List[str] = []
+
+        for segment in segments:
+            content = (segment.content or "").strip()
+            if not content:
+                continue
+            if segment.kind in {ContextSegmentKind.SYSTEM, ContextSegmentKind.CONTEXT_FILES}:
+                context_parts.append(content)
+            elif segment.kind in {ContextSegmentKind.MEMORY, ContextSegmentKind.TIMESTAMP}:
+                volatile_parts.append(content)
+            else:
+                stable_parts.append(content)
+
+        return {
+            "stable": "\n\n".join(stable_parts),
+            "context": "\n\n".join(context_parts),
+            "volatile": "\n\n".join(volatile_parts),
+        }
+
+    def _build_system_prompt_parts(self, system_message: str = None) -> Dict[str, str]:
+        """Assemble the system prompt as three ordered parts.
+
+        Returns a dict with three keys:
+          * ``stable``  — content that is byte-stable across sessions for a
+            given user config: identity, tool guidance, skills prompt,
+            environment hints, platform hints, model-family operational
+            guidance. Eligible for cross-session 1h prompt caching when
+            placed as a separate Anthropic content block (see
+            ``apply_anthropic_cache_control_long_lived``).
+          * ``context`` — context files (AGENTS.md, .cursorrules, etc.) and
+            caller-supplied system_message. Stable within a session but may
+            change between sessions when files are edited or the cwd differs.
+          * ``volatile`` — content that changes on most turns/sessions:
+            memory snapshot, user profile, external memory provider block,
+            timestamp line. Never marked for caching.
+        """
+        segments = self._build_system_prompt_segments(system_message=system_message)
+        return self._split_system_prompt_segments(segments)
+
+    def _build_system_prompt(self, system_message: str = None) -> str:
+        """
+        Assemble the full system prompt from all layers.
+
+        Called once per session (cached on self._cached_system_prompt) and only
+        rebuilt after context compression events. This ensures the system prompt
+        is stable across all turns in a session, maximizing prefix cache hits.
+
+        Layers are ordered cache-friendly: stable identity/guidance first,
+        then session-stable context files, then per-call volatile content
+        (memory, USER profile, timestamp). The split is exposed via
+        ``_build_system_prompt_parts`` for the long-lived prompt-caching
+        path (Claude on Anthropic / OpenRouter / Nous Portal).
+        """
+        segments = self._build_system_prompt_segments(system_message=system_message)
         if self._stable_context_prefix_enabled:
             if self._stable_context_render_segments:
                 return self._stable_context_builder.build(segments)
             return self._stable_context_builder.build_plain(segments)
 
-        return "\n\n".join(segment.content.strip() for segment in segments if segment.content.strip())
+        parts = self._split_system_prompt_segments(segments)
+        return "\n\n".join(p for p in (parts["stable"], parts["context"], parts["volatile"]) if p)
 
     # =========================================================================
     # Pre/post-call guardrails (inspired by PR #1321 — @alireza78a)
@@ -6028,7 +6206,7 @@ class AIAgent:
                         return False
                     continue
                 btype = block.get("type")
-                if btype in ("thinking", "redacted_thinking"):
+                if btype in {"thinking", "redacted_thinking"}:
                     continue
                 if btype == "text":
                     text = block.get("text", "")
@@ -6758,7 +6936,7 @@ class AIAgent:
                             if done_item is not None:
                                 collected_output_items.append(done_item)
                         # Log non-completed terminal events for diagnostics
-                        elif event_type in ("response.incomplete", "response.failed"):
+                        elif event_type in {"response.incomplete", "response.failed"}:
                             resp_obj = getattr(event, "response", None)
                             status = getattr(resp_obj, "status", None) if resp_obj else None
                             incomplete_details = getattr(resp_obj, "incomplete_details", None) if resp_obj else None
@@ -6860,7 +7038,7 @@ class AIAgent:
                         done_item = event.get("item")
                     if done_item is not None:
                         collected_output_items.append(done_item)
-                elif event_type in ("response.output_text.delta",):
+                elif event_type in {"response.output_text.delta",}:
                     delta = getattr(event, "delta", "")
                     if not delta and isinstance(event, dict):
                         delta = event.get("delta", "")
@@ -7156,7 +7334,7 @@ class AIAgent:
                 effective_reason = FailoverReason.billing
             elif status_code == 429:
                 effective_reason = FailoverReason.rate_limit
-            elif status_code in (401, 403):
+            elif status_code in {401, 403}:
                 effective_reason = FailoverReason.auth
 
         if effective_reason == FailoverReason.billing:
@@ -7819,24 +7997,23 @@ class AIAgent:
                         _fire_first_delta()
                         self._fire_stream_delta(delta.content)
                         deltas_were_sent["yes"] = True
-                    else:
-                        # Tool calls suppress regular content streaming (avoids
-                        # displaying chatty "I'll use the tool..." text alongside
-                        # tool calls).  But reasoning tags embedded in suppressed
-                        # content should still reach the display — otherwise the
-                        # reasoning box only appears as a post-response fallback,
-                        # rendering it confusingly after the already-streamed
-                        # response.  Route suppressed content through the stream
-                        # delta callback so its tag extraction can fire the
-                        # reasoning display.  Non-reasoning text is harmlessly
-                        # suppressed by the CLI's _stream_delta when the stream
-                        # box is already closed (tool boundary flush).
-                        if self.stream_delta_callback:
-                            try:
-                                self.stream_delta_callback(delta.content)
-                                self._record_streamed_assistant_text(delta.content)
-                            except Exception:
-                                pass
+                    # Tool calls suppress regular content streaming (avoids
+                    # displaying chatty "I'll use the tool..." text alongside
+                    # tool calls).  But reasoning tags embedded in suppressed
+                    # content should still reach the display — otherwise the
+                    # reasoning box only appears as a post-response fallback,
+                    # rendering it confusingly after the already-streamed
+                    # response.  Route suppressed content through the stream
+                    # delta callback so its tag extraction can fire the
+                    # reasoning display.  Non-reasoning text is harmlessly
+                    # suppressed by the CLI's _stream_delta when the stream
+                    # box is already closed (tool boundary flush).
+                    elif self.stream_delta_callback:
+                        try:
+                            self.stream_delta_callback(delta.content)
+                            self._record_streamed_assistant_text(delta.content)
+                        except Exception:
+                            pass
 
                 # Accumulate tool call deltas — notify display on first name
                 if delta and delta.tool_calls:
@@ -8478,7 +8655,7 @@ class AIAgent:
         auth resolution and client construction — no duplicated provider→key
         mappings.
         """
-        if reason in (FailoverReason.rate_limit, FailoverReason.billing):
+        if reason in {FailoverReason.rate_limit, FailoverReason.billing}:
             # Only start cooldown when leaving the primary provider.  If we're
             # already on a fallback and chain-switching, the primary wasn't the
             # source of the 429 so the cooldown should not be reset/extended.
@@ -8651,6 +8828,15 @@ class AIAgent:
                     model=fb_model,
                 )
             )
+            self._use_long_lived_prefix_cache = bool(
+                self._use_prompt_caching
+                and self._supports_long_lived_anthropic_cache(
+                    provider=fb_provider,
+                    base_url=fb_base_url,
+                    api_mode=fb_api_mode,
+                    model=fb_model,
+                )
+            )
 
             # LM Studio: preload before probing the fallback's context length.
             self._ensure_lmstudio_runtime_loaded()
@@ -8726,6 +8912,16 @@ class AIAgent:
             self._use_native_cache_layout = rt.get(
                 "use_native_cache_layout",
                 self.api_mode == "anthropic_messages" and self.provider == "anthropic",
+            )
+            # Long-lived prefix flag was added later — restore False on
+            # snapshots predating the new field, then re-evaluate against
+            # the restored provider/model in case the user had it enabled.
+            self._use_long_lived_prefix_cache = rt.get(
+                "use_long_lived_prefix_cache",
+                bool(
+                    self._use_prompt_caching
+                    and self._supports_long_lived_anthropic_cache()
+                ),
             )
 
             # ── Rebuild client for the primary provider ──
@@ -8804,7 +9000,7 @@ class AIAgent:
         if self._is_openrouter_url():
             return False
         provider_lower = (self.provider or "").strip().lower()
-        if provider_lower in ("nous", "nous-research"):
+        if provider_lower in {"nous", "nous-research"}:
             return False
 
         try:
@@ -8884,8 +9080,17 @@ class AIAgent:
             "image/jpg": ".jpg",
         }.get(mime, ".jpg")
         tmp = tempfile.NamedTemporaryFile(prefix="anthropic_image_", suffix=suffix, delete=False)
-        with tmp:
-            tmp.write(base64.b64decode(data))
+        try:
+            with tmp:
+                tmp.write(base64.b64decode(data))
+        except Exception:
+            # delete=False means a corrupt/unsupported data URL would otherwise
+            # leak a zero-byte temp file on every failed materialization.
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+            raise
         path = Path(tmp.name)
         return str(path), path
 
@@ -9295,6 +9500,20 @@ class AIAgent:
 
     def _build_api_kwargs(self, api_messages: list) -> dict:
         """Build the keyword arguments dict for the active API mode."""
+        # Resolve the tools array exactly once. When the long-lived
+        # prefix-cache layout is active (Claude on Anthropic / OpenRouter
+        # / Nous Portal), attach a 1h cache_control marker to the last
+        # tool — this caches the entire tools array cross-session via
+        # Anthropic's tools→system→messages prefix order. The function
+        # returns a deep copy, so self.tools is never mutated.
+        if self._use_long_lived_prefix_cache and self.tools:
+            from agent.prompt_caching import mark_tools_for_long_lived_cache
+            tools_for_api = mark_tools_for_long_lived_cache(
+                self.tools, long_lived_ttl=self._long_lived_cache_ttl,
+            )
+        else:
+            tools_for_api = self.tools
+
         if self.api_mode == "anthropic_messages":
             _transport = self._get_transport()
             anthropic_messages = self._prepare_anthropic_messages_for_api(api_messages)
@@ -9306,7 +9525,7 @@ class AIAgent:
             return _transport.build_kwargs(
                 model=self.model,
                 messages=anthropic_messages,
-                tools=self.tools,
+                tools=tools_for_api,
                 max_tokens=ephemeral_out if ephemeral_out is not None else self.max_tokens,
                 reasoning_config=self.reasoning_config,
                 is_oauth=self._is_anthropic_oauth,
@@ -9326,7 +9545,7 @@ class AIAgent:
             return _bt.build_kwargs(
                 model=self.model,
                 messages=api_messages,
-                tools=self.tools,
+                tools=tools_for_api,
                 max_tokens=self.max_tokens or 4096,
                 region=region,
                 guardrail_config=guardrail,
@@ -9350,7 +9569,7 @@ class AIAgent:
             return _ct.build_kwargs(
                 model=self.model,
                 messages=_msgs_for_codex,
-                tools=self.tools,
+                tools=tools_for_api,
                 reasoning_config=self.reasoning_config,
                 session_id=getattr(self, "session_id", None),
                 max_tokens=self.max_tokens,
@@ -9441,7 +9660,7 @@ class AIAgent:
             return _ct.build_kwargs(
                 model=self.model,
                 messages=api_messages,
-                tools=self.tools,
+                tools=tools_for_api,
                 base_url=self.base_url,
                 timeout=self._resolved_api_call_timeout(),
                 max_tokens=self.max_tokens,
@@ -9473,7 +9692,7 @@ class AIAgent:
         return _ct.build_kwargs(
             model=self.model,
             messages=_msgs_for_chat,
-            tools=self.tools,
+            tools=tools_for_api,
             base_url=self.base_url,
             timeout=self._resolved_api_call_timeout(),
             max_tokens=self.max_tokens,
@@ -10160,6 +10379,12 @@ class AIAgent:
                 self._session_db.end_session(self.session_id, "compression")
                 old_session_id = self.session_id
                 self.session_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+                os.environ["HERMES_SESSION_ID"] = self.session_id
+                try:
+                    from gateway.session_context import _SESSION_ID
+                    _SESSION_ID.set(self.session_id)
+                except Exception:
+                    pass
                 # Update session_log_file to point to the new session's JSON file
                 self.session_log_file = self.logs_dir / f"session_{self.session_id}.json"
                 self._session_db_created = False
@@ -10389,7 +10614,7 @@ class AIAgent:
                 store=self._memory_store,
             )
             # Bridge: notify external memory provider of built-in memory writes
-            if self._memory_manager and function_args.get("action") in ("add", "replace"):
+            if self._memory_manager and function_args.get("action") in {"add", "replace"}:
                 try:
                     self._memory_manager.on_memory_write(
                         function_args.get("action", ""),
@@ -10488,7 +10713,7 @@ class AIAgent:
                 function_args = {}
 
             # Checkpoint for file-mutating tools
-            if function_name in ("write_file", "patch") and self._checkpoint_mgr.enabled:
+            if function_name in {"write_file", "patch"} and self._checkpoint_mgr.enabled:
                 try:
                     file_path = function_args.get("path", "")
                     if file_path:
@@ -10902,12 +11127,11 @@ class AIAgent:
                 # Tool blocked by plugin or guardrail policy — skip counters,
                 # callbacks, checkpointing, activity mutation, and real execution.
                 pass
-            else:
-                # Reset nudge counters when the relevant tool is actually used
-                if function_name == "memory":
-                    self._turns_since_memory = 0
-                elif function_name == "skill_manage":
-                    self._iters_since_skill = 0
+            # Reset nudge counters when the relevant tool is actually used
+            elif function_name == "memory":
+                self._turns_since_memory = 0
+            elif function_name == "skill_manage":
+                self._iters_since_skill = 0
 
             if not self.quiet_mode:
                 args_str = json.dumps(function_args, ensure_ascii=False)
@@ -10946,7 +11170,7 @@ class AIAgent:
                     logging.debug(f"Tool start callback error: {cb_err}")
 
             # Checkpoint: snapshot working dir before file-mutating tools
-            if not _execution_blocked and function_name in ("write_file", "patch") and self._checkpoint_mgr.enabled:
+            if not _execution_blocked and function_name in {"write_file", "patch"} and self._checkpoint_mgr.enabled:
                 try:
                     file_path = function_args.get("path", "")
                     if file_path:
@@ -11018,7 +11242,7 @@ class AIAgent:
                     store=self._memory_store,
                 )
                 # Bridge: notify external memory provider of built-in memory writes
-                if self._memory_manager and function_args.get("action") in ("add", "replace"):
+                if self._memory_manager and function_args.get("action") in {"add", "replace"}:
                     try:
                         self._memory_manager.on_memory_write(
                             function_args.get("action", ""),
@@ -12116,20 +12340,42 @@ class AIAgent:
             # Ephemeral additions are API-call-time only (not persisted to session DB).
             # External recall context is injected into the user message, not the system
             # prompt, so the stable cache prefix remains unchanged.
-            effective_system = active_system_prompt or ""
-            if self.ephemeral_system_prompt:
-                effective_system = (effective_system + "\n\n" + self.ephemeral_system_prompt).strip()
+            #
+            # When the long-lived prefix-cache layout is active (Claude on
+            # Anthropic / OpenRouter / Nous Portal), we build the system
+            # message as a *list of content blocks*: [stable, context,
+            # volatile, ephemeral?].  Block 0 (stable) gets the 1h
+            # cache_control marker further down via
+            # apply_anthropic_cache_control_long_lived; blocks 1-3 are
+            # cached only via the rolling messages window at 5m.
             # NOTE: Plugin context from pre_llm_call hooks is injected into the
             # user message (see injection block above), NOT the system prompt.
             # This is intentional — system prompt modifications break the prompt
             # cache prefix.  The system prompt is reserved for Hermes internals.
-            if effective_system:
-                api_messages = [{"role": "system", "content": effective_system}] + api_messages
+            if self._use_long_lived_prefix_cache:
+                _sys_parts = self._build_system_prompt_parts(system_message=system_message)
+                _sys_blocks: list = []
+                if _sys_parts.get("stable"):
+                    _sys_blocks.append({"type": "text", "text": _sys_parts["stable"]})
+                if _sys_parts.get("context"):
+                    _sys_blocks.append({"type": "text", "text": _sys_parts["context"]})
+                if _sys_parts.get("volatile"):
+                    _sys_blocks.append({"type": "text", "text": _sys_parts["volatile"]})
+                if self.ephemeral_system_prompt:
+                    _sys_blocks.append({"type": "text", "text": self.ephemeral_system_prompt})
+                if _sys_blocks:
+                    api_messages = [{"role": "system", "content": _sys_blocks}] + api_messages
+            else:
+                effective_system = active_system_prompt or ""
+                if self.ephemeral_system_prompt:
+                    effective_system = (effective_system + "\n\n" + self.ephemeral_system_prompt).strip()
+                if effective_system:
+                    api_messages = [{"role": "system", "content": effective_system}] + api_messages
 
             # Inject ephemeral prefill messages right after the system prompt
             # but before conversation history. Same API-call-time-only pattern.
             if self.prefill_messages:
-                sys_offset = 1 if effective_system else 0
+                sys_offset = 1 if (api_messages and api_messages[0].get("role") == "system") else 0
                 for idx, pfm in enumerate(self.prefill_messages):
                     api_messages.insert(sys_offset + idx, pfm.copy())
 
@@ -12140,12 +12386,27 @@ class AIAgent:
             # to reduce input token costs by ~75% on multi-turn
             # conversations. Layout is chosen per endpoint by
             # ``_anthropic_prompt_cache_policy``.
+            #
+            # Long-lived prefix layout (prefix_and_2): stable system block
+            # gets 1h marker + last 2 messages get 5m markers. Tools
+            # array's last entry is marked separately at API-call kwargs
+            # build time (see ``_build_api_kwargs`` and
+            # ``mark_tools_for_long_lived_cache``).
             if self._use_prompt_caching:
-                api_messages = apply_anthropic_cache_control(
-                    api_messages,
-                    cache_ttl=self._cache_ttl,
-                    native_anthropic=self._use_native_cache_layout,
-                )
+                if self._use_long_lived_prefix_cache:
+                    from agent.prompt_caching import apply_anthropic_cache_control_long_lived
+                    api_messages = apply_anthropic_cache_control_long_lived(
+                        api_messages,
+                        long_lived_ttl=self._long_lived_cache_ttl,
+                        rolling_ttl=self._cache_ttl,
+                        native_anthropic=self._use_native_cache_layout,
+                    )
+                else:
+                    api_messages = apply_anthropic_cache_control(
+                        api_messages,
+                        cache_ttl=self._cache_ttl,
+                        native_anthropic=self._use_native_cache_layout,
+                    )
 
             # Safety net: strip orphaned tool results / add stubs for missing
             # results before sending to the API.  Runs unconditionally — not
@@ -12548,9 +12809,9 @@ class AIAgent:
                             _failure_hint = f"upstream gateway timeout (504, {api_duration:.0f}s)"
                         elif _resp_error_code == 429:
                             _failure_hint = f"rate limited by upstream provider (429)"
-                        elif _resp_error_code in (500, 502):
+                        elif _resp_error_code in {500, 502}:
                             _failure_hint = f"upstream server error ({_resp_error_code}, {api_duration:.0f}s)"
-                        elif _resp_error_code in (503, 529):
+                        elif _resp_error_code in {503, 529}:
                             _failure_hint = f"upstream provider overloaded ({_resp_error_code})"
                         elif _resp_error_code is not None:
                             _failure_hint = f"upstream error (code {_resp_error_code}, {api_duration:.0f}s)"
@@ -12738,7 +12999,7 @@ class AIAgent:
                                 "error": _exhaust_error,
                             }
 
-                        if self.api_mode in ("chat_completions", "bedrock_converse", "anthropic_messages"):
+                        if self.api_mode in {"chat_completions", "bedrock_converse", "anthropic_messages"}:
                             assistant_message = _trunc_msg
                             if assistant_message is not None and not _trunc_has_tool_calls:
                                 length_continue_retries += 1
@@ -12778,7 +13039,7 @@ class AIAgent:
                                     "error": "Response remained truncated after 3 continuation attempts",
                                 }
 
-                        if self.api_mode in ("chat_completions", "bedrock_converse", "anthropic_messages"):
+                        if self.api_mode in {"chat_completions", "bedrock_converse", "anthropic_messages"}:
                             assistant_message = _trunc_msg
                             if assistant_message is not None and _trunc_has_tool_calls:
                                 if truncated_tool_call_retries < 1:
@@ -13199,6 +13460,21 @@ class AIAgent:
                         "does not support multimodal",
                         "does not support vision",
                         "model does not support image",
+                        # ChatGPT-account Codex backend
+                        # (https://chatgpt.com/backend-api/codex) rejects
+                        # data:image/...base64 URLs in input_image fields
+                        # with HTTP 400 "Invalid 'input[N].content[K].image_url'.
+                        # Expected a valid URL, but got a value with an
+                        # invalid format." The OpenAI Responses API on the
+                        # public endpoint accepts data URLs, but the
+                        # ChatGPT-account variant does not. Without this
+                        # phrase the agent cascaded into compression /
+                        # context-too-large recovery instead of just
+                        # stripping the images. Match is narrow on
+                        # purpose — keyed on the field-path apostrophe so
+                        # we don't false-trip on other URL validation
+                        # errors. (issue #23570)
+                        "image_url'. expected",
                     )
                     _err_lower = _err_body.lower()
                     _looks_like_image_rejection = any(
@@ -13595,10 +13871,10 @@ class AIAgent:
                     # When a fallback model is configured, switch immediately instead
                     # of burning through retries with exponential backoff -- the
                     # primary provider won't recover within the retry window.
-                    is_rate_limited = classified.reason in (
+                    is_rate_limited = classified.reason in {
                         FailoverReason.rate_limit,
                         FailoverReason.billing,
-                    )
+                    }
                     if is_rate_limited and self._fallback_index < len(self._fallback_chain):
                         # Don't eagerly fallback if credential pool rotation may
                         # still recover.  See _pool_may_recover_from_rate_limit
@@ -13923,7 +14199,7 @@ class AIAgent:
                         or (
                             not classified.retryable
                             and not classified.should_compress
-                            and classified.reason not in (
+                            and classified.reason not in {
                                 FailoverReason.rate_limit,
                                 FailoverReason.billing,
                                 FailoverReason.overloaded,
@@ -13931,7 +14207,7 @@ class AIAgent:
                                 FailoverReason.payload_too_large,
                                 FailoverReason.long_context_tier,
                                 FailoverReason.thinking_signature,
-                            )
+                            }
                         )
                     ) and not is_context_length_error
 
@@ -15050,7 +15326,41 @@ class AIAgent:
                     "— requesting summary..."
                 )
             final_response = self._handle_max_iterations(messages, api_call_count)
-        
+
+            # If running as a kanban worker, block the task so the dispatcher
+            # knows the worker could not complete (rather than treating it as a
+            # protocol violation).  The agent loop strips tools before calling
+            # _handle_max_iterations, so the model cannot call kanban_block
+            # itself — we must do it on its behalf.
+            _kanban_task = os.environ.get("HERMES_KANBAN_TASK")
+            if _kanban_task:
+                try:
+                    handle_function_call(
+                        "kanban_block",
+                        {
+                            "task_id": _kanban_task,
+                            "reason": (
+                                f"Iteration budget exhausted "
+                                f"({api_call_count}/{self.max_iterations}) — "
+                                "task could not complete within the allowed "
+                                "iterations"
+                            ),
+                        },
+                        task_id=effective_task_id,
+                    )
+                    logger.info(
+                        "kanban_block called for task %s after iteration "
+                        "exhaustion (%d/%d)",
+                        _kanban_task, api_call_count, self.max_iterations,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Failed to call kanban_block after iteration "
+                        "exhaustion for task %s",
+                        _kanban_task,
+                        exc_info=True,
+                    )
+
         # Determine if conversation completed successfully
         completed = final_response is not None and api_call_count < self.max_iterations
 
@@ -15344,9 +15654,9 @@ def main(
             info = get_toolset_info(name)
             if info:
                 entry = (name, info)
-                if name in ["web", "terminal", "vision", "creative", "reasoning"]:
+                if name in {"web", "terminal", "vision", "creative", "reasoning"}:
                     basic_toolsets.append(entry)
-                elif name in ["research", "development", "analysis", "content_creation", "full_stack"]:
+                elif name in {"research", "development", "analysis", "content_creation", "full_stack"}:
                     composite_toolsets.append(entry)
                 else:
                     scenario_toolsets.append(entry)
