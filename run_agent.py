@@ -1232,6 +1232,7 @@ class AIAgent:
         _install_safe_stdio()
 
         self.model = model
+        self._active_model: str = model or ""
         self.max_iterations = max_iterations
         # Shared iteration budget — parent creates, children inherit.
         # Consumed by every LLM turn across parent + all subagents.
@@ -1265,6 +1266,7 @@ class AIAgent:
         self.base_url = base_url or ""
         provider_name = provider.strip().lower() if isinstance(provider, str) and provider.strip() else None
         self.provider = provider_name or ""
+        self._active_provider: str = provider_name or ""
         self.acp_command = acp_command or command
         self.acp_args = list(acp_args or args or [])
         if api_mode in {"chat_completions", "codex_responses", "anthropic_messages", "bedrock_converse"}:
@@ -2650,6 +2652,8 @@ class AIAgent:
         # ── Swap core runtime fields ──
         self.model = new_model
         self.provider = new_provider
+        self._active_model = new_model
+        self._active_provider = new_provider
         # Use new base_url when provided; only fall back to current when the
         # new provider genuinely has no endpoint (e.g. native SDK providers).
         # Without this guard the old provider's URL (e.g. Ollama's localhost
@@ -6093,10 +6097,12 @@ class AIAgent:
         timestamp_line = f"Conversation started: {now.strftime('%A, %B %d, %Y %I:%M %p')}"
         if self.pass_session_id and self.session_id:
             timestamp_line += f"\nSession ID: {self.session_id}"
-        if self.model:
-            timestamp_line += f"\nModel: {self.model}"
-        if self.provider:
-            timestamp_line += f"\nProvider: {self.provider}"
+        _disp_model = getattr(self, "_active_model", None) or self.model
+        _disp_provider = getattr(self, "_active_provider", None) or self.provider
+        if _disp_model:
+            timestamp_line += f"\nModel: {_disp_model}"
+        if _disp_provider:
+            timestamp_line += f"\nProvider: {_disp_provider}"
         volatile_parts.append(timestamp_line)
 
         return {
