@@ -3363,6 +3363,13 @@ class GatewayRunner:
                 "Set GATEWAY_ALLOW_ALL_USERS=true in ~/.hermes/.env to allow open access, "
                 "or configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id)."
             )
+        elif _allow_all:
+            logger.warning(
+                "SECURITY WARNING: Gateway is open to ALL users (*_ALLOW_ALL_USERS=true). "
+                "Any user who finds this bot can interact with your local agent "
+                "(filesystem, terminal, credentials). "
+                "Set TELEGRAM_ALLOWED_USERS / DISCORD_ALLOWED_USERS etc. to restrict access."
+            )
         
         # Discover Python plugins before shell hooks so plugin block
         # decisions take precedence in tie cases.  The CLI startup path
