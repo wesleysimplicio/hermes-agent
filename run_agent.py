@@ -10092,6 +10092,19 @@ class AIAgent:
 
         return msg
 
+    def _needs_mimo_tool_reasoning(self) -> bool:
+        """Return True when the active provider is Xiaomi MiMo thinking mode.
+
+        MiMo requires reasoning_content to be echoed back on every assistant
+        turn (same contract as DeepSeek/Kimi).
+        Ref: https://platform.xiaomimimo.com/docs/usage-guide/passing-back-reasoning_content
+        """
+        model = (self.model or "").lower()
+        return (
+            base_url_host_matches(self.base_url, "xiaomimimo.com")
+            or "mimo" in model
+        )
+
     def _needs_thinking_reasoning_pad(self) -> bool:
         """Return True when the active provider enforces reasoning_content echo-back.
 
@@ -10102,6 +10115,7 @@ class AIAgent:
         return (
             self._needs_deepseek_tool_reasoning()
             or self._needs_kimi_tool_reasoning()
+            or self._needs_mimo_tool_reasoning()
         )
 
     def _needs_kimi_tool_reasoning(self) -> bool:
