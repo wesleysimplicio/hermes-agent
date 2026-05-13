@@ -779,6 +779,8 @@ def load_gateway_config() -> GatewayConfig:
                     bridged["reply_in_thread"] = platform_cfg["reply_in_thread"]
                 if "require_mention" in platform_cfg:
                     bridged["require_mention"] = platform_cfg["require_mention"]
+                if "gateway_restart_notification" in platform_cfg:
+                    bridged["gateway_restart_notification"] = platform_cfg["gateway_restart_notification"]
                 if "free_response_channels" in platform_cfg:
                     bridged["free_response_channels"] = platform_cfg["free_response_channels"]
                 if "mention_patterns" in platform_cfg:
@@ -823,6 +825,8 @@ def load_gateway_config() -> GatewayConfig:
                 if plat == Platform.SLACK and enabled_was_explicit:
                     extra["_enabled_explicit"] = True
                 extra.update(bridged)
+                if "gateway_restart_notification" in platform_cfg:
+                    plat_data["gateway_restart_notification"] = platform_cfg["gateway_restart_notification"]
 
             # Slack settings → env vars (env vars take precedence)
             slack_cfg = yaml_cfg.get("slack", {})
