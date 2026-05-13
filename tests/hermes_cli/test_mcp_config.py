@@ -600,3 +600,43 @@ class TestMcpLogin:
         out = capsys.readouterr().out
         assert "no URL" in out or "not an OAuth" in out
 
+
+class TestProbeConnectTimeout:
+    def _patch_mcp_tool(self, monkeypatch, captured):
+        import tools.mcp_tool as mcp_tool_mod
+
+        monkeypatch.setattr(
+            mcp_tool_mod,
+            "_run_on_mcp_loop",
+            lambda coro, timeout: captured.update({"timeout": timeout}),
+        )
+        monkeypatch.setattr(mcp_tool_mod, "_ensure_mcp_loop", lambda: None)
+        monkeypatch.setattr(mcp_tool_mod, "_stop_mcp_loop", lambda: None)
+
+        async def _fake_connect(name, config):
+            class _FakeServer:
+                _tools = []
+
+                async def shutdown(self):
+                    pass
+
+            return _FakeServer()
+
+        monkeypatch.setattr(mcp_tool_mod, "_connect_server", _fake_connect)
+
+    def test_probe_reads_connect_timeout_from_config(self, monkeypatch):
+        captured = {}
+        self._patch_mcp_tool(monkeypatch, captured)
+        from hermes_cli.mcp_config import _probe_single_server
+
+        _probe_single_server("srv", {"connect_timeout": 120, "url": "https://x.example.com"})
+        assert captured["timeout"] == 130  # 120 + 10
+
+    def test_probe_default_timeout_is_300(self, monkeypatch):
+        captured = {}
+        self._patch_mcp_tool(monkeypatch, captured)
+        from hermes_cli.mcp_config import _probe_single_server
+
+        _probe_single_server("srv", {"url": "https://x.example.com"})
+        assert captured["timeout"] == 310  # 300 + 10
+
