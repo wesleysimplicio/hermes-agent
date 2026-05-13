@@ -1306,3 +1306,60 @@ class TestPluginDebugLogging:
             plugins_mod._PLUGINS_DEBUG = original_debug
             plugins_mod.logger.setLevel(original_level)
             plugins_mod.logger.handlers = original_handlers
+
+
+import threading
+from concurrent.futures import ThreadPoolExecutor
+import hermes_cli.plugins as _plugins_mod
+
+
+class TestGetPluginManagerToctouRace:
+    """Regression: get_plugin_manager() must construct exactly one instance
+    even under concurrent load (double-checked locking guard)."""
+
+    def setup_method(self):
+        _plugins_mod._plugin_manager = None
+
+    def teardown_method(self):
+        _plugins_mod._plugin_manager = None
+
+    def test_concurrent_calls_return_same_instance(self):
+        n = 50
+        barrier = threading.Barrier(n)
+        results: list = []
+
+        def worker():
+            barrier.wait()
+            results.append(_plugins_mod.get_plugin_manager())
+
+        with ThreadPoolExecutor(max_workers=n) as pool:
+            list(pool.map(lambda _: worker(), range(n)))
+
+        assert len(results) == n
+        first = results[0]
+        assert all(r is first for r in results), "multiple PluginManager instances returned"
+
+    def test_only_one_plugin_manager_constructed(self):
+        n = 50
+        barrier = threading.Barrier(n)
+        construct_count = 0
+        original_cls = _plugins_mod.PluginManager
+
+        class SpyPluginManager(original_cls):
+            def __init__(self):
+                nonlocal construct_count
+                construct_count += 1
+                super().__init__()
+
+        _plugins_mod.PluginManager = SpyPluginManager
+        try:
+            def worker():
+                barrier.wait()
+                _plugins_mod.get_plugin_manager()
+
+            with ThreadPoolExecutor(max_workers=n) as pool:
+                list(pool.map(lambda _: worker(), range(n)))
+        finally:
+            _plugins_mod.PluginManager = original_cls
+
+        assert construct_count == 1, f"PluginManager constructed {construct_count} times, expected 1"
