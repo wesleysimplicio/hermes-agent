@@ -2417,6 +2417,32 @@ class TestFormatMessage:
         out = GoogleChatAdapter.format_message("rate is ** TBD")
         assert "**" in out  # not converted
 
+    def test_header_containing_inline_code_fully_restored(self):
+        """Regression for #24567: header enclosing an inline-code span.
+
+        The header regex captures the full line including any previously-created
+        inline-code placeholder, nesting it inside the outer placeholder.
+        Restoring in insertion order leaves the inner key unresolved; reverse
+        order fixes this.
+        """
+        out = GoogleChatAdapter.format_message("## Title `code`")
+        assert "`code`" in out
+        assert "GC" not in out
+        assert out.startswith("*Title")
+
+    def test_bold_containing_inline_code_fully_restored(self):
+        """Regression for #24567: bold span wrapping an inline-code placeholder."""
+        out = GoogleChatAdapter.format_message("**Status: `active`**")
+        assert "`active`" in out
+        assert "GC" not in out
+        assert out.startswith("*Status:")
+
+    def test_link_with_inline_code_label_fully_restored(self):
+        """Regression for #24567: Markdown link whose label is inline code."""
+        out = GoogleChatAdapter.format_message("[`func()`](https://example.com)")
+        assert "`func()`" in out
+        assert "GC" not in out
+
 
 class TestADCFallback:
     """When no SA JSON is configured, fall back to Application Default Credentials.

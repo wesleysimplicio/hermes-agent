@@ -2077,8 +2077,13 @@ class GoogleChatAdapter(BasePlatformAdapter):
         # Collapse double spaces left over from stripped chars.
         text = re.sub(r"  +", " ", text)
 
-        # Restore protected regions.
-        for key, value in placeholders.items():
+        # Restore protected regions in reverse insertion order.
+        # Higher-numbered keys were created later and may have captured
+        # lower-numbered keys in their values (e.g. a header containing an
+        # inline-code placeholder).  Expanding outer (higher-N) placeholders
+        # first ensures inner (lower-N) ones are present in the text for
+        # their own restore pass.
+        for key, value in reversed(placeholders.items()):
             text = text.replace(key, value)
 
         return text
