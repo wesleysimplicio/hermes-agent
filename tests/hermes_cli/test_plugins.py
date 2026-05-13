@@ -1306,3 +1306,31 @@ class TestPluginDebugLogging:
             plugins_mod._PLUGINS_DEBUG = original_debug
             plugins_mod.logger.setLevel(original_level)
             plugins_mod.logger.handlers = original_handlers
+
+
+class TestGetPluginManagerConcurrency:
+    def test_concurrent_calls_return_same_instance(self):
+        """Concurrent get_plugin_manager() calls must return the same singleton."""
+        import threading
+        from hermes_cli import plugins as plugins_mod
+
+        original = plugins_mod._plugin_manager
+        plugins_mod._plugin_manager = None
+        try:
+            results = []
+            barrier = threading.Barrier(8)
+
+            def _call():
+                barrier.wait()
+                results.append(get_plugin_manager())
+
+            threads = [threading.Thread(target=_call) for _ in range(8)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+            assert len(results) == 8
+            assert len(set(id(r) for r in results)) == 1
+        finally:
+            plugins_mod._plugin_manager = original
