@@ -437,6 +437,70 @@ class TestConfigIntegration:
         assert ha.token == "env-token"
         assert ha.extra["url"] == "http://10.0.0.5:8123"
 
+    def test_env_override_preserves_explicit_ha_platform_disabled(self, tmp_path, monkeypatch):
+        hermes_home = tmp_path / ".hermes"
+        hermes_home.mkdir()
+        (hermes_home / "config.yaml").write_text(
+            "platforms:\n"
+            "  homeassistant:\n"
+            "    enabled: false\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        monkeypatch.setenv("HASS_TOKEN", "env-token")
+        monkeypatch.setenv("HASS_URL", "http://10.0.0.5:8123")
+
+        from gateway.config import load_gateway_config
+        config = load_gateway_config()
+
+        ha = config.platforms[Platform.HOMEASSISTANT]
+        assert ha.enabled is False
+        assert ha.token == "env-token"
+        assert ha.extra["url"] == "http://10.0.0.5:8123"
+        assert Platform.HOMEASSISTANT not in config.get_connected_platforms()
+
+    def test_env_override_preserves_top_level_ha_platform_disabled(self, tmp_path, monkeypatch):
+        hermes_home = tmp_path / ".hermes"
+        hermes_home.mkdir()
+        (hermes_home / "config.yaml").write_text(
+            "homeassistant:\n"
+            "  enabled: false\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        monkeypatch.setenv("HASS_TOKEN", "env-token")
+        monkeypatch.setenv("HASS_URL", "http://10.0.0.5:8123")
+
+        from gateway.config import load_gateway_config
+        config = load_gateway_config()
+
+        ha = config.platforms[Platform.HOMEASSISTANT]
+        assert ha.enabled is False
+        assert ha.token == "env-token"
+        assert ha.extra["url"] == "http://10.0.0.5:8123"
+        assert Platform.HOMEASSISTANT not in config.get_connected_platforms()
+
+    def test_env_override_enables_ha_platform_when_enabled_not_explicit(self, tmp_path, monkeypatch):
+        hermes_home = tmp_path / ".hermes"
+        hermes_home.mkdir()
+        (hermes_home / "config.yaml").write_text(
+            "platforms:\n"
+            "  homeassistant:\n"
+            "    extra:\n"
+            "      watch_all: true\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        monkeypatch.setenv("HASS_TOKEN", "env-token")
+
+        from gateway.config import load_gateway_config
+        config = load_gateway_config()
+
+        ha = config.platforms[Platform.HOMEASSISTANT]
+        assert ha.enabled is True
+        assert ha.token == "env-token"
+        assert ha.extra["watch_all"] is True
+
     def test_no_env_no_platform(self, monkeypatch):
         for v in ["HASS_TOKEN", "HASS_URL", "TELEGRAM_BOT_TOKEN",
                    "DISCORD_BOT_TOKEN", "SLACK_BOT_TOKEN"]:

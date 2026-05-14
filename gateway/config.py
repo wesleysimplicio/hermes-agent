@@ -748,7 +748,7 @@ def load_gateway_config() -> GatewayConfig:
                         existing = {}
                     # Deep-merge extra dicts so gateway.json defaults survive
                     merged_extra = {**existing.get("extra", {}), **plat_block.get("extra", {})}
-                    if plat_name == Platform.SLACK.value and "enabled" in plat_block:
+                    if plat_name in {Platform.SLACK.value, Platform.HOMEASSISTANT.value} and "enabled" in plat_block:
                         merged_extra["_enabled_explicit"] = True
                     merged = {**existing, **plat_block}
                     if merged_extra:
@@ -820,7 +820,7 @@ def load_gateway_config() -> GatewayConfig:
                 if not isinstance(extra, dict):
                     extra = {}
                     plat_data["extra"] = extra
-                if plat == Platform.SLACK and enabled_was_explicit:
+                if plat in {Platform.SLACK, Platform.HOMEASSISTANT} and enabled_was_explicit:
                     extra["_enabled_explicit"] = True
                 extra.update(bridged)
 
@@ -1353,7 +1353,12 @@ def _apply_env_overrides(config: GatewayConfig) -> None:
     if hass_token:
         if Platform.HOMEASSISTANT not in config.platforms:
             config.platforms[Platform.HOMEASSISTANT] = PlatformConfig()
-        config.platforms[Platform.HOMEASSISTANT].enabled = True
+            config.platforms[Platform.HOMEASSISTANT].enabled = True
+        else:
+            ha_config = config.platforms[Platform.HOMEASSISTANT]
+            enabled_was_explicit = bool(ha_config.extra.pop("_enabled_explicit", False))
+            if not ha_config.enabled and not enabled_was_explicit:
+                ha_config.enabled = True
         config.platforms[Platform.HOMEASSISTANT].token = hass_token
         hass_url = os.getenv("HASS_URL")
         if hass_url:
