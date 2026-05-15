@@ -8,6 +8,7 @@ import ipaddress
 import logging
 import os
 import re
+import socket
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -21,6 +22,11 @@ from utils import base_url_host_matches, base_url_hostname
 from hermes_constants import OPENROUTER_MODELS_URL
 
 logger = logging.getLogger(__name__)
+
+
+_LOCAL_ENDPOINT_REACHABILITY_TTL = 30.0
+_LOCAL_ENDPOINT_REACHABILITY_TIMEOUT = 0.25
+_local_endpoint_reachability_cache: Dict[str, tuple[float, bool]] = {}
 
 
 def _resolve_requests_verify() -> bool | str:
@@ -40,6 +46,57 @@ def _resolve_requests_verify() -> bool | str:
         if val and os.path.isfile(val):
             return val
     return True
+
+
+def _loopback_ip_endpoint_key(base_url: str) -> Optional[tuple[str, str, int]]:
+    """Return a cache/socket key for numeric loopback endpoints.
+
+    We intentionally keep this narrow: tests and some users mock or tunnel
+    hostname/private-LAN endpoints, while numeric loopback addresses are cheap
+    and safe to preflight before heavier HTTP metadata probes.
+    """
+    normalized = _normalize_base_url(base_url)
+    if not normalized:
+        return None
+    url = normalized if "://" in normalized else f"http://{normalized}"
+    try:
+        parsed = urlparse(url)
+        host = parsed.hostname or ""
+        if not host or parsed.port is None:
+            return None
+        addr = ipaddress.ip_address(host)
+        if not addr.is_loopback:
+            return None
+        return (normalized, host, int(parsed.port))
+    except Exception:
+        return None
+
+
+def _local_endpoint_reachable(base_url: str) -> bool:
+    """Fast TCP preflight for numeric loopback endpoints.
+
+    Returns True for endpoints outside this narrow scope so normal HTTP probing
+    behaviour is preserved. For dead localhost ports, this prevents repeated
+    2-10 second HTTP connect timeouts during every agent/subagent init.
+    """
+    endpoint = _loopback_ip_endpoint_key(base_url)
+    if endpoint is None:
+        return True
+
+    normalized, host, port = endpoint
+    now = time.time()
+    cached = _local_endpoint_reachability_cache.get(normalized)
+    if cached is not None and now - cached[0] < _LOCAL_ENDPOINT_REACHABILITY_TTL:
+        return cached[1]
+
+    try:
+        with socket.create_connection((host, port), timeout=_LOCAL_ENDPOINT_REACHABILITY_TIMEOUT):
+            reachable = True
+    except OSError:
+        reachable = False
+
+    _local_endpoint_reachability_cache[normalized] = (now, reachable)
+    return reachable
 
 # Provider names that can appear as a "provider:" prefix before a model ID.
 # Only these are stripped — Ollama-style "model:tag" colons (e.g. "qwen3.5:27b")
@@ -416,6 +473,9 @@ def detect_local_server_type(base_url: str, api_key: str = "") -> Optional[str]:
     if server_url.endswith("/v1"):
         server_url = server_url[:-3]
 
+    if not _local_endpoint_reachable(normalized):
+        return None
+
     headers = _auth_headers(api_key)
 
     try:
@@ -594,6 +654,11 @@ def fetch_endpoint_model_metadata(
         cached_at = _endpoint_model_metadata_cache_time.get(normalized, 0)
         if cached is not None and (time.time() - cached_at) < _ENDPOINT_MODEL_CACHE_TTL:
             return cached
+
+    if not _local_endpoint_reachable(normalized):
+        _endpoint_model_metadata_cache[normalized] = {}
+        _endpoint_model_metadata_cache_time[normalized] = time.time()
+        return {}
 
     candidates = [normalized]
     if normalized.endswith("/v1"):
@@ -921,6 +986,9 @@ def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Option
     if server_url.endswith("/v1"):
         server_url = server_url[:-3]
 
+    if not _local_endpoint_reachable(base_url):
+        return None
+
     try:
         server_type = detect_local_server_type(base_url, api_key=api_key)
     except Exception:
@@ -971,6 +1039,9 @@ def _query_local_context_length(model: str, base_url: str, api_key: str = "") ->
     server_url = base_url.rstrip("/")
     if server_url.endswith("/v1"):
         server_url = server_url[:-3]
+
+    if not _local_endpoint_reachable(base_url):
+        return None
 
     headers = _auth_headers(api_key)
 

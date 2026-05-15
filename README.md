@@ -31,21 +31,31 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 ## Hermes Agent 10x Fast - Performance Comparisons
 
 This branch documents a measured performance pass focused on startup hot paths,
-tool discovery, SQLite session persistence, TUI MCP reloads, and adaptive
-parallelism. The numbers below are local Windows benchmark results from
-`scripts/benchmark_startup_perf.py`; they are measurements for this branch, not
+tool discovery, SQLite session persistence, TUI MCP reloads, adaptive
+parallelism, and runtime local-endpoint probe avoidance. The numbers below are
+local Windows benchmark results from `scripts/benchmark_startup_perf.py` and
+`scripts/benchmark_runtime_usage.py`; they are measurements for this branch, not
 universal guarantees.
 
 Full PR documentation:
 
 - [Upstream PR draft](docs/hermes-performance-upstream-pr.md)
 - [10x Fast implementation notes](docs/hermes-agent-10x-fast-pr.md)
+- [Runtime performance investigation](docs/runtime-performance-investigation-2026-05-15.md)
 
 ![Hermes Agent 10x Fast performance dashboard](docs/assets/10x-fast/perf-summary-dashboard.svg)
 
 ![Phase 1 before and after summary](docs/assets/hermes-agent-10x-fast-before-after.svg)
 
 ![Generated 10x Fast visual](docs/assets/10x-fast/hermes-agent-10x-fast-phase-1.png)
+
+![Generated runtime before and after](docs/assets/10x-fast/generated/runtime-before-after.png)
+
+![Generated runtime before and after alternate](docs/assets/10x-fast/generated/runtime-before-after-alt.png)
+
+![Generated research to code visual](docs/assets/10x-fast/generated/research-to-code.png)
+
+![Generated parallel runtime visual](docs/assets/10x-fast/generated/parallel-runtime.png)
 
 ### Startup And Tool Schema
 
@@ -57,6 +67,10 @@ Full PR documentation:
 
 ### Runtime Hot Paths
 
+![runtime local endpoint fast path comparison](docs/assets/10x-fast/runtime-local-endpoint-fast-path.svg)
+
+![runtime benchmark suite](docs/assets/10x-fast/runtime-benchmark-suite.svg)
+
 ![SQLite session batch write comparison](docs/assets/10x-fast/perf-session-batch-writes.svg)
 
 ![toolset cache comparison](docs/assets/10x-fast/perf-toolset-cache.svg)
@@ -64,6 +78,23 @@ Full PR documentation:
 ![TUI MCP reload avoidance comparison](docs/assets/10x-fast/perf-mcp-reload-avoidance.svg)
 
 ![adaptive parallel tool scan comparison](docs/assets/10x-fast/perf-adaptive-parallel-scan.svg)
+
+### Research To Code
+
+![research principles mapped to Hermes optimizations](docs/assets/10x-fast/research-principles-map.svg)
+
+This runtime pass cross-checked the official Hermes docs for the
+[agent loop](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop/),
+[tools runtime](https://hermes-agent.nousresearch.com/docs/developer-guide/tools-runtime),
+[delegation](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns/),
+and [context compression](https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching/).
+The research logic comes from efficient LLM systems work such as
+[FrugalGPT](https://arxiv.org/abs/2305.05176),
+[LLMLingua](https://arxiv.org/abs/2310.05736),
+[vLLM/PagedAttention](https://arxiv.org/abs/2309.06180), and
+[RouteLLM](https://arxiv.org/abs/2406.18665): route cheap first, compress or
+cache stable work, batch tiny writes, and avoid probes that cannot produce
+signal.
 
 ### Architecture Diagrams
 

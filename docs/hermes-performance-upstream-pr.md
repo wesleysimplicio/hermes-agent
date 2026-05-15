@@ -5,21 +5,22 @@ Date: 2026-05-15
 Suggested title:
 
 ```text
-perf: cache tool hot paths and batch session writes
+perf: cache tool hot paths and speed up runtime probes
 ```
 
 Suggested create command:
 
 ```powershell
-gh pr create --repo NousResearch/hermes-agent --base main --head wesleysimplicio:codex/hermes-agent-10x-fast --title "perf: cache tool hot paths and batch session writes" --body-file docs/hermes-performance-upstream-pr.md
+gh pr create --repo NousResearch/hermes-agent --base main --head wesleysimplicio:codex/hermes-agent-10x-fast --title "perf: cache tool hot paths and speed up runtime probes" --body-file docs/hermes-performance-upstream-pr.md
 ```
 
 ## Summary
 
-This PR reduces avoidable startup, tool-discovery, session-persistence, and TUI
-MCP reload overhead without changing the public tool API.
+This PR reduces avoidable startup, tool-discovery, session-persistence, TUI
+MCP reload, and runtime local-endpoint probe overhead without changing the
+public tool API.
 
-It does five main things:
+It does six main things:
 
 1. Keeps platform plugin imports out of normal `model_tools` startup unless a
    gateway/platform path needs them.
@@ -30,9 +31,13 @@ It does five main things:
 4. Batches completed-turn session message writes into one SQLite transaction.
 5. Makes the TUI reload MCP tools only when the `mcp_servers` config
    fingerprint changes.
+6. Makes dead numeric loopback endpoints fail fast during context-length
+   discovery, which avoids repeated HTTP connect timeouts when local/custom
+   providers are down.
 
-The branch also adds a reproducible benchmark harness and focused regression
-tests for the new cache, batch, and fingerprint behavior.
+The branch also adds reproducible startup/runtime benchmark harnesses, visual
+PR documentation, and focused regression tests for the new cache, batch,
+fingerprint, and endpoint-fast-path behavior.
 
 ## Problem
 
@@ -47,9 +52,11 @@ Several hot paths were doing repeated work:
   SQLite write path and counter update per message.
 - The TUI mtime poller called `reload.mcp` for any config change, including
   display/voice edits that do not affect MCP tools.
+- Agent/subagent initialization could spend tens of seconds probing a dead
+  local custom endpoint for context metadata before the first model call.
 
 These costs are especially visible in fresh CLI/TUI/gateway processes and in
-tool-heavy agent turns.
+tool-heavy or delegation-heavy agent turns.
 
 ## Implementation
 
@@ -113,6 +120,19 @@ tool-heavy agent turns.
 - If the fingerprint is unavailable, the TUI fails open and reloads MCP rather
   than risking stale tools.
 
+### Runtime Local Endpoint Fast Path
+
+- `agent/model_metadata.py` now performs a narrow TCP reachability preflight
+  for numeric loopback endpoints before expensive HTTP metadata probes.
+- If a local custom endpoint is closed, Hermes caches that negative
+  reachability result briefly and falls back to the existing default context
+  length immediately.
+- Hostname/private-LAN/remote endpoints keep the previous HTTP metadata
+  behavior, preserving LM Studio/Ollama/vLLM discovery semantics.
+- Regression tests cover `detect_local_server_type()`,
+  `fetch_endpoint_model_metadata()`, and `get_model_context_length()` so dead
+  loopback endpoints skip both `httpx.Client` and `requests.get`.
+
 ### Benchmark Harness
 
 `scripts/benchmark_startup_perf.py` measures fresh subprocess timings for:
@@ -123,6 +143,17 @@ tool-heavy agent turns.
 - fast/full plugin discovery
 - adaptive source scanning
 - cached toolset resolution
+- looped vs batched session message inserts
+
+`scripts/benchmark_runtime_usage.py` measures runtime hot paths without model
+API calls:
+
+- agent initialization with focused/default tools
+- delegated child construction
+- mocked `delegate_task` scheduling
+- parallel tool-call execution
+- no-op tool dispatch overhead
+- parallel safety checks
 - looped vs batched session message inserts
 
 ## Benchmarks
@@ -160,6 +191,26 @@ The SQLite batch-write result is the strongest Phase 2 win. Startup subprocess
 benchmarks on Windows can vary with filesystem and antivirus activity, so the
 PR treats those numbers as local measurements, not universal guarantees.
 
+Runtime benchmark:
+
+```powershell
+python scripts\benchmark_runtime_usage.py -n 3
+```
+
+| Case | Median | Notes |
+| --- | ---: | --- |
+| `agent_init_file_terminal` | 4.9729s | 10.34x faster than dead-loopback preflight baseline 51.4181s |
+| `agent_init_default_tools` | 5.0176s | 9.10x faster than dead-loopback preflight baseline 45.6670s |
+| `delegate_child_build` | 4.9308s | 9.31x faster than dead-loopback preflight baseline 45.9254s |
+| `parallel_tool_batch_sleep` | 0.0551s | 5.41x faster than sequential equivalent |
+| `tool_dispatch_noop` | 0.0983s | 0.0341ms per dispatch over 3000 calls |
+| `session_append_messages_batch` | 0.0187s | 18.37x faster than loop writes for 240 messages |
+
+The runtime 10x-class result is scoped to dead local/custom endpoint
+initialization. It fixes a real "Hermes appears stuck before the first model
+call" failure mode, especially visible when subagents inherit a down local
+endpoint.
+
 ## Validation
 
 Commands that passed locally:
@@ -176,6 +227,10 @@ python -m pytest tests\tools\test_yuanbao_tools.py -q
 python -m pytest tests\tools\test_registry.py tests\test_toolsets.py tests\test_hermes_state.py -q
 python -m pytest tests\test_tui_gateway_server.py::test_config_get_mtime_includes_mcp_fingerprint tests\test_tui_gateway_server.py::test_mcp_config_fingerprint_treats_missing_section_as_empty -q
 
+python -m py_compile agent\model_metadata.py scripts\benchmark_runtime_usage.py
+python -m pytest tests\agent\test_model_metadata_local_ctx.py -q
+python scripts\benchmark_runtime_usage.py -n 3
+
 cd ui-tui
 npm ci
 npm test -- useConfigSync.test.ts
@@ -186,6 +241,7 @@ Latest focused results:
 
 - `tests/tools/test_registry.py tests/test_toolsets.py tests/test_hermes_state.py`: 271 passed.
 - Gateway fingerprint tests: 2 passed.
+- Model metadata local context tests: 25 passed.
 - `ui-tui` `useConfigSync.test.ts`: 33 passed.
 - `ui-tui` type-check: passed.
 
@@ -222,6 +278,15 @@ Recommended review order:
 5. `scripts/benchmark_startup_perf.py`
    - Confirm benchmark cases are small, local, and do not require network.
 
+6. `agent/model_metadata.py`
+   - Confirm numeric loopback fast-fail is narrow.
+   - Confirm hostname/private-LAN endpoints still use existing metadata probes.
+   - Confirm the fallback context length remains unchanged when probes are down.
+
+7. `scripts/benchmark_runtime_usage.py`
+   - Confirm runtime cases avoid model API calls and isolate Hermes home state
+     per subprocess.
+
 ## Risk Assessment
 
 Risk: stale built-in tool discovery cache.
@@ -250,6 +315,12 @@ Risk: parallel scanning changes registration side effects.
 Mitigation: only source detection is parallel. Module imports remain serial and
 ordered.
 
+Risk: local endpoint preflight skips a server that is about to start.
+
+Mitigation: the fast path only applies to numeric loopback endpoints, caches
+negative reachability for a short 30-second TTL, and falls back to the same
+default context length Hermes already used when metadata probing failed.
+
 ## Rollback Plan
 
 Each optimization can be reverted independently:
@@ -264,6 +335,8 @@ Each optimization can be reverted independently:
   config mtime changes.
 - Disable adaptive parallel scanning by forcing
   `_should_parallel_scan_tool_sources()` to return `False`.
+- Disable local endpoint preflight by making `_local_endpoint_reachable()` return
+  `True`.
 
 ## Out Of Scope
 
@@ -275,6 +348,8 @@ This PR does not implement:
 - denormalized session-list preview fields
 - adaptive `/goal` judge cadence
 - CI performance budgets
+- full runtime telemetry for message build, JSON log rewrite, and delegation
+  phase timings
 
 Those are good follow-up PRs after this safer hot-path pass lands.
 
@@ -287,6 +362,10 @@ The branch includes diagrams under `docs/assets/10x-fast/`:
 - `phase-4-sqlite-batch-writes.svg`
 - `phase-5-tui-mcp-fingerprint.svg`
 - `phase-6-adaptive-parallel-scan.svg`
+- `runtime-local-endpoint-fast-path.svg`
+- `runtime-benchmark-suite.svg`
+- `research-principles-map.svg`
+- generated PNGs under `docs/assets/10x-fast/generated/`
 
 They are documentation aids only; runtime behavior is covered by tests and the
 benchmark harness.

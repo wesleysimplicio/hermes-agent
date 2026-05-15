@@ -35,6 +35,25 @@ References:
 - https://github.com/wesleysimplicio/ds4-v2-simplicio/blob/main/docs/ds4pp.md
 - https://github.com/wesleysimplicio/ds4-v4-simplicio/blob/main/ds4-v4-development-prompt.md
 
+This runtime pass also cross-checks the official Hermes docs and efficient LLM
+systems papers. The practical translation is: route cheap first, compress or
+cache stable work, batch tiny writes, and avoid probes that cannot produce
+signal.
+
+Official Hermes docs:
+
+- https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop/
+- https://hermes-agent.nousresearch.com/docs/developer-guide/tools-runtime
+- https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns/
+- https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching/
+
+Research references:
+
+- FrugalGPT: https://arxiv.org/abs/2305.05176
+- LLMLingua: https://arxiv.org/abs/2310.05736
+- vLLM / PagedAttention: https://arxiv.org/abs/2309.06180
+- RouteLLM: https://arxiv.org/abs/2406.18665
+
 ## Benchmark
 
 Command:
@@ -151,6 +170,45 @@ Generated visual:
 
 ![Phase 6 adaptive parallel scan](assets/10x-fast/phase-6-adaptive-parallel-scan.svg)
 
+### Phase 3 - Runtime Use Path
+
+17. Added `scripts/benchmark_runtime_usage.py`.
+    This benchmark measures runtime hot paths without making model API calls:
+    agent initialization, default tool initialization, delegated child
+    construction, `delegate_task` scheduling, parallel tool execution, no-op
+    tool dispatch, parallel safety checks, and batched session writes.
+
+![Runtime benchmark suite](assets/10x-fast/runtime-benchmark-suite.svg)
+
+18. Added a dead-loopback endpoint fast path.
+    `agent/model_metadata.py` now performs a short TCP reachability preflight
+    for numeric loopback endpoints before expensive HTTP metadata probes. If a
+    local custom endpoint is down, Hermes caches that negative reachability
+    result briefly and falls back immediately to the default context length.
+
+![Runtime local endpoint fast path](assets/10x-fast/runtime-local-endpoint-fast-path.svg)
+
+19. Added regression coverage for the new fast path.
+    `tests/agent/test_model_metadata_local_ctx.py` verifies that dead numeric
+    loopback endpoints skip both `httpx.Client` and `requests.get` probes while
+    returning the same fallback context behavior.
+
+20. Added research-to-code documentation and visuals.
+    `docs/runtime-performance-investigation-2026-05-15.md` maps official Hermes
+    docs and efficient LLM papers to the concrete optimization choices.
+
+![Research principles map](assets/10x-fast/research-principles-map.svg)
+
+Generated visuals for README/PR:
+
+![Generated runtime before/after](assets/10x-fast/generated/runtime-before-after.png)
+
+![Generated runtime before/after alternate](assets/10x-fast/generated/runtime-before-after-alt.png)
+
+![Generated research to code](assets/10x-fast/generated/research-to-code.png)
+
+![Generated parallel runtime](assets/10x-fast/generated/parallel-runtime.png)
+
 ## Latest Local Benchmark
 
 Command:
@@ -176,6 +234,32 @@ The SQLite result is the largest concrete Phase 2 win. Startup import results
 are directionally useful but noisy on this machine because cold subprocess runs
 vary with Windows filesystem and antivirus activity.
 
+## Runtime Usage Benchmark
+
+Command:
+
+```powershell
+python scripts\benchmark_runtime_usage.py -n 3
+```
+
+Results after Phase 3:
+
+| Case | Median | Notes |
+| --- | ---: | --- |
+| `agent_init_file_terminal` | 4.9729s | 10.34x faster than preflight baseline 51.4181s |
+| `agent_init_default_tools` | 5.0176s | 9.10x faster than preflight baseline 45.6670s |
+| `delegate_child_build` | 4.9308s | 9.31x faster than preflight baseline 45.9254s |
+| `delegate_task_batch_scheduler` | 0.3977s | mocked 3-task scheduler; reveals fixed overhead still worth optimizing |
+| `parallel_tool_batch_sleep` | 0.0551s | 5.41x faster than sequential equivalent |
+| `tool_dispatch_noop` | 0.0983s | 0.0341ms per dispatch over 3000 calls |
+| `parallel_guard_read_files` | 6.9878s | 0.7465ms per 8-tool safety decision over 10000 checks |
+| `session_append_messages_batch` | 0.0187s | 18.37x faster than loop writes for 240 messages |
+
+This is the first true 10x-class runtime win in the branch, but it is scoped:
+it applies to the dead local endpoint path that previously made agent and
+subagent construction appear stuck before any model call was made. It is not a
+blanket "every Hermes operation is 10x faster" claim.
+
 ## Follow-Up PRs Toward 10x
 
 1. Generate a persistent tool manifest so schema metadata can load without
@@ -190,6 +274,11 @@ vary with Windows filesystem and antivirus activity.
 7. Add CI perf-budget smoke tests for the startup benchmark.
 8. Add a config/profile performance report similar to the DS4/US4 profile
    reports, but scoped to Hermes startup, toolsets, DB writes, and MCP reloads.
+9. Add phase timing to `delegate_task`: config, credentials, child build,
+   queue wait, run, aggregation.
+10. Reduce repeated delegation config loads per child.
+11. Measure and optimize `_save_session_log()` rewrite cost on very long
+    conversations.
 
 ## Verification
 
@@ -205,4 +294,7 @@ python -m pytest tests\tools\test_registry.py tests\test_toolsets.py tests\test_
 python -m pytest tests\test_tui_gateway_server.py::test_config_get_mtime_includes_mcp_fingerprint tests\test_tui_gateway_server.py::test_mcp_config_fingerprint_treats_missing_section_as_empty -q
 cd ui-tui; npm test -- useConfigSync.test.ts; npm run type-check
 python scripts\benchmark_startup_perf.py -n 5
+python -m py_compile agent\model_metadata.py scripts\benchmark_runtime_usage.py
+python -m pytest tests\agent\test_model_metadata_local_ctx.py -q
+python scripts\benchmark_runtime_usage.py -n 3
 ```
