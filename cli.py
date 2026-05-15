@@ -2147,6 +2147,27 @@ def _parse_skills_argument(skills: str | list[str] | tuple[str, ...] | None) -> 
     return parsed
 
 
+def _merge_skill_lists(*skill_groups: list[str]) -> list[str]:
+    """Merge skill lists while preserving first-seen order."""
+    merged: list[str] = []
+    seen: set[str] = set()
+    for group in skill_groups:
+        for skill in group:
+            if skill in seen:
+                continue
+            seen.add(skill)
+            merged.append(skill)
+    return merged
+
+
+def _config_preloaded_skills(ignore_rules: bool = False) -> list[str]:
+    """Return config-driven skills that should preload for this session."""
+    if ignore_rules or os.environ.get("HERMES_IGNORE_RULES", "").strip():
+        return []
+    skills_config = CLI_CONFIG.get("skills", {}) if isinstance(CLI_CONFIG, dict) else {}
+    return _parse_skills_argument(skills_config.get("preload"))
+
+
 def save_config_value(key_path: str, value: any) -> bool:
     """
     Save a value to the active config file at the specified key path.
@@ -12644,7 +12665,10 @@ def main(
         from hermes_cli.tools_config import _get_platform_tools
         toolsets_list = sorted(_get_platform_tools(CLI_CONFIG, "cli"))
     
-    parsed_skills = _parse_skills_argument(skills)
+    parsed_skills = _merge_skill_lists(
+        _config_preloaded_skills(ignore_rules=ignore_rules),
+        _parse_skills_argument(skills),
+    )
 
     # Create CLI instance
     cli = HermesCLI(

@@ -1180,6 +1180,41 @@ def _normalize_tui_toolsets(toolsets: object) -> list[str]:
         return [item for item in normalized if item]
 
 
+def _normalize_tui_skills(skills: object) -> list[str]:
+    if not skills:
+        return []
+    if isinstance(skills, str):
+        raw_items = [skills]
+    elif isinstance(skills, (list, tuple)):
+        raw_items = list(skills)
+    else:
+        raw_items = [skills]
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_items:
+        for part in str(item).split(","):
+            skill = part.strip()
+            if not skill or skill in seen:
+                continue
+            seen.add(skill)
+            normalized.append(skill)
+    return normalized
+
+
+def _config_preloaded_tui_skills() -> list[str]:
+    if os.environ.get("HERMES_IGNORE_RULES", "").strip():
+        return []
+    try:
+        from hermes_cli.config import load_config
+
+        config = load_config()
+    except Exception:
+        return []
+    skills_config = config.get("skills", {}) if isinstance(config, dict) else {}
+    return _normalize_tui_skills(skills_config.get("preload"))
+
+
 def _launch_tui(
     resume_session_id: Optional[str] = None,
     tui_dev: bool = False,
@@ -1246,19 +1281,18 @@ def _launch_tui(
     tui_toolsets = _normalize_tui_toolsets(toolsets)
     if tui_toolsets:
         env["HERMES_TUI_TOOLSETS"] = ",".join(tui_toolsets)
-    if skills:
-        if isinstance(skills, (list, tuple)):
-            flattened = []
-            for item in skills:
-                flattened.extend(
-                    part.strip() for part in str(item).split(",") if part.strip()
-                )
-            if flattened:
-                env["HERMES_TUI_SKILLS"] = ",".join(flattened)
-        else:
-            value = str(skills).strip()
-            if value:
-                env["HERMES_TUI_SKILLS"] = value
+    tui_skills = []
+    tui_skills.extend(_config_preloaded_tui_skills())
+    tui_skills.extend(_normalize_tui_skills(skills))
+    if tui_skills:
+        deduped = []
+        seen = set()
+        for skill in tui_skills:
+            if skill in seen:
+                continue
+            seen.add(skill)
+            deduped.append(skill)
+        env["HERMES_TUI_SKILLS"] = ",".join(deduped)
     if query:
         env["HERMES_TUI_QUERY"] = query
     if image:
