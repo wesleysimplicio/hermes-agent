@@ -360,9 +360,6 @@ lands.
 
 ## Supporting Docs
 
-- Regression log and next-upstream-release playbook:
-  `docs/hermes-10x-fast-regression-log.md`
-- Detailed implementation notes:
-  `docs/hermes-agent-10x-fast-pr.md`
-- Runtime research mapping:
-  `docs/runtime-performance-investigation-2026-05-15.md`
+- [Regression log and next-upstream-release playbook](https://github.com/wesleysimplicio/hermes-agent/blob/codex/hermes-agent-10x-fast/docs/hermes-10x-fast-regression-log.md)
+- [Detailed implementation notes](https://github.com/wesleysimplicio/hermes-agent/blob/codex/hermes-agent-10x-fast/docs/hermes-agent-10x-fast-pr.md)
+- [Runtime research mapping](https://github.com/wesleysimplicio/hermes-agent/blob/codex/hermes-agent-10x-fast/docs/runtime-performance-investigation-2026-05-15.md)
