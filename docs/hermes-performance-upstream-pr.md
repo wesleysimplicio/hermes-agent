@@ -39,6 +39,9 @@ The branch also adds reproducible startup/runtime benchmark harnesses, visual
 PR documentation, and focused regression tests for the new cache, batch,
 fingerprint, and endpoint-fast-path behavior.
 
+The focused regression status and next-upstream-release playbook live in
+`docs/hermes-10x-fast-regression-log.md`.
+
 Image rule for this PR: every generated or diagrammed image used in the README
 and PR documentation must show or be mapped to old behavior, new behavior, and
 the measured gain for that item. The canonical mapping is documented in
