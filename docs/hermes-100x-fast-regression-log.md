@@ -499,3 +499,24 @@ Result: `116 passed`.
 Operational note: `codex exec --enable goals` was attempted for this cycle, but
 the local Codex CLI reported a usage-limit error. Work continued locally with
 the same staged objective loop.
+
+## CI Follow-Up: Fork Audit Noise
+
+Date: 2026-05-15
+
+The fork-side CI also reported two non-runtime failures after the regression
+fix commit:
+
+- contributor attribution detected older upstream author emails that were not
+  present as exact keys in `AUTHOR_MAP`;
+- the supply-chain scanner flagged `hermes_cli/setup.py` as if it were a
+  package install hook named `setup.py`.
+
+Implemented follow-up:
+
+- Added exact author mappings for the fork-reported emails:
+  `amethystani@users.noreply.github.com`, `nightcityblade@gmail.com`, and
+  `robin@soal.org`.
+- Narrowed the install-hook scanner so root-level `setup.py` is still critical,
+  while non-root application modules such as `hermes_cli/setup.py` are not
+  treated as packaging install hooks.
