@@ -2707,7 +2707,7 @@ def _gateway_platform_short_label(label: str) -> str:
     return base or label
 
 
-def _get_section_config_summary(config: dict, section_key: str) -> Optional[str]:
+def _get_section_config_summary(config: dict, section_key: str) -> str | None:
     """Return a short summary if a setup section is already configured, else None.
 
     Used after OpenClaw migration to detect which sections can be skipped.

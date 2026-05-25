@@ -270,9 +270,9 @@ class _SupermemoryClient:
         self._timeout = timeout
         self._client = Supermemory(api_key=api_key, timeout=timeout, max_retries=0)
 
-    def add_memory(self, content: str, metadata: Optional[dict] = None, *,
-                   entity_context: str = "", container_tag: Optional[str] = None,
-                   custom_id: Optional[str] = None) -> dict:
+    def add_memory(self, content: str, metadata: dict | None = None, *,
+                   entity_context: str = "", container_tag: str | None = None,
+                   custom_id: str | None = None) -> dict:
         tag = container_tag or self._container_tag
         kwargs: dict[str, Any] = {
             "content": content.strip(),
@@ -288,8 +288,8 @@ class _SupermemoryClient:
         return {"id": getattr(result, "id", "")}
 
     def search_memories(self, query: str, *, limit: int = 5,
-                        container_tag: Optional[str] = None,
-                        search_mode: Optional[str] = None) -> list[dict]:
+                        container_tag: str | None = None,
+                        search_mode: str | None = None) -> list[dict]:
         tag = container_tag or self._container_tag
         mode = search_mode or self._search_mode
         kwargs: dict[str, Any] = {"q": query, "container_tag": tag, "limit": limit}
@@ -307,8 +307,8 @@ class _SupermemoryClient:
             })
         return results
 
-    def get_profile(self, query: Optional[str] = None, *,
-                    container_tag: Optional[str] = None) -> dict:
+    def get_profile(self, query: str | None = None, *,
+                    container_tag: str | None = None) -> dict:
         tag = container_tag or self._container_tag
         kwargs: dict[str, Any] = {"container_tag": tag}
         if query:
@@ -332,11 +332,11 @@ class _SupermemoryClient:
                     })
         return {"static": static, "dynamic": dynamic, "search_results": search_results}
 
-    def forget_memory(self, memory_id: str, *, container_tag: Optional[str] = None) -> None:
+    def forget_memory(self, memory_id: str, *, container_tag: str | None = None) -> None:
         tag = container_tag or self._container_tag
         self._client.memories.forget(container_tag=tag, id=memory_id)
 
-    def forget_by_query(self, query: str, *, container_tag: Optional[str] = None) -> dict:
+    def forget_by_query(self, query: str, *, container_tag: str | None = None) -> dict:
         results = self.search_memories(query, limit=5, container_tag=container_tag)
         if not results:
             return {"success": False, "message": "No matching memory found to forget."}
@@ -421,15 +421,15 @@ class SupermemoryMemoryProvider(MemoryProvider):
     def __init__(self):
         self._config = _default_config()
         self._api_key = ""
-        self._client: Optional[_SupermemoryClient] = None
+        self._client: _SupermemoryClient | None = None
         self._container_tag = _DEFAULT_CONTAINER_TAG
         self._session_id = ""
         self._turn_count = 0
         self._prefetch_result = ""
         self._prefetch_lock = threading.Lock()
-        self._prefetch_thread: Optional[threading.Thread] = None
-        self._sync_thread: Optional[threading.Thread] = None
-        self._write_thread: Optional[threading.Thread] = None
+        self._prefetch_thread: threading.Thread | None = None
+        self._sync_thread: threading.Thread | None = None
+        self._write_thread: threading.Thread | None = None
         self._auto_recall = True
         self._auto_capture = True
         self._max_recall_results = _DEFAULT_MAX_RECALL_RESULTS
@@ -643,7 +643,7 @@ class SupermemoryMemoryProvider(MemoryProvider):
                 thread.join(timeout=5.0)
             setattr(self, attr_name, None)
 
-    def _resolve_tool_container_tag(self, args: dict) -> Optional[str]:
+    def _resolve_tool_container_tag(self, args: dict) -> str | None:
         """Validate and resolve container_tag from tool call args.
 
         Returns None (use primary) if multi-container is disabled or no tag provided.

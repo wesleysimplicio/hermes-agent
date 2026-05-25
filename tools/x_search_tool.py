@@ -144,7 +144,7 @@ def check_x_search_requirements() -> bool:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _normalize_handles(handles: Optional[List[str]], field_name: str) -> List[str]:
+def _normalize_handles(handles: List[str] | None, field_name: str) -> List[str]:
     cleaned: List[str] = []
     for handle in handles or []:
         normalized = str(handle or "").strip().lstrip("@")
@@ -185,8 +185,8 @@ def _validate_date_range(from_date: str, to_date: str) -> None:
         to return zero citations. ``to_date`` in the future is allowed
         (callers may legitimately set "from yesterday to tomorrow").
     """
-    parsed_from: Optional[date] = None
-    parsed_to: Optional[date] = None
+    parsed_from: date | None = None
+    parsed_to: date | None = None
     if from_date.strip():
         parsed_from = _parse_iso_date(from_date, "from_date")
     if to_date.strip():
@@ -274,8 +274,8 @@ def _http_error_message(exc: requests.HTTPError) -> str:
 
 def x_search_tool(
     query: str,
-    allowed_x_handles: Optional[List[str]] = None,
-    excluded_x_handles: Optional[List[str]] = None,
+    allowed_x_handles: List[str] | None = None,
+    excluded_x_handles: List[str] | None = None,
     from_date: str = "",
     to_date: str = "",
     enable_image_understanding: bool = False,
@@ -328,7 +328,7 @@ def x_search_tool(
 
         timeout_seconds = _get_x_search_timeout_seconds()
         max_retries = _get_x_search_retries()
-        response: Optional[requests.Response] = None
+        response: requests.Response | None = None
         for attempt in range(max_retries + 1):
             try:
                 response = requests.post(

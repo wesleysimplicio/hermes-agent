@@ -235,8 +235,8 @@ async def _run_aggregator_model(
 
 async def mixture_of_agents_tool(
     user_prompt: str,
-    reference_models: Optional[List[str]] = None,
-    aggregator_model: Optional[str] = None
+    reference_models: List[str] | None = None,
+    aggregator_model: str | None = None
 ) -> str:
     """
     Process a complex query using the Mixture-of-Agents methodology.

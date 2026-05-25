@@ -89,7 +89,7 @@ class NousPortalAdapter(UpstreamAdapter):
         *,
         failed_credential: UpstreamCredential,
         status_code: int,
-    ) -> Optional[UpstreamCredential]:
+    ) -> UpstreamCredential | None:
         if status_code != 401:
             return None
         if failed_credential.bearer.count(".") != 2:
@@ -155,7 +155,7 @@ class NousPortalAdapter(UpstreamAdapter):
     # to hermes_cli.auth to avoid expanding that module's public surface.
     # ------------------------------------------------------------------
 
-    def _read_state(self) -> Optional[Dict[str, Any]]:
+    def _read_state(self) -> Dict[str, Any] | None:
         try:
             with _auth_store_lock():
                 store = _load_auth_store()
@@ -172,8 +172,8 @@ class NousPortalAdapter(UpstreamAdapter):
         self,
         state: Dict[str, Any],
         *,
-        quarantine_error: Optional[AuthError] = None,
-        quarantine_reason: Optional[str] = None,
+        quarantine_error: AuthError | None = None,
+        quarantine_reason: str | None = None,
     ) -> None:
         try:
             with _auth_store_lock():

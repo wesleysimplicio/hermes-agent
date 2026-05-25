@@ -97,7 +97,7 @@ MESSAGE_DEDUP_TTL_SECONDS = 300
 
 
 def _is_stale_session_ret(
-    ret: "Optional[int]", errcode: "Optional[int]", errmsg: "Optional[str]",
+    ret: "int | None", errcode: "int | None", errmsg: "str | None",
 ) -> bool:
     """True when iLink returns ret=-2 / errcode=-2 with 'unknown error',
     which is a stale-session signal (same as errcode=-14) rather than
@@ -115,7 +115,7 @@ MEDIA_VOICE = 4
 _LIVE_ADAPTERS: Dict[str, Any] = {}
 
 
-def _make_ssl_connector() -> Optional["aiohttp.TCPConnector"]:
+def _make_ssl_connector() -> "aiohttp.TCPConnector" | None:
     """Return a TCPConnector with a certifi CA bundle, or None if certifi is unavailable.
 
     Tencent's iLink server (``ilinkai.weixin.qq.com``) is not verifiable against
@@ -158,7 +158,7 @@ def check_weixin_requirements() -> bool:
     return AIOHTTP_AVAILABLE and CRYPTO_AVAILABLE
 
 
-def _safe_id(value: Optional[str], keep: int = 8) -> str:
+def _safe_id(value: str | None, keep: int = 8) -> str:
     raw = str(value or "").strip()
     if not raw:
         return "?"
@@ -207,7 +207,7 @@ def _base_info() -> Dict[str, Any]:
     return {"channel_version": CHANNEL_VERSION}
 
 
-def _headers(token: Optional[str], body: str) -> Dict[str, str]:
+def _headers(token: str | None, body: str) -> Dict[str, str]:
     headers = {
         "Content-Type": "application/json",
         "AuthorizationType": "ilink_bot_token",
@@ -254,7 +254,7 @@ def save_weixin_account(
         pass
 
 
-def load_weixin_account(hermes_home: str, account_id: str) -> Optional[Dict[str, Any]]:
+def load_weixin_account(hermes_home: str, account_id: str) -> Dict[str, Any] | None:
     """Load persisted account credentials."""
     path = _account_file(hermes_home, account_id)
     if not path.exists():
@@ -295,7 +295,7 @@ class ContextTokenStore:
         if restored:
             logger.info("weixin: restored %d context token(s) for %s", restored, _safe_id(account_id))
 
-    def get(self, account_id: str, user_id: str) -> Optional[str]:
+    def get(self, account_id: str, user_id: str) -> str | None:
         return self._cache.get(self._key(account_id, user_id))
 
     def set(self, account_id: str, user_id: str, token: str) -> None:
@@ -322,7 +322,7 @@ class TypingTicketCache:
         self._ttl_seconds = ttl_seconds
         self._cache: Dict[str, Tuple[str, float]] = {}
 
-    def get(self, user_id: str) -> Optional[str]:
+    def get(self, user_id: str) -> str | None:
         entry = self._cache.get(user_id)
         if not entry:
             return None
@@ -373,7 +373,7 @@ async def _api_post(
     base_url: str,
     endpoint: str,
     payload: Dict[str, Any],
-    token: Optional[str],
+    token: str | None,
     timeout_ms: int,
 ) -> Dict[str, Any]:
     body = _json_dumps({**payload, "base_info": _base_info()})
@@ -434,7 +434,7 @@ async def _send_message(
     token: str,
     to: str,
     text: str,
-    context_token: Optional[str],
+    context_token: str | None,
     client_id: str,
 ) -> Dict[str, Any]:
     """Send a text message via iLink sendmessage API.
@@ -493,7 +493,7 @@ async def _get_config(
     base_url: str,
     token: str,
     user_id: str,
-    context_token: Optional[str],
+    context_token: str | None,
 ) -> Dict[str, Any]:
     payload: Dict[str, Any] = {"ilink_user_id": user_id}
     if context_token:
@@ -624,9 +624,9 @@ async def _download_and_decrypt_media(
     session: "aiohttp.ClientSession",
     *,
     cdn_base_url: str,
-    encrypted_query_param: Optional[str],
-    aes_key_b64: Optional[str],
-    full_url: Optional[str],
+    encrypted_query_param: str | None,
+    aes_key_b64: str | None,
+    full_url: str | None,
     timeout_seconds: float,
 ) -> bytes:
     if encrypted_query_param:
@@ -1043,7 +1043,7 @@ async def qr_login(
     *,
     bot_type: str = "3",
     timeout_seconds: int = 480,
-) -> Optional[Dict[str, str]]:
+) -> Dict[str, str] | None:
     """
     Run the interactive iLink QR login flow.
 
@@ -1189,9 +1189,9 @@ class WeixinAdapter(BasePlatformAdapter):
         self._hermes_home = hermes_home
         self._token_store = ContextTokenStore(hermes_home)
         self._typing_cache = TypingTicketCache()
-        self._poll_session: Optional[aiohttp.ClientSession] = None
-        self._send_session: Optional[aiohttp.ClientSession] = None
-        self._poll_task: Optional[asyncio.Task] = None
+        self._poll_session: aiohttp.ClientSession | None = None
+        self._send_session: aiohttp.ClientSession | None = None
+        self._poll_task: asyncio.Task | None = None
         self._dedup = MessageDeduplicator(ttl_seconds=MESSAGE_DEDUP_TTL_SECONDS)
 
         self._account_id = str(extra.get("account_id") or os.getenv("WEIXIN_ACCOUNT_ID", "")).strip()
@@ -1473,7 +1473,7 @@ class WeixinAdapter(BasePlatformAdapter):
                 media_paths.append(voice_path)
                 media_types.append("audio/silk")
 
-    async def _download_image(self, item: Dict[str, Any]) -> Optional[str]:
+    async def _download_image(self, item: Dict[str, Any]) -> str | None:
         media = _media_reference(item, "image_item")
         try:
             data = await _download_and_decrypt_media(
@@ -1491,7 +1491,7 @@ class WeixinAdapter(BasePlatformAdapter):
             logger.warning("[%s] image download failed: %s", self.name, exc)
             return None
 
-    async def _download_video(self, item: Dict[str, Any]) -> Optional[str]:
+    async def _download_video(self, item: Dict[str, Any]) -> str | None:
         media = _media_reference(item, "video_item")
         try:
             data = await _download_and_decrypt_media(
@@ -1507,7 +1507,7 @@ class WeixinAdapter(BasePlatformAdapter):
             logger.warning("[%s] video download failed: %s", self.name, exc)
             return None
 
-    async def _download_file(self, item: Dict[str, Any]) -> Tuple[Optional[str], str]:
+    async def _download_file(self, item: Dict[str, Any]) -> Tuple[str | None, str]:
         file_item = item.get("file_item") or {}
         media = file_item.get("media") or {}
         filename = str(file_item.get("file_name") or "document.bin")
@@ -1526,7 +1526,7 @@ class WeixinAdapter(BasePlatformAdapter):
             logger.warning("[%s] file download failed: %s", self.name, exc)
             return None, mime
 
-    async def _download_voice(self, item: Dict[str, Any]) -> Optional[str]:
+    async def _download_voice(self, item: Dict[str, Any]) -> str | None:
         voice_item = item.get("voice_item") or {}
         media = voice_item.get("media") or {}
         if voice_item.get("text"):
@@ -1545,7 +1545,7 @@ class WeixinAdapter(BasePlatformAdapter):
             logger.warning("[%s] voice download failed: %s", self.name, exc)
             return None
 
-    async def _maybe_fetch_typing_ticket(self, user_id: str, context_token: Optional[str]) -> None:
+    async def _maybe_fetch_typing_ticket(self, user_id: str, context_token: str | None) -> None:
         if not self._poll_session or not self._token:
             return
         if self._typing_cache.get(user_id):
@@ -1574,7 +1574,7 @@ class WeixinAdapter(BasePlatformAdapter):
         *,
         chat_id: str,
         chunk: str,
-        context_token: Optional[str],
+        context_token: str | None,
         client_id: str,
     ) -> None:
         """Send a single text chunk with per-chunk retry and backoff.
@@ -1584,7 +1584,7 @@ class WeixinAdapter(BasePlatformAdapter):
         degraded fallback, which keeps cron-initiated push messages working
         even when no user message has refreshed the session recently.
         """
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         retried_without_token = False
         for attempt in range(self._send_chunk_retries + 1):
             try:
@@ -1669,13 +1669,13 @@ class WeixinAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         if not self._send_session or not self._token:
             return SendResult(success=False, error="Not connected")
         context_token = self._token_store.get(self._account_id, chat_id)
-        last_message_id: Optional[str] = None
+        last_message_id: str | None = None
 
         # Extract MEDIA: tags and bare local file paths before text delivery.
         media_files, cleaned_content = self.extract_media(content)
@@ -1732,7 +1732,7 @@ class WeixinAdapter(BasePlatformAdapter):
             logger.error("[%s] send failed to=%s: %s", self.name, _safe_id(chat_id), exc)
             return SendResult(success=False, error=str(exc))
 
-    async def send_typing(self, chat_id: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+    async def send_typing(self, chat_id: str, metadata: Dict[str, Any] | None = None) -> None:
         if not self._send_session or not self._token:
             return
         typing_ticket = self._typing_cache.get(chat_id)
@@ -1773,8 +1773,8 @@ class WeixinAdapter(BasePlatformAdapter):
         chat_id: str,
         image_url: str,
         caption: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         if image_url.startswith(("http://", "https://")):
             file_path = await self._download_remote_media(image_url)
@@ -1797,9 +1797,9 @@ class WeixinAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         **kwargs,
     ) -> SendResult:
         del reply_to, kwargs
@@ -1814,10 +1814,10 @@ class WeixinAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         **kwargs,
     ) -> SendResult:
         del file_name, reply_to, metadata, kwargs
@@ -1834,9 +1834,9 @@ class WeixinAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         if not self._send_session or not self._token:
             return SendResult(success=False, error="Not connected")
@@ -1851,9 +1851,9 @@ class WeixinAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         if not self._send_session or not self._token:
             return SendResult(success=False, error="Not connected")
@@ -2064,7 +2064,7 @@ class WeixinAdapter(BasePlatformAdapter):
         chat_type = "group" if chat_id.endswith("@chatroom") else "dm"
         return {"name": chat_id, "type": chat_type, "chat_id": chat_id}
 
-    def format_message(self, content: Optional[str]) -> str:
+    def format_message(self, content: str | None) -> str:
         if content is None:
             return ""
         return _wrap_copy_friendly_lines_for_weixin(_normalize_markdown_blocks(content))
@@ -2073,10 +2073,10 @@ class WeixinAdapter(BasePlatformAdapter):
 async def send_weixin_direct(
     *,
     extra: Dict[str, Any],
-    token: Optional[str],
+    token: str | None,
     chat_id: str,
     message: str,
-    media_files: Optional[List[Tuple[str, bool]]] = None,
+    media_files: List[Tuple[str, bool]] | None = None,
 ) -> Dict[str, Any]:
     """
     One-shot send helper for ``send_message`` and cron delivery.
@@ -2101,7 +2101,7 @@ async def send_weixin_direct(
     if (live_adapter is not None and send_session is not None
             and not send_session.closed
             and send_session._loop is asyncio.get_running_loop()):
-        last_result: Optional[SendResult] = None
+        last_result: SendResult | None = None
         cleaned = live_adapter.format_message(message)
         if cleaned:
             last_result = await live_adapter.send(chat_id, cleaned)
@@ -2146,7 +2146,7 @@ async def send_weixin_direct(
         adapter._cdn_base_url = cdn_base_url
         adapter._token_store = token_store
 
-        last_result: Optional[SendResult] = None
+        last_result: SendResult | None = None
         cleaned = adapter.format_message(message)
         if cleaned:
             last_result = await adapter.send(chat_id, cleaned)

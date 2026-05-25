@@ -107,7 +107,7 @@ _BLOCKED_TYPE_PATTERNS = [
 ]
 
 
-def _is_blocked_type(text: str) -> Optional[str]:
+def _is_blocked_type(text: str) -> str | None:
     for pat in _BLOCKED_TYPE_PATTERNS:
         if pat.search(text):
             return pat.pattern
@@ -120,7 +120,7 @@ def _is_blocked_type(text: str) -> Optional[str]:
 
 # Per-process cached backend; lazily instantiated on first call.
 _backend_lock = threading.Lock()
-_backend: Optional[ComputerUseBackend] = None
+_backend: ComputerUseBackend | None = None
 # Session-scoped approval state.
 _session_auto_approve = False
 _always_allow: set = set()  # action names the user unlocked for the session
@@ -167,7 +167,7 @@ class _NoopBackend(ComputerUseBackend):  # pragma: no cover
     def stop(self) -> None: self._started = False
     def is_available(self) -> bool: return True
 
-    def capture(self, mode: str = "som", app: Optional[str] = None) -> CaptureResult:
+    def capture(self, mode: str = "som", app: str | None = None) -> CaptureResult:
         self.calls.append(("capture", {"mode": mode, "app": app}))
         return CaptureResult(mode=mode, width=1024, height=768, png_b64=None,
                              elements=[], app=app or "", window_title="")
@@ -200,7 +200,7 @@ class _NoopBackend(ComputerUseBackend):  # pragma: no cover
         self.calls.append(("focus_app", {"app": app, "raise": raise_window}))
         return ActionResult(ok=True, action="focus_app")
 
-    def set_value(self, value: str, element: Optional[int] = None) -> ActionResult:
+    def set_value(self, value: str, element: int | None = None) -> ActionResult:
         self.calls.append(("set_value", {"value": value, "element": element}))
         return ActionResult(ok=True, action="set_value")
 
@@ -261,7 +261,7 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
         return json.dumps({"error": f"{action} failed: {e}"})
 
 
-def _request_approval(action: str, args: Dict[str, Any]) -> Optional[str]:
+def _request_approval(action: str, args: Dict[str, Any]) -> str | None:
     """Return None if approved, or a JSON error string if denied."""
     global _session_auto_approve, _always_allow
     if _session_auto_approve:
@@ -575,7 +575,7 @@ def _should_route_through_aux_vision() -> bool:
 def _route_capture_through_aux_vision(
     cap: CaptureResult,
     summary: str,
-) -> Optional[str]:
+) -> str | None:
     """Pre-analyse the captured PNG via ``vision_analyze`` and return a text result.
 
     The captured base64 PNG is materialised to ``$HERMES_HOME/cache/vision/``

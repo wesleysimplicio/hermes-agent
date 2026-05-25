@@ -87,7 +87,7 @@ class TodoStore:
         """Check if there are any items in the list."""
         return bool(self._items)
 
-    def format_for_injection(self) -> Optional[str]:
+    def format_for_injection(self) -> str | None:
         """
         Render the todo list for post-compression injection.
 
@@ -154,9 +154,9 @@ class TodoStore:
 
 
 def todo_tool(
-    todos: Optional[List[Dict[str, Any]]] = None,
+    todos: List[Dict[str, Any]] | None = None,
     merge: bool = False,
-    store: Optional[TodoStore] = None,
+    store: TodoStore | None = None,
 ) -> str:
     """
     Single entry point for the todo tool. Reads or writes depending on params.

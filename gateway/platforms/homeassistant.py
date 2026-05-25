@@ -66,10 +66,10 @@ class HomeAssistantAdapter(BasePlatformAdapter):
         super().__init__(config, Platform.HOMEASSISTANT)
 
         # Connection state
-        self._session: Optional["aiohttp.ClientSession"] = None
-        self._ws: Optional["aiohttp.ClientWebSocketResponse"] = None
-        self._rest_session: Optional["aiohttp.ClientSession"] = None
-        self._listen_task: Optional[asyncio.Task] = None
+        self._session: "aiohttp.ClientSession" | None = None
+        self._ws: "aiohttp.ClientWebSocketResponse" | None = None
+        self._rest_session: "aiohttp.ClientSession" | None = None
+        self._listen_task: asyncio.Task | None = None
         self._msg_id: int = 0
 
         # Configuration from extra
@@ -322,7 +322,7 @@ class HomeAssistantAdapter(BasePlatformAdapter):
         entity_id: str,
         old_state: Dict[str, Any],
         new_state: Dict[str, Any],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Convert a state_changed event into a human-readable description."""
         if not new_state:
             return None
@@ -387,8 +387,8 @@ class HomeAssistantAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a notification via HA REST API (persistent_notification.create).
 

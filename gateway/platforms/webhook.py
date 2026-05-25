@@ -223,8 +223,8 @@ class WebhookAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Deliver the agent's response to the configured destination.
 

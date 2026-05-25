@@ -296,9 +296,9 @@ _continuous_recorder: Any = None
 # leak into the mic.
 _tts_playing = threading.Event()
 _tts_playing.set()  # initially "not playing"
-_continuous_on_transcript: Optional[Callable[[str], None]] = None
-_continuous_on_status: Optional[Callable[[str], None]] = None
-_continuous_on_silent_limit: Optional[Callable[[], None]] = None
+_continuous_on_transcript: Callable[[str], None] | None = None
+_continuous_on_status: Callable[[str], None] | None = None
+_continuous_on_silent_limit: Callable[[], None] | None = None
 _continuous_no_speech_count = 0
 _CONTINUOUS_NO_SPEECH_LIMIT = 3
 
@@ -321,7 +321,7 @@ def start_recording() -> None:
         _recorder = rec
 
 
-def stop_and_transcribe() -> Optional[str]:
+def stop_and_transcribe() -> str | None:
     """Stop the active push-to-talk recording, transcribe, return text.
 
     Returns ``None`` when no recording is active, when the microphone
@@ -368,8 +368,8 @@ def stop_and_transcribe() -> Optional[str]:
 
 def start_continuous(
     on_transcript: Callable[[str], None],
-    on_status: Optional[Callable[[str], None]] = None,
-    on_silent_limit: Optional[Callable[[], None]] = None,
+    on_status: Callable[[str], None] | None = None,
+    on_silent_limit: Callable[[], None] | None = None,
     silence_threshold: int = 200,
     silence_duration: float = 3.0,
     auto_restart: bool = True,
@@ -492,7 +492,7 @@ def stop_continuous(force_transcribe: bool = False) -> None:
 
             def _transcribe_and_cleanup():
                 global _continuous_no_speech_count, _continuous_stopping
-                transcript: Optional[str] = None
+                transcript: str | None = None
                 should_halt = False
 
                 try:
@@ -615,7 +615,7 @@ def _continuous_on_silence() -> None:
     # CoreAudio conflict that blocks pre-start beeps).
     _play_beep(frequency=660, count=2)
 
-    transcript: Optional[str] = None
+    transcript: str | None = None
 
     if wav_path:
         try:

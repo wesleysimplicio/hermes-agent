@@ -163,14 +163,14 @@ class TTSProvider(abc.ABC):
             "env_vars": [],
         }
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         """Return the default model id, or None if not applicable."""
         models = self.list_models()
         if models:
             return models[0].get("id")
         return None
 
-    def default_voice(self) -> Optional[str]:
+    def default_voice(self) -> str | None:
         """Return the default voice id, or None if not applicable."""
         voices = self.list_voices()
         if voices:
@@ -183,9 +183,9 @@ class TTSProvider(abc.ABC):
         text: str,
         output_path: str,
         *,
-        voice: Optional[str] = None,
-        model: Optional[str] = None,
-        speed: Optional[float] = None,
+        voice: str | None = None,
+        model: str | None = None,
+        speed: float | None = None,
         format: str = DEFAULT_OUTPUT_FORMAT,
         **extra: Any,
     ) -> str:
@@ -220,8 +220,8 @@ class TTSProvider(abc.ABC):
         self,
         text: str,
         *,
-        voice: Optional[str] = None,
-        model: Optional[str] = None,
+        voice: str | None = None,
+        model: str | None = None,
         format: str = "opus",
         **extra: Any,
     ) -> Iterator[bytes]:
@@ -260,7 +260,7 @@ class TTSProvider(abc.ABC):
 # ---------------------------------------------------------------------------
 
 
-def resolve_output_format(value: Optional[str]) -> str:
+def resolve_output_format(value: str | None) -> str:
     """Clamp an output_format value to the valid set.
 
     Invalid values are coerced to :data:`DEFAULT_OUTPUT_FORMAT` rather

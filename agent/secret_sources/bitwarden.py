@@ -98,8 +98,8 @@ class FetchResult:
     applied: List[str] = field(default_factory=list)   # set into os.environ
     skipped: List[str] = field(default_factory=list)   # already set, not overridden
     warnings: List[str] = field(default_factory=list)  # non-fatal issues
-    error: Optional[str] = None                        # fatal: nothing was fetched
-    binary_path: Optional[Path] = None
+    error: str | None = None                        # fatal: nothing was fetched
+    binary_path: Path | None = None
 
     @property
     def ok(self) -> bool:
@@ -118,7 +118,7 @@ def _hermes_bin_dir() -> Path:
     return get_hermes_home() / "bin"
 
 
-def find_bws(*, install_if_missing: bool = False) -> Optional[Path]:
+def find_bws(*, install_if_missing: bool = False) -> Path | None:
     """Return a path to a usable ``bws`` binary, or None.
 
     Resolution order:
@@ -314,7 +314,7 @@ def fetch_bitwarden_secrets(
     *,
     access_token: str,
     project_id: str,
-    binary: Optional[Path] = None,
+    binary: Path | None = None,
     cache_ttl_seconds: float = 300,
     use_cache: bool = True,
     server_url: str = "",

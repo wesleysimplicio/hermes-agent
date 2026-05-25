@@ -138,7 +138,7 @@ class EnvRequirement:
     name: str
     description: str = ""
     required: bool = True
-    default: Optional[str] = None
+    default: str | None = None
 
     @classmethod
     def from_dict(cls, data: Any) -> "EnvRequirement":
@@ -256,7 +256,7 @@ def _dump_yaml(data: Any) -> str:
     return yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
 
 
-def read_manifest(profile_dir: Path) -> Optional[DistributionManifest]:
+def read_manifest(profile_dir: Path) -> DistributionManifest | None:
     """Return the manifest for *profile_dir*, or None if it isn't a distribution."""
     mf_path = profile_dir / MANIFEST_FILENAME
     if not mf_path.is_file():
@@ -473,7 +473,7 @@ def _count_skills(staged: Path) -> int:
 def plan_install(
     source: str,
     workdir: Path,
-    override_name: Optional[str] = None,
+    override_name: str | None = None,
 ) -> InstallPlan:
     """Stage *source* and produce a plan describing what install would do."""
     from hermes_cli.profiles import (
@@ -585,7 +585,7 @@ def _bootstrap_user_dirs(target: Path) -> None:
 
 def install_distribution(
     source: str,
-    name: Optional[str] = None,
+    name: str | None = None,
     force: bool = False,
     create_alias: bool = False,
 ) -> InstallPlan:

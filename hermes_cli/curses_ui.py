@@ -38,7 +38,7 @@ def curses_checklist(
     selected: Set[int],
     *,
     cancel_returns: Set[int] | None = None,
-    status_fn: Optional[Callable[[Set[int]], str]] = None,
+    status_fn: Callable[[Set[int]], str] | None = None,
 ) -> Set[int]:
     """Curses multi-select checklist. Returns set of selected indices.
 
@@ -442,7 +442,7 @@ def _numbered_fallback(
     items: List[str],
     selected: Set[int],
     cancel_returns: Set[int],
-    status_fn: Optional[Callable[[Set[int]], str]] = None,
+    status_fn: Callable[[Set[int]], str] | None = None,
 ) -> Set[int]:
     """Text-based toggle fallback for terminals without curses."""
     chosen = set(selected)

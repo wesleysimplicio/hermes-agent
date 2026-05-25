@@ -76,8 +76,8 @@ def _get_headers(token: str = "") -> Dict[str, str]:
 
 def _filter_and_summarize(
     states: list,
-    domain: Optional[str] = None,
-    area: Optional[str] = None,
+    domain: str | None = None,
+    area: str | None = None,
 ) -> Dict[str, Any]:
     """Filter raw HA states by domain/area and return a compact summary."""
     if domain:
@@ -103,8 +103,8 @@ def _filter_and_summarize(
 
 
 async def _async_list_entities(
-    domain: Optional[str] = None,
-    area: Optional[str] = None,
+    domain: str | None = None,
+    area: str | None = None,
 ) -> Dict[str, Any]:
     """Fetch entity states from HA and optionally filter by domain/area."""
     import aiohttp
@@ -140,8 +140,8 @@ async def _async_get_state(entity_id: str) -> Dict[str, Any]:
 
 
 def _build_service_payload(
-    entity_id: Optional[str] = None,
-    data: Optional[Dict[str, Any]] = None,
+    entity_id: str | None = None,
+    data: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Build the JSON payload for a HA service call."""
     payload: Dict[str, Any] = {}
@@ -177,8 +177,8 @@ def _parse_service_response(
 async def _async_call_service(
     domain: str,
     service: str,
-    entity_id: Optional[str] = None,
-    data: Optional[Dict[str, Any]] = None,
+    entity_id: str | None = None,
+    data: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Call a Home Assistant service."""
     import aiohttp
@@ -292,7 +292,7 @@ def _handle_call_service(args: dict, **kw) -> str:
 # List services
 # ---------------------------------------------------------------------------
 
-async def _async_list_services(domain: Optional[str] = None) -> Dict[str, Any]:
+async def _async_list_services(domain: str | None = None) -> Dict[str, Any]:
     """Fetch available services from HA and optionally filter by domain."""
     import aiohttp
 

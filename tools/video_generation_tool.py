@@ -177,14 +177,14 @@ def _read_video_gen_section() -> Dict[str, Any]:
         return {}
 
 
-def _read_configured_video_provider() -> Optional[str]:
+def _read_configured_video_provider() -> str | None:
     value = _read_video_gen_section().get("provider")
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None
 
 
-def _read_configured_video_model() -> Optional[str]:
+def _read_configured_video_model() -> str | None:
     value = _read_video_gen_section().get("model")
     if isinstance(value, str) and value.strip():
         return value.strip()
@@ -244,7 +244,7 @@ def _resolve_active_provider():
         return None
 
 
-def _missing_provider_error(configured: Optional[str]) -> str:
+def _missing_provider_error(configured: str | None) -> str:
     if configured:
         msg = (
             f"video_gen.provider='{configured}' is set but no plugin "
@@ -270,7 +270,7 @@ def _missing_provider_error(configured: Optional[str]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _coerce_int(value: Any) -> Optional[int]:
+def _coerce_int(value: Any) -> int | None:
     if value is None or value == "":
         return None
     try:
@@ -279,7 +279,7 @@ def _coerce_int(value: Any) -> Optional[int]:
         return None
 
 
-def _coerce_bool(value: Any) -> Optional[bool]:
+def _coerce_bool(value: Any) -> bool | None:
     if value is None:
         return None
     if isinstance(value, bool):
@@ -293,7 +293,7 @@ def _coerce_bool(value: Any) -> Optional[bool]:
     return None
 
 
-def _normalize_reference_images(value: Any) -> Optional[List[str]]:
+def _normalize_reference_images(value: Any) -> List[str] | None:
     if value is None:
         return None
     if isinstance(value, str):

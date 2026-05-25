@@ -94,7 +94,7 @@ def _check_kanban_orchestrator_mode() -> bool:
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-def _default_task_id(arg: Optional[str]) -> Optional[str]:
+def _default_task_id(arg: str | None) -> str | None:
     """Resolve ``task_id`` arg or fall back to the env var the dispatcher set."""
     if arg:
         return arg
@@ -102,7 +102,7 @@ def _default_task_id(arg: Optional[str]) -> Optional[str]:
     return env_tid or None
 
 
-def _worker_run_id(task_id: str) -> Optional[int]:
+def _worker_run_id(task_id: str) -> int | None:
     """Return this worker's dispatcher run id when it is scoped to task_id."""
     if os.environ.get("HERMES_KANBAN_TASK") != task_id:
         return None
@@ -116,8 +116,8 @@ def _worker_run_id(task_id: str) -> Optional[int]:
 
 
 def _stamp_worker_session_metadata(
-    task_id: str, metadata: Optional[dict]
-) -> Optional[dict]:
+    task_id: str, metadata: dict | None
+) -> dict | None:
     """Add trusted worker session id metadata for this worker's own task."""
     if os.environ.get("HERMES_KANBAN_TASK") != task_id:
         return metadata
@@ -129,7 +129,7 @@ def _stamp_worker_session_metadata(
     return stamped
 
 
-def _enforce_worker_task_ownership(tid: str) -> Optional[str]:
+def _enforce_worker_task_ownership(tid: str) -> str | None:
     """Reject worker-driven destructive calls on foreign task IDs.
 
     A process spawned by the dispatcher has ``HERMES_KANBAN_TASK`` set
@@ -161,7 +161,7 @@ def _enforce_worker_task_ownership(tid: str) -> Optional[str]:
     return None
 
 
-def _connect(board: Optional[str] = None):
+def _connect(board: str | None = None):
     """Import + connect lazily so the module imports cleanly in non-kanban
     contexts (e.g. test rigs that import every tool module).
 
@@ -180,7 +180,7 @@ def _ok(**fields: Any) -> str:
     return json.dumps({"ok": True, **fields})
 
 
-def _normalize_profile(value: Any) -> Optional[str]:
+def _normalize_profile(value: Any) -> str | None:
     """Normalize CLI-compatible assignee sentinels for the tool surface."""
     if value is None:
         return None
@@ -204,7 +204,7 @@ def _parse_bool_arg(args: dict, name: str, *, default: bool = False):
     return default, f"{name} must be a boolean or 'true'/'false'"
 
 
-def _require_orchestrator_tool(tool_name: str) -> Optional[str]:
+def _require_orchestrator_tool(tool_name: str) -> str | None:
     """Belt-and-suspenders runtime guard for orchestrator-only handlers.
 
     The check_fn (`_check_kanban_orchestrator_mode`) keeps these tools

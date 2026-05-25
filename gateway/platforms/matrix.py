@@ -379,7 +379,7 @@ class MatrixAdapter(BasePlatformAdapter):
 
         self._client: Any = None  # mautrix.client.Client
         self._crypto_db: Any = None  # mautrix.util.async_db.Database
-        self._sync_task: Optional[asyncio.Task] = None
+        self._sync_task: asyncio.Task | None = None
         self._closing = False
         self._startup_ts: float = 0.0
         # Clock-skew detection: count grace-check drops that happen well
@@ -529,7 +529,7 @@ class MatrixAdapter(BasePlatformAdapter):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _extract_server_ed25519(device_keys_obj: Any) -> Optional[str]:
+    def _extract_server_ed25519(device_keys_obj: Any) -> str | None:
         """Extract the ed25519 identity key from a DeviceKeys object."""
         for kid, kval in (getattr(device_keys_obj, "keys", {}) or {}).items():
             if str(kid).startswith("ed25519:"):
@@ -1002,8 +1002,8 @@ class MatrixAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a message to a Matrix room."""
 
@@ -1098,7 +1098,7 @@ class MatrixAdapter(BasePlatformAdapter):
     # ------------------------------------------------------------------
 
     async def send_typing(
-        self, chat_id: str, metadata: Optional[Dict[str, Any]] = None
+        self, chat_id: str, metadata: Dict[str, Any] | None = None
     ) -> None:
         """Send a typing indicator."""
         if self._client:
@@ -1152,9 +1152,9 @@ class MatrixAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Download an image URL and upload it to Matrix."""
         from tools.url_safety import is_safe_url
@@ -1207,9 +1207,9 @@ class MatrixAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload a local image file to Matrix."""
         return await self._send_local_file(
@@ -1220,10 +1220,10 @@ class MatrixAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload a local file as a document."""
         return await self._send_local_file(
@@ -1234,9 +1234,9 @@ class MatrixAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload an audio file as a voice message (MSC3245 native voice)."""
         return await self._send_local_file(
@@ -1253,9 +1253,9 @@ class MatrixAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload a video file."""
         return await self._send_local_file(
@@ -1268,7 +1268,7 @@ class MatrixAdapter(BasePlatformAdapter):
         command: str,
         session_key: str,
         description: str = "dangerous command",
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ) -> SendResult:
         """Send a reaction-based exec approval prompt for Matrix."""
         if not self._client:
@@ -1329,9 +1329,9 @@ class MatrixAdapter(BasePlatformAdapter):
         filename: str,
         content_type: str,
         msgtype: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         is_voice: bool = False,
     ) -> SendResult:
         """Upload bytes to Matrix and send as a media message."""
@@ -1411,10 +1411,10 @@ class MatrixAdapter(BasePlatformAdapter):
         room_id: str,
         file_path: str,
         msgtype: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        file_name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        file_name: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         is_voice: bool = False,
     ) -> SendResult:
         """Read a local file and upload it."""
@@ -1710,7 +1710,7 @@ class MatrixAdapter(BasePlatformAdapter):
         body: str,
         source_content: dict,
         relates_to: dict,
-    ) -> Optional[tuple]:
+    ) -> tuple | None:
         """Shared mention/thread/DM gating for text and media handlers.
 
         Returns (body, is_dm, chat_type, thread_id, display_name, source)
@@ -2095,7 +2095,7 @@ class MatrixAdapter(BasePlatformAdapter):
         room_id: str,
         event_id: str,
         emoji: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Send an emoji reaction to a message in a room.
         Returns the reaction event_id on success, None on failure.
         """
@@ -2414,10 +2414,10 @@ class MatrixAdapter(BasePlatformAdapter):
         self,
         name: str = "",
         topic: str = "",
-        invite: Optional[list] = None,
+        invite: list | None = None,
         is_direct: bool = False,
         preset: str = "private_chat",
-    ) -> Optional[str]:
+    ) -> str | None:
         """Create a new Matrix room."""
         if not self._client:
             return None
@@ -2536,7 +2536,7 @@ class MatrixAdapter(BasePlatformAdapter):
         if not self._client:
             return
 
-        dm_data: Optional[Dict] = None
+        dm_data: Dict | None = None
 
         try:
             resp = await self._client.get_account_data("m.direct")
@@ -2635,8 +2635,8 @@ class MatrixAdapter(BasePlatformAdapter):
     def _is_bot_mentioned(
         self,
         body: str,
-        formatted_body: Optional[str] = None,
-        mention_user_ids: Optional[list] = None,
+        formatted_body: str | None = None,
+        mention_user_ids: list | None = None,
     ) -> bool:
         """Return True if the bot is mentioned in the message.
 

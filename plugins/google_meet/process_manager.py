@@ -44,7 +44,7 @@ def _active_file() -> Path:
     return _root() / ".active.json"
 
 
-def _read_active() -> Optional[Dict[str, Any]]:
+def _read_active() -> Dict[str, Any] | None:
     p = _active_file()
     if not p.is_file():
         return None
@@ -84,17 +84,17 @@ def _pid_alive(pid: int) -> bool:
 def start(
     url: str,
     *,
-    out_dir: Optional[Path] = None,
+    out_dir: Path | None = None,
     headed: bool = False,
-    auth_state: Optional[str] = None,
+    auth_state: str | None = None,
     guest_name: str = "Hermes Agent",
-    duration: Optional[str] = None,
-    session_id: Optional[str] = None,
+    duration: str | None = None,
+    session_id: str | None = None,
     mode: str = "transcribe",
-    realtime_model: Optional[str] = None,
-    realtime_voice: Optional[str] = None,
-    realtime_instructions: Optional[str] = None,
-    realtime_api_key: Optional[str] = None,
+    realtime_model: str | None = None,
+    realtime_voice: str | None = None,
+    realtime_instructions: str | None = None,
+    realtime_api_key: str | None = None,
 ) -> Dict[str, Any]:
     """Spawn the meet_bot subprocess for *url*.
 
@@ -216,7 +216,7 @@ def status() -> Dict[str, Any]:
     }
 
 
-def transcript(last: Optional[int] = None) -> Dict[str, Any]:
+def transcript(last: int | None = None) -> Dict[str, Any]:
     """Read the current transcript file. Returns ok=False if none exists."""
     active = _read_active()
     if not active:

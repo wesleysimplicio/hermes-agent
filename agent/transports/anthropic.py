@@ -42,7 +42,7 @@ class AnthropicTransport(ProviderTransport):
         self,
         model: str,
         messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: List[Dict[str, Any]] | None = None,
         **params,
     ) -> Dict[str, Any]:
         """Build Anthropic messages.create() kwargs.
@@ -157,7 +157,7 @@ class AnthropicTransport(ProviderTransport):
             return getattr(response, "stop_reason", None) == "end_turn"
         return True
 
-    def extract_cache_stats(self, response: Any) -> Optional[Dict[str, int]]:
+    def extract_cache_stats(self, response: Any) -> Dict[str, int] | None:
         """Extract Anthropic cache_read and cache_creation token counts."""
         usage = getattr(response, "usage", None)
         if usage is None:

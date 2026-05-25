@@ -338,7 +338,7 @@ class ResponseStore:
                 db_path = str(get_hermes_home() / "response_store.db")
             except Exception:
                 db_path = ":memory:"
-        self._db_path: Optional[str] = db_path if db_path != ":memory:" else None
+        self._db_path: str | None = db_path if db_path != ":memory:" else None
         try:
             self._conn = sqlite3.connect(db_path, check_same_thread=False)
         except Exception:
@@ -390,7 +390,7 @@ class ResponseStore:
                     exc_info=True,
                 )
 
-    def get(self, response_id: str) -> Optional[Dict[str, Any]]:
+    def get(self, response_id: str) -> Dict[str, Any] | None:
         """Retrieve a stored response by ID (updates access time for LRU)."""
         row = self._conn.execute(
             "SELECT data FROM responses WHERE response_id = ?", (response_id,)
@@ -447,7 +447,7 @@ class ResponseStore:
         self._conn.commit()
         return cursor.rowcount > 0
 
-    def get_conversation(self, name: str) -> Optional[str]:
+    def get_conversation(self, name: str) -> str | None:
         """Get the latest response_id for a conversation name."""
         row = self._conn.execute(
             "SELECT response_id FROM conversations WHERE name = ?", (name,)
@@ -615,7 +615,7 @@ def _make_request_fingerprint(body: Dict[str, Any], keys: List[str]) -> str:
 
 
 def _derive_chat_session_id(
-    system_prompt: Optional[str],
+    system_prompt: str | None,
     first_user_message: str,
 ) -> str:
     """Derive a stable session ID from the conversation's first user message.
@@ -679,12 +679,12 @@ class APIServerAdapter(BasePlatformAdapter):
         self._model_name: str = self._resolve_model_name(
             extra.get("model_name", os.getenv("API_SERVER_MODEL_NAME", "")),
         )
-        self._app: Optional["web.Application"] = None
-        self._runner: Optional["web.AppRunner"] = None
-        self._site: Optional["web.TCPSite"] = None
+        self._app: "web.Application" | None = None
+        self._runner: "web.AppRunner" | None = None
+        self._site: "web.TCPSite" | None = None
         self._response_store = ResponseStore()
         # Active run streams: run_id -> asyncio.Queue of SSE event dicts
-        self._run_streams: Dict[str, "asyncio.Queue[Optional[Dict]]"] = {}
+        self._run_streams: Dict[str, "asyncio.Queue[Dict | None]"] = {}
         # Creation timestamps for orphaned-run TTL sweep
         self._run_streams_created: Dict[str, float] = {}
         # Active run agent/task references for stop support
@@ -696,7 +696,7 @@ class APIServerAdapter(BasePlatformAdapter):
         # resolves requests by session key, while API clients address the
         # in-flight run by run_id.
         self._run_approval_sessions: Dict[str, str] = {}
-        self._session_db: Optional[Any] = None  # Lazy-init SessionDB for session continuity
+        self._session_db: Any | None = None  # Lazy-init SessionDB for session continuity
 
     @staticmethod
     def _parse_cors_origins(value: Any) -> tuple[str, ...]:
@@ -733,7 +733,7 @@ class APIServerAdapter(BasePlatformAdapter):
             pass
         return "hermes-agent"
 
-    def _cors_headers_for_origin(self, origin: str) -> Optional[Dict[str, str]]:
+    def _cors_headers_for_origin(self, origin: str) -> Dict[str, str] | None:
         """Return CORS headers for an allowed browser origin."""
         if not origin or not self._cors_origins:
             return None
@@ -804,7 +804,7 @@ class APIServerAdapter(BasePlatformAdapter):
 
     def _parse_session_key_header(
         self, request: "web.Request"
-    ) -> tuple[Optional[str], Optional["web.Response"]]:
+    ) -> tuple[str | None, Optional["web.Response"]]:
         """Extract and validate the ``X-Hermes-Session-Key`` header.
 
         The session key is a stable per-channel identifier that scopes
@@ -878,13 +878,13 @@ class APIServerAdapter(BasePlatformAdapter):
 
     def _create_agent(
         self,
-        ephemeral_system_prompt: Optional[str] = None,
-        session_id: Optional[str] = None,
+        ephemeral_system_prompt: str | None = None,
+        session_id: str | None = None,
         stream_delta_callback=None,
         tool_progress_callback=None,
         tool_start_callback=None,
         tool_complete_callback=None,
-        gateway_session_key: Optional[str] = None,
+        gateway_session_key: str | None = None,
     ) -> Any:
         """
         Create an AIAgent instance using the gateway's runtime config.
@@ -1532,11 +1532,11 @@ class APIServerAdapter(BasePlatformAdapter):
         agent_ref,
         conversation_history: List[Dict[str, str]],
         user_message: str,
-        instructions: Optional[str],
-        conversation: Optional[str],
+        instructions: str | None,
+        conversation: str | None,
         store: bool,
         session_id: str,
-        gateway_session_key: Optional[str] = None,
+        gateway_session_key: str | None = None,
     ) -> "web.StreamResponse":
         """Write an SSE stream for POST /v1/responses (OpenAI Responses API).
 
@@ -1604,7 +1604,7 @@ class APIServerAdapter(BasePlatformAdapter):
         # Track the assistant message item id + content index for text
         # delta events — the spec ties deltas to a specific item.
         message_item_id = f"msg_{uuid.uuid4().hex[:24]}"
-        message_output_index: Optional[int] = None
+        message_output_index: int | None = None
         message_opened = False
 
         async def _write_event(event_type: str, data: Dict[str, Any]) -> None:
@@ -1626,14 +1626,14 @@ class APIServerAdapter(BasePlatformAdapter):
             return env
 
         final_response_text = ""
-        agent_error: Optional[str] = None
+        agent_error: str | None = None
         usage: Dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
         terminal_snapshot_persisted = False
 
         def _persist_response_snapshot(
             response_env: Dict[str, Any],
             *,
-            conversation_history_snapshot: Optional[List[Dict[str, Any]]] = None,
+            conversation_history_snapshot: List[Dict[str, Any]] | None = None,
         ) -> None:
             if not store:
                 return
@@ -1863,7 +1863,7 @@ class APIServerAdapter(BasePlatformAdapter):
 
             # ── Batching state ──
             _batch_buf: List[str] = []
-            _batch_timer: Optional[asyncio.Task] = None
+            _batch_timer: asyncio.Task | None = None
             _batch_lock = asyncio.Lock()
 
             async def _batch_flush_after(delay: float) -> None:
@@ -2763,14 +2763,14 @@ class APIServerAdapter(BasePlatformAdapter):
         self,
         user_message: str,
         conversation_history: List[Dict[str, str]],
-        ephemeral_system_prompt: Optional[str] = None,
-        session_id: Optional[str] = None,
+        ephemeral_system_prompt: str | None = None,
+        session_id: str | None = None,
         stream_delta_callback=None,
         tool_progress_callback=None,
         tool_start_callback=None,
         tool_complete_callback=None,
-        agent_ref: Optional[list] = None,
-        gateway_session_key: Optional[str] = None,
+        agent_ref: list | None = None,
+        gateway_session_key: str | None = None,
     ) -> tuple:
         """
         Create an agent and run a conversation in a thread executor.
@@ -2970,7 +2970,7 @@ class APIServerAdapter(BasePlatformAdapter):
         approval_session_key = gateway_session_key or session_id or run_id
         ephemeral_system_prompt = instructions
         loop = asyncio.get_running_loop()
-        q: "asyncio.Queue[Optional[Dict]]" = asyncio.Queue()
+        q: "asyncio.Queue[Dict | None]" = asyncio.Queue()
         created_at = time.time()
         self._run_streams[run_id] = q
         self._run_streams_created[run_id] = created_at
@@ -2979,7 +2979,7 @@ class APIServerAdapter(BasePlatformAdapter):
         event_cb = self._make_run_event_callback(run_id, loop)
 
         # Also wire stream_delta_callback so message.delta events flow through.
-        def _text_cb(delta: Optional[str]) -> None:
+        def _text_cb(delta: str | None) -> None:
             if delta is None:
                 return
             try:
@@ -3534,8 +3534,8 @@ class APIServerAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """
         Not used — HTTP request/response cycle handles delivery directly.

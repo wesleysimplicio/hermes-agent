@@ -35,7 +35,7 @@ class NodeRegistry:
     """Simple file-backed registry. Not concurrent-safe across processes
     — single writer assumed (the gateway CLI)."""
 
-    def __init__(self, path: Optional[Path] = None) -> None:
+    def __init__(self, path: Path | None = None) -> None:
         self.path = Path(path) if path is not None else _default_path()
 
     # ----- storage ------------------------------------------------------
@@ -59,7 +59,7 @@ class NodeRegistry:
 
     # ----- public API ---------------------------------------------------
 
-    def get(self, name: str) -> Optional[Dict[str, Any]]:
+    def get(self, name: str) -> Dict[str, Any] | None:
         data = self._load()
         entry = data["nodes"].get(name)
         if entry is None:
@@ -96,7 +96,7 @@ class NodeRegistry:
             out.append({"name": name, **entry})
         return out
 
-    def resolve(self, chrome_node: Optional[str]) -> Optional[Dict[str, Any]]:
+    def resolve(self, chrome_node: str | None) -> Dict[str, Any] | None:
         """Resolve a node name to its entry.
 
         If ``chrome_node`` is provided, return that named node (or None).

@@ -125,7 +125,7 @@ class BrowserUseBrowserProvider(BrowserProvider):
     # Config resolution (direct API key OR managed Nous gateway)
     # ------------------------------------------------------------------
 
-    def _get_config_or_none(self) -> Optional[Dict[str, Any]]:
+    def _get_config_or_none(self) -> Dict[str, Any] | None:
         # Import here to avoid a hard dependency at module-import time —
         # managed_tool_gateway pulls in the Nous auth stack which can be
         # heavy and is not needed for direct-API-key users.

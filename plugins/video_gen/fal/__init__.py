@@ -172,7 +172,7 @@ def _is_duration_range(durations: Any) -> bool:
     return durations[1] - durations[0] > 1
 
 
-def _clamp_duration(family: Dict[str, Any], duration: Optional[int]) -> Optional[int]:
+def _clamp_duration(family: Dict[str, Any], duration: int | None) -> int | None:
     durations = family.get("durations")
     if not durations:
         return duration
@@ -204,9 +204,9 @@ def _load_video_gen_section() -> Dict[str, Any]:
         return {}
 
 
-def _resolve_family(explicit: Optional[str]) -> Tuple[str, Dict[str, Any]]:
+def _resolve_family(explicit: str | None) -> Tuple[str, Dict[str, Any]]:
     """Decide which FAL family to use. Returns ``(family_id, meta)``."""
-    candidates: List[Optional[str]] = []
+    candidates: List[str | None] = []
     candidates.append(explicit)
     candidates.append(os.environ.get("FAL_VIDEO_MODEL"))
 
@@ -235,13 +235,13 @@ def _build_payload(
     family: Dict[str, Any],
     *,
     prompt: str,
-    image_url: Optional[str],
-    duration: Optional[int],
+    image_url: str | None,
+    duration: int | None,
     aspect_ratio: str,
     resolution: str,
-    negative_prompt: Optional[str],
-    audio: Optional[bool],
-    seed: Optional[int],
+    negative_prompt: str | None,
+    audio: bool | None,
+    seed: int | None,
 ) -> Dict[str, Any]:
     """Build a family-specific payload, dropping keys the family doesn't declare."""
     payload: Dict[str, Any] = {}
@@ -350,7 +350,7 @@ class FALVideoGenProvider(VideoGenProvider):
             })
         return out
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         return DEFAULT_MODEL
 
     def get_setup_schema(self) -> Dict[str, Any]:
@@ -383,15 +383,15 @@ class FALVideoGenProvider(VideoGenProvider):
         self,
         prompt: str,
         *,
-        model: Optional[str] = None,
-        image_url: Optional[str] = None,
-        reference_image_urls: Optional[List[str]] = None,
-        duration: Optional[int] = None,
+        model: str | None = None,
+        image_url: str | None = None,
+        reference_image_urls: List[str] | None = None,
+        duration: int | None = None,
         aspect_ratio: str = "16:9",
         resolution: str = "720p",
-        negative_prompt: Optional[str] = None,
-        audio: Optional[bool] = None,
-        seed: Optional[int] = None,
+        negative_prompt: str | None = None,
+        audio: bool | None = None,
+        seed: int | None = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         if not os.environ.get("FAL_KEY", "").strip():
@@ -485,7 +485,7 @@ class FALVideoGenProvider(VideoGenProvider):
             )
 
         video = (result or {}).get("video") if isinstance(result, dict) else None
-        url: Optional[str] = None
+        url: str | None = None
         if isinstance(video, dict):
             url = video.get("url")
         elif isinstance(video, str):

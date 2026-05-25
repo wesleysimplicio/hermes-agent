@@ -197,14 +197,14 @@ class HonchoMemoryProvider(MemoryProvider):
         self._session_key = ""
         self._prefetch_result = ""
         self._prefetch_lock = threading.Lock()
-        self._prefetch_thread: Optional[threading.Thread] = None
-        self._sync_thread: Optional[threading.Thread] = None
+        self._prefetch_thread: threading.Thread | None = None
+        self._sync_thread: threading.Thread | None = None
 
         # B1: recall_mode — set during initialize from config
         self._recall_mode = "hybrid"  # "context", "tools", or "hybrid"
 
         # Base context cache — refreshed on context_cadence, not frozen
-        self._base_context_cache: Optional[str] = None
+        self._base_context_cache: str | None = None
         self._base_context_lock = threading.Lock()
 
         # B5: Cost-awareness turn counting and cadence
@@ -226,8 +226,8 @@ class HonchoMemoryProvider(MemoryProvider):
 
         # Port #1957: lazy session init for tools-only mode
         self._session_initialized = False
-        self._lazy_init_kwargs: Optional[dict] = None
-        self._lazy_init_session_id: Optional[str] = None
+        self._lazy_init_kwargs: dict | None = None
+        self._lazy_init_session_id: str | None = None
 
         # Port #4053: cron guard — when True, plugin is fully inactive
         self._cron_skipped = False
@@ -1155,7 +1155,7 @@ class HonchoMemoryProvider(MemoryProvider):
         action: str,
         target: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> None:
         """Mirror built-in user profile writes as Honcho conclusions.
 

@@ -300,10 +300,10 @@ def summarize_background_review_actions(
 def build_memory_write_metadata(
     agent: Any,
     *,
-    write_origin: Optional[str] = None,
-    execution_context: Optional[str] = None,
-    task_id: Optional[str] = None,
-    tool_call_id: Optional[str] = None,
+    write_origin: str | None = None,
+    execution_context: str | None = None,
+    task_id: str | None = None,
+    tool_call_id: str | None = None,
 ) -> Dict[str, Any]:
     """Build provenance metadata for external memory-provider mirrors."""
     metadata: Dict[str, Any] = {

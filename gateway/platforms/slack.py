@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 # channel concurrently.  ContextVars propagate to child asyncio.Tasks
 # (Python 3.7+), so the value set in _handle_slash_command's task is
 # visible in _process_message_background's child task.
-_slash_user_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+_slash_user_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "_slash_user_id", default=None,
 )
 
@@ -252,7 +252,7 @@ def _serialize_slack_blocks_for_agent(blocks: list, max_chars: int = 6000) -> st
     return f"[Slack Block Kit payload for this message]\n```json\n{payload}\n```"
 
 
-def _apply_slack_proxy(client: Any, proxy_url: Optional[str]) -> None:
+def _apply_slack_proxy(client: Any, proxy_url: str | None) -> None:
     """Apply a resolved proxy to a Slack SDK client or clear it explicitly."""
     if hasattr(client, "proxy"):
         client.proxy = proxy_url
@@ -265,7 +265,7 @@ _SLACK_PROXY_HOSTS = (
 )
 
 
-def _resolve_slack_proxy_url() -> Optional[str]:
+def _resolve_slack_proxy_url() -> str | None:
     """Resolve a proxy URL that Slack SDK clients can safely use."""
     proxy_url = resolve_proxy_url()
     if not proxy_url:
@@ -306,11 +306,11 @@ class SlackAdapter(BasePlatformAdapter):
 
     def __init__(self, config: PlatformConfig):
         super().__init__(config, Platform.SLACK)
-        self._app: Optional[Any] = None
-        self._handler: Optional[Any] = None
-        self._bot_user_id: Optional[str] = None
+        self._app: Any | None = None
+        self._handler: Any | None = None
+        self._bot_user_id: str | None = None
         self._user_name_cache: Dict[str, str] = {}  # user_id → display name
-        self._socket_mode_task: Optional[asyncio.Task] = None
+        self._socket_mode_task: asyncio.Task | None = None
         # Multi-workspace support
         self._team_clients: Dict[str, Any] = {}   # team_id → WebClient
         self._team_bot_user_ids: Dict[str, str] = {}          # team_id → bot_user_id
@@ -349,7 +349,7 @@ class SlackAdapter(BasePlatformAdapter):
         # Each value: {"response_url": str, "ts": float}
         self._slash_command_contexts: Dict[Tuple[str, str], Dict[str, Any]] = {}
 
-    def _describe_slack_api_error(self, response: Any, *, file_obj: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    def _describe_slack_api_error(self, response: Any, *, file_obj: Dict[str, Any] | None = None) -> str | None:
         """Convert Slack API auth/permission failures into actionable user-facing text."""
         if response is None or not hasattr(response, "get"):
             return None
@@ -375,7 +375,7 @@ class SlackAdapter(BasePlatformAdapter):
             return f"Slack attachment access failed for {file_label} because the bot does not have permission ({error}). Check workspace permissions/scopes and reinstall if needed."
         return None
 
-    def _describe_slack_download_failure(self, exc: Exception, *, file_obj: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    def _describe_slack_download_failure(self, exc: Exception, *, file_obj: Dict[str, Any] | None = None) -> str | None:
         """Translate Slack download exceptions into user-facing attachment diagnostics."""
         file_label = str((file_obj or {}).get("name") or (file_obj or {}).get("id") or "this attachment")
 
@@ -416,7 +416,7 @@ class SlackAdapter(BasePlatformAdapter):
 
     def _pop_slash_context(
         self, chat_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any] | None:
         """Return and remove the slash-command context for *chat_id*, if fresh.
 
         Contexts older than ``_SLASH_CTX_TTL`` seconds are silently discarded.
@@ -704,7 +704,7 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         parent_chat_id: str,
         name: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Create a Slack thread anchor for a session handoff.
 
         Slack threads are anchored to a parent message (``thread_ts``), not
@@ -759,8 +759,8 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a message to a Slack channel or DM."""
         if not self._app:
@@ -837,8 +837,8 @@ class SlackAdapter(BasePlatformAdapter):
         chat_id: str,
         user_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a Slack ephemeral message visible only to one user."""
         if not self._app:
@@ -960,9 +960,9 @@ class SlackAdapter(BasePlatformAdapter):
 
     def _resolve_thread_ts(
         self,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[str]:
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
+    ) -> str | None:
         """Resolve the correct thread_ts for a Slack API call.
 
         Prefers metadata thread_id (the thread parent's ts, set by the
@@ -1000,9 +1000,9 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload a local file to Slack."""
         if not self._app:
@@ -1042,7 +1042,7 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         images: List[Tuple[str, str]],
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
         human_delay: float = 0.0,
     ) -> None:
         """Send a batch of images as a single Slack message with multiple file uploads.
@@ -1143,7 +1143,7 @@ class SlackAdapter(BasePlatformAdapter):
                 )
                 await super().send_multiple_images(chat_id, chunk, metadata, human_delay=human_delay)
 
-    def _record_uploaded_file_thread(self, chat_id: str, thread_ts: Optional[str]) -> None:
+    def _record_uploaded_file_thread(self, chat_id: str, thread_ts: str | None) -> None:
         """Treat successful file uploads as bot participation in a thread."""
         if not thread_ts:
             return
@@ -1387,9 +1387,9 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a local image file to Slack by uploading it."""
         try:
@@ -1413,9 +1413,9 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send an image to Slack by uploading the URL as a file."""
         if not self._app:
@@ -1477,9 +1477,9 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         **kwargs,
     ) -> SendResult:
         """Send an audio file to Slack."""
@@ -1500,9 +1500,9 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a video file to Slack."""
         if not self._app:
@@ -1556,10 +1556,10 @@ class SlackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a document/file attachment to Slack."""
         if not self._app:
@@ -1635,7 +1635,7 @@ class SlackAdapter(BasePlatformAdapter):
 
     # ----- Internal handlers -----
 
-    def _assistant_thread_key(self, channel_id: str, thread_ts: str) -> Optional[Tuple[str, str]]:
+    def _assistant_thread_key(self, channel_id: str, thread_ts: str) -> Tuple[str, str] | None:
         """Return a stable cache key for Slack assistant thread metadata."""
         if not channel_id or not thread_ts:
             return None
@@ -2242,7 +2242,7 @@ class SlackAdapter(BasePlatformAdapter):
     async def send_exec_approval(
         self, chat_id: str, command: str, session_key: str,
         description: str = "dangerous command",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a Block Kit approval prompt with interactive buttons.
 
@@ -2321,7 +2321,7 @@ class SlackAdapter(BasePlatformAdapter):
 
     async def send_slash_confirm(
         self, chat_id: str, title: str, message: str, session_key: str,
-        confirm_id: str, metadata: Optional[Dict[str, Any]] = None,
+        confirm_id: str, metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a Block Kit three-option slash-command confirmation prompt."""
         if not self._app:

@@ -58,7 +58,7 @@ class SubdirectoryHintTracker:
             tool_result += hints  # append to the tool result string
     """
 
-    def __init__(self, working_dir: Optional[str] = None):
+    def __init__(self, working_dir: str | None = None):
         self.working_dir = Path(working_dir or os.getcwd()).resolve()
         self._loaded_dirs: Set[Path] = set()
         # Pre-mark the working dir as loaded (startup context handles it)
@@ -68,7 +68,7 @@ class SubdirectoryHintTracker:
         self,
         tool_name: str,
         tool_args: Dict[str, Any],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Check tool call arguments for new directories and load any hint files.
 
         Returns formatted hint text to append to the tool result, or None.
@@ -168,7 +168,7 @@ class SubdirectoryHintTracker:
             return False
         return True
 
-    def _load_hints_for_directory(self, directory: Path) -> Optional[str]:
+    def _load_hints_for_directory(self, directory: Path) -> str | None:
         """Load hint files from a directory. Returns formatted text or None."""
         self._loaded_dirs.add(directory)
 

@@ -82,7 +82,7 @@ def list_providers() -> List[WebSearchProvider]:
     return sorted(items, key=lambda p: p.name)
 
 
-def get_provider(name: str) -> Optional[WebSearchProvider]:
+def get_provider(name: str) -> WebSearchProvider | None:
     """Return the provider registered under *name*, or None."""
     if not isinstance(name, str):
         return None
@@ -95,7 +95,7 @@ def get_provider(name: str) -> Optional[WebSearchProvider]:
 # ---------------------------------------------------------------------------
 
 
-def _read_config_key(*path: str) -> Optional[str]:
+def _read_config_key(*path: str) -> str | None:
     """Resolve a dotted config key from ``config.yaml``. Returns None on miss."""
     try:
         from hermes_cli.config import load_config
@@ -130,7 +130,7 @@ _LEGACY_PREFERENCE = (
 )
 
 
-def _resolve(configured: Optional[str], *, capability: str) -> Optional[WebSearchProvider]:
+def _resolve(configured: str | None, *, capability: str) -> WebSearchProvider | None:
     """Resolve the active provider for a capability ("search" | "extract" | "crawl").
 
     Resolution rules (in order):
@@ -221,7 +221,7 @@ def _resolve(configured: Optional[str], *, capability: str) -> Optional[WebSearc
     return None
 
 
-def get_active_search_provider() -> Optional[WebSearchProvider]:
+def get_active_search_provider() -> WebSearchProvider | None:
     """Resolve the currently-active web search provider.
 
     Reads ``web.search_backend`` (preferred) or ``web.backend`` (shared
@@ -231,7 +231,7 @@ def get_active_search_provider() -> Optional[WebSearchProvider]:
     return _resolve(explicit, capability="search")
 
 
-def get_active_extract_provider() -> Optional[WebSearchProvider]:
+def get_active_extract_provider() -> WebSearchProvider | None:
     """Resolve the currently-active web extract provider.
 
     Reads ``web.extract_backend`` (preferred) or ``web.backend`` (shared
@@ -241,7 +241,7 @@ def get_active_extract_provider() -> Optional[WebSearchProvider]:
     return _resolve(explicit, capability="extract")
 
 
-def get_active_crawl_provider() -> Optional[WebSearchProvider]:
+def get_active_crawl_provider() -> WebSearchProvider | None:
     """Resolve the currently-active web crawl provider.
 
     Reads ``web.crawl_backend`` (preferred) or ``web.backend`` (shared

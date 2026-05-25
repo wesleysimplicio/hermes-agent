@@ -163,7 +163,7 @@ _MANAGED_SYSTEM_NAMES = {
 }
 
 
-def get_managed_system() -> Optional[str]:
+def get_managed_system() -> str | None:
     """Return the package manager owning this install, if any."""
     raw = os.getenv("HERMES_MANAGED", "").strip()
     if raw:
@@ -191,7 +191,7 @@ def is_managed() -> bool:
 _NIX_UPDATE_MSG = "Update your Nix flake input and rebuild (e.g. nix flake update, nixos-rebuild, or home-manager switch)"
 
 
-def get_managed_update_command() -> Optional[str]:
+def get_managed_update_command() -> str | None:
     """Return the preferred upgrade command for a managed install."""
     managed_system = get_managed_system()
     if managed_system == "Homebrew":
@@ -201,7 +201,7 @@ def get_managed_update_command() -> Optional[str]:
     return None
 
 
-def detect_install_method(project_root: Optional[Path] = None) -> str:
+def detect_install_method(project_root: Path | None = None) -> str:
     """Detect how Hermes was installed: 'docker', 'nixos', 'homebrew', 'git', or 'pip'.
 
     Resolution order:
@@ -304,7 +304,7 @@ def managed_error(action: str = "modify configuration"):
 # Container-aware CLI (NixOS container mode)
 # =============================================================================
 
-def get_container_exec_info() -> Optional[dict]:
+def get_container_exec_info() -> dict | None:
     """Read container mode metadata from HERMES_HOME/.container-mode.
 
     Returns a dict with keys: backend, container_name, exec_user, hermes_bin
@@ -3044,7 +3044,7 @@ def _normalize_custom_provider_entry(
     entry: Any,
     *,
     provider_key: str = "",
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any] | None:
     """Return a runtime-compatible custom provider entry or ``None``."""
     if not isinstance(entry, dict):
         return None
@@ -3187,7 +3187,7 @@ def providers_dict_to_custom_providers(providers_dict: Any) -> List[Dict[str, An
 
 
 def get_compatible_custom_providers(
-    config: Optional[Dict[str, Any]] = None,
+    config: Dict[str, Any] | None = None,
 ) -> List[Dict[str, Any]]:
     """Return a deduplicated custom-provider view across legacy and v12+ config.
 
@@ -3203,7 +3203,7 @@ def get_compatible_custom_providers(
     seen_provider_keys: set = set()
     seen_name_url_pairs: set = set()
 
-    def _append_if_new(entry: Optional[Dict[str, Any]]) -> None:
+    def _append_if_new(entry: Dict[str, Any] | None) -> None:
         if entry is None:
             return
         provider_key = str(entry.get("provider_key", "") or "").strip().lower()
@@ -3239,9 +3239,9 @@ def get_compatible_custom_providers(
 def get_custom_provider_context_length(
     model: str,
     base_url: str,
-    custom_providers: Optional[List[Dict[str, Any]]] = None,
-    config: Optional[Dict[str, Any]] = None,
-) -> Optional[int]:
+    custom_providers: List[Dict[str, Any]] | None = None,
+    config: Dict[str, Any] | None = None,
+) -> int | None:
     """Look up a per-model ``context_length`` override from ``custom_providers``.
 
     Matches any entry whose ``base_url`` equals ``base_url`` (trailing-slash
@@ -3348,7 +3348,7 @@ class ConfigIssue:
     hint: str
 
 
-def validate_config_structure(config: Optional[Dict[str, Any]] = None) -> List["ConfigIssue"]:
+def validate_config_structure(config: Dict[str, Any] | None = None) -> List["ConfigIssue"]:
     """Validate config.yaml structure and return a list of detected issues.
 
     Catches common YAML formatting mistakes that produce confusing runtime
@@ -3492,7 +3492,7 @@ def validate_config_structure(config: Optional[Dict[str, Any]] = None) -> List["
     return issues
 
 
-def print_config_warnings(config: Optional[Dict[str, Any]] = None) -> None:
+def print_config_warnings(config: Dict[str, Any] | None = None) -> None:
     """Print config structure warnings to stderr at startup.
 
     Called early in CLI and gateway init so users see problems before
@@ -3514,7 +3514,7 @@ def print_config_warnings(config: Optional[Dict[str, Any]] = None) -> None:
     sys.stderr.write("\n".join(lines) + "\n\n")
 
 
-def warn_deprecated_cwd_env_vars(config: Optional[Dict[str, Any]] = None) -> None:
+def warn_deprecated_cwd_env_vars(config: Dict[str, Any] | None = None) -> None:
     """Warn if MESSAGING_CWD or TERMINAL_CWD is set in .env instead of config.yaml.
 
     These env vars are deprecated — the canonical setting is terminal.cwd
@@ -4303,7 +4303,7 @@ def _normalize_max_turns_config(config: Dict[str, Any]) -> Dict[str, Any]:
     return config
 
 
-def cfg_get(cfg: Optional[Dict[str, Any]], *keys: str, default: Any = None) -> Any:
+def cfg_get(cfg: Dict[str, Any] | None, *keys: str, default: Any = None) -> Any:
     """Traverse nested dict keys safely, returning ``default`` on any miss.
 
     Canonical helper for the ``cfg.get("X", {}).get("Y", default)`` pattern
@@ -4436,7 +4436,7 @@ def _load_config_impl(*, want_deepcopy: bool) -> Dict[str, Any]:
 
         try:
             st = config_path.stat()
-            cache_key: Optional[Tuple[int, int]] = (st.st_mtime_ns, st.st_size)
+            cache_key: Tuple[int, int] | None = (st.st_mtime_ns, st.st_size)
         except FileNotFoundError:
             cache_key = None
 
@@ -4668,7 +4668,7 @@ def load_env() -> Dict[str, str]:
 # is the explicit knob for writers that update .env via this module
 # (set_env_value, save_env, etc.) without relying on filesystem mtime
 # resolution.
-_env_cache: Optional[Tuple[Tuple[str, Optional[float], Optional[int]], Dict[str, str]]] = None
+_env_cache: Tuple[Tuple[str, float | None, int | None], Dict[str, str]] | None = None
 
 
 def invalidate_env_cache() -> None:
@@ -5010,7 +5010,7 @@ def reload_env() -> int:
     return count
 
 
-def get_env_value(key: str) -> Optional[str]:
+def get_env_value(key: str) -> str | None:
     """Get a value from ~/.hermes/.env or environment."""
     # Check environment first
     if key in os.environ:

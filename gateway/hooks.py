@@ -155,7 +155,7 @@ class HookRegistry:
             handlers.extend(self._handlers.get(wildcard_key, []))
         return handlers
 
-    async def emit(self, event_type: str, context: Optional[Dict[str, Any]] = None) -> None:
+    async def emit(self, event_type: str, context: Dict[str, Any] | None = None) -> None:
         """
         Fire all handlers registered for an event, discarding return values.
 
@@ -183,7 +183,7 @@ class HookRegistry:
     async def emit_collect(
         self,
         event_type: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: Dict[str, Any] | None = None,
     ) -> List[Any]:
         """Fire handlers and return their non-None return values in order.
 

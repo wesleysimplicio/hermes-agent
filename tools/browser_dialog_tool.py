@@ -81,9 +81,9 @@ BROWSER_DIALOG_SCHEMA: Dict[str, Any] = {
 
 def browser_dialog(
     action: str,
-    prompt_text: Optional[str] = None,
-    dialog_id: Optional[str] = None,
-    task_id: Optional[str] = None,
+    prompt_text: str | None = None,
+    dialog_id: str | None = None,
+    task_id: str | None = None,
 ) -> str:
     """Respond to a pending dialog on the active task's CDP supervisor."""
     effective_task_id = task_id or "default"

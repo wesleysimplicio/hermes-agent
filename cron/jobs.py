@@ -46,7 +46,7 @@ OUTPUT_DIR = CRON_DIR / "output"
 ONESHOT_GRACE_SECONDS = 120
 
 
-def _normalize_skill_list(skill: Optional[str] = None, skills: Optional[Any] = None) -> List[str]:
+def _normalize_skill_list(skill: str | None = None, skills: Any | None = None) -> List[str]:
     """Normalize legacy/single-skill and multi-skill inputs into a unique ordered list."""
     if skills is None:
         raw_items = [skill] if skill else []
@@ -296,8 +296,8 @@ def _recoverable_oneshot_run_at(
     schedule: Dict[str, Any],
     now: datetime,
     *,
-    last_run_at: Optional[str] = None,
-) -> Optional[str]:
+    last_run_at: str | None = None,
+) -> str | None:
     """Return a one-shot run time if it is still eligible to fire.
 
     One-shot jobs get a small grace window so jobs created a few seconds after
@@ -351,7 +351,7 @@ def _compute_grace_seconds(schedule: dict) -> int:
     return MIN_GRACE
 
 
-def compute_next_run(schedule: Dict[str, Any], last_run_at: Optional[str] = None) -> Optional[str]:
+def compute_next_run(schedule: Dict[str, Any], last_run_at: str | None = None) -> str | None:
     """
     Compute the next run time for a schedule.
 
@@ -449,7 +449,7 @@ def save_jobs(jobs: List[Dict[str, Any]]):
         raise
 
 
-def _normalize_workdir(workdir: Optional[str]) -> Optional[str]:
+def _normalize_workdir(workdir: str | None) -> str | None:
     """Normalize and validate a cron job workdir.
 
     Rules:
@@ -482,7 +482,7 @@ def _normalize_workdir(workdir: Optional[str]) -> Optional[str]:
     return str(resolved)
 
 
-def _normalize_profile(profile: Optional[str]) -> Optional[str]:
+def _normalize_profile(profile: str | None) -> str | None:
     """Normalize and validate an optional cron job profile name.
 
     Empty / None disables per-job profile selection. Otherwise the profile name
@@ -507,22 +507,22 @@ def _normalize_profile(profile: Optional[str]) -> Optional[str]:
 
 
 def create_job(
-    prompt: Optional[str],
+    prompt: str | None,
     schedule: str,
-    name: Optional[str] = None,
-    repeat: Optional[int] = None,
-    deliver: Optional[str] = None,
-    origin: Optional[Dict[str, Any]] = None,
-    skill: Optional[str] = None,
-    skills: Optional[List[str]] = None,
-    model: Optional[str] = None,
-    provider: Optional[str] = None,
-    base_url: Optional[str] = None,
-    script: Optional[str] = None,
-    context_from: Optional[Union[str, List[str]]] = None,
-    enabled_toolsets: Optional[List[str]] = None,
-    workdir: Optional[str] = None,
-    profile: Optional[str] = None,
+    name: str | None = None,
+    repeat: int | None = None,
+    deliver: str | None = None,
+    origin: Dict[str, Any] | None = None,
+    skill: str | None = None,
+    skills: List[str] | None = None,
+    model: str | None = None,
+    provider: str | None = None,
+    base_url: str | None = None,
+    script: str | None = None,
+    context_from: Union[str, List[str]] | None = None,
+    enabled_toolsets: List[str] | None = None,
+    workdir: str | None = None,
+    profile: str | None = None,
     no_agent: bool = False,
 ) -> Dict[str, Any]:
     """
@@ -671,7 +671,7 @@ def create_job(
     return job
 
 
-def get_job(job_id: str) -> Optional[Dict[str, Any]]:
+def get_job(job_id: str) -> Dict[str, Any] | None:
     """Get a job by ID."""
     jobs = load_jobs()
     for job in jobs:
@@ -693,7 +693,7 @@ class AmbiguousJobReference(LookupError):
         )
 
 
-def resolve_job_ref(ref: str) -> Optional[Dict[str, Any]]:
+def resolve_job_ref(ref: str) -> Dict[str, Any] | None:
     """Resolve a job reference (ID or name) to a job record.
 
     - Exact ID match wins (works even if a different job's name equals this ID).
@@ -726,7 +726,7 @@ def list_jobs(include_disabled: bool = False) -> List[Dict[str, Any]]:
     return jobs
 
 
-def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def update_job(job_id: str, updates: Dict[str, Any]) -> Dict[str, Any] | None:
     """Update a job by ID, refreshing derived schedule fields when needed."""
     jobs = load_jobs()
     for i, job in enumerate(jobs):
@@ -783,7 +783,7 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
     return None
 
 
-def pause_job(job_id: str, reason: Optional[str] = None) -> Optional[Dict[str, Any]]:
+def pause_job(job_id: str, reason: str | None = None) -> Dict[str, Any] | None:
     """Pause a job without deleting it. Accepts a job ID or name."""
     job = resolve_job_ref(job_id)
     if not job:
@@ -799,7 +799,7 @@ def pause_job(job_id: str, reason: Optional[str] = None) -> Optional[Dict[str, A
     )
 
 
-def resume_job(job_id: str) -> Optional[Dict[str, Any]]:
+def resume_job(job_id: str) -> Dict[str, Any] | None:
     """Resume a paused job and compute the next future run from now. Accepts a job ID or name."""
     job = resolve_job_ref(job_id)
     if not job:
@@ -818,7 +818,7 @@ def resume_job(job_id: str) -> Optional[Dict[str, Any]]:
     )
 
 
-def trigger_job(job_id: str) -> Optional[Dict[str, Any]]:
+def trigger_job(job_id: str) -> Dict[str, Any] | None:
     """Schedule a job to run on the next scheduler tick. Accepts a job ID or name."""
     job = resolve_job_ref(job_id)
     if not job:
@@ -854,8 +854,8 @@ def remove_job(job_id: str) -> bool:
     return False
 
 
-def mark_job_run(job_id: str, success: bool, error: Optional[str] = None,
-                 delivery_error: Optional[str] = None):
+def mark_job_run(job_id: str, success: bool, error: str | None = None,
+                 delivery_error: str | None = None):
     """
     Mark a job as having been run.
     
@@ -1091,8 +1091,8 @@ def save_job_output(job_id: str, output: str):
 # =============================================================================
 
 def rewrite_skill_refs(
-    consolidated: Optional[Dict[str, str]] = None,
-    pruned: Optional[List[str]] = None,
+    consolidated: Dict[str, str] | None = None,
+    pruned: List[str] | None = None,
 ) -> Dict[str, Any]:
     """Rewrite cron job skill references after a curator consolidation pass.
 

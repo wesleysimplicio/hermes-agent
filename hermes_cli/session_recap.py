@@ -135,7 +135,7 @@ def _count_visible_turns(
 
 def _latest_user_prompt(
     messages: Sequence[Mapping[str, Any]],
-) -> Optional[str]:
+) -> str | None:
     for msg in reversed(messages):
         if isinstance(msg, Mapping) and msg.get("role") == "user":
             text = _coerce_text(msg.get("content")).strip()
@@ -146,7 +146,7 @@ def _latest_user_prompt(
 
 def _latest_assistant_text(
     messages: Sequence[Mapping[str, Any]],
-) -> Optional[str]:
+) -> str | None:
     for msg in reversed(messages):
         if not isinstance(msg, Mapping):
             continue
@@ -238,9 +238,9 @@ def _truncate(text: str, limit: int) -> str:
 def build_recap(
     messages: Sequence[Mapping[str, Any]],
     *,
-    session_title: Optional[str] = None,
-    session_id: Optional[str] = None,
-    platform: Optional[str] = None,
+    session_title: str | None = None,
+    session_id: str | None = None,
+    platform: str | None = None,
 ) -> str:
     """Build a multi-line recap of recent activity.
 

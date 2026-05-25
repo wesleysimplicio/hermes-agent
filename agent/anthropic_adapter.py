@@ -148,7 +148,7 @@ def _get_anthropic_max_output(model: str) -> int:
     return best_val
 
 
-def _resolve_positive_anthropic_max_tokens(value) -> Optional[int]:
+def _resolve_positive_anthropic_max_tokens(value) -> int | None:
     """Return ``value`` floored to a positive int, or ``None`` if it is not a
     finite positive number. Ported from openclaw/openclaw#66664.
 
@@ -177,7 +177,7 @@ def _resolve_positive_anthropic_max_tokens(value) -> Optional[int]:
 def _resolve_anthropic_messages_max_tokens(
     requested,
     model: str,
-    context_length: Optional[int] = None,
+    context_length: int | None = None,
 ) -> int:
     """Resolve the ``max_tokens`` budget for an Anthropic Messages call.
 
@@ -285,7 +285,7 @@ _OAUTH_ONLY_BETAS = [
 # The version must stay reasonably current — Anthropic rejects OAuth requests
 # when the spoofed user-agent version is too far behind the actual release.
 _CLAUDE_CODE_VERSION_FALLBACK = "2.1.74"
-_claude_code_version_cache: Optional[str] = None
+_claude_code_version_cache: str | None = None
 
 
 def _detect_claude_code_version() -> str:
@@ -795,7 +795,7 @@ def build_anthropic_bedrock_client(region: str):
     )
 
 
-def _read_claude_code_credentials_from_keychain() -> Optional[Dict[str, Any]]:
+def _read_claude_code_credentials_from_keychain() -> Dict[str, Any] | None:
     """Read Claude Code OAuth credentials from the macOS Keychain.
 
     Claude Code >=2.1.114 stores credentials in the macOS Keychain under the
@@ -852,7 +852,7 @@ def _read_claude_code_credentials_from_keychain() -> Optional[Dict[str, Any]]:
     return None
 
 
-def read_claude_code_credentials() -> Optional[Dict[str, Any]]:
+def read_claude_code_credentials() -> Dict[str, Any] | None:
     """Read refreshable Claude Code OAuth credentials.
 
     Checks two sources in order:
@@ -892,7 +892,7 @@ def read_claude_code_credentials() -> Optional[Dict[str, Any]]:
     return None
 
 
-def read_claude_managed_key() -> Optional[str]:
+def read_claude_managed_key() -> str | None:
     """Read Claude's native managed key from ~/.claude.json for diagnostics only."""
     claude_json = Path.home() / ".claude.json"
     if claude_json.exists():
@@ -985,7 +985,7 @@ def refresh_anthropic_oauth_pure(refresh_token: str, *, use_json: bool = False) 
     raise ValueError("Anthropic token refresh failed")
 
 
-def _refresh_oauth_token(creds: Dict[str, Any]) -> Optional[str]:
+def _refresh_oauth_token(creds: Dict[str, Any]) -> str | None:
     """Attempt to refresh an expired Claude Code OAuth token."""
     refresh_token = creds.get("refreshToken", "")
     if not refresh_token:
@@ -1011,7 +1011,7 @@ def _write_claude_code_credentials(
     refresh_token: str,
     expires_at_ms: int,
     *,
-    scopes: Optional[list] = None,
+    scopes: list | None = None,
 ) -> None:
     """Write refreshed credentials back to ~/.claude/.credentials.json.
 
@@ -1074,7 +1074,7 @@ def _write_claude_code_credentials(
         logger.debug("Failed to write refreshed credentials: %s", e)
 
 
-def _resolve_claude_code_token_from_credentials(creds: Optional[Dict[str, Any]] = None) -> Optional[str]:
+def _resolve_claude_code_token_from_credentials(creds: Dict[str, Any] | None = None) -> str | None:
     """Resolve a token from Claude Code credential files, refreshing if needed."""
     creds = creds or read_claude_code_credentials()
     if creds and is_claude_code_token_valid(creds):
@@ -1089,7 +1089,7 @@ def _resolve_claude_code_token_from_credentials(creds: Optional[Dict[str, Any]] 
     return None
 
 
-def _prefer_refreshable_claude_code_token(env_token: str, creds: Optional[Dict[str, Any]]) -> Optional[str]:
+def _prefer_refreshable_claude_code_token(env_token: str, creds: Dict[str, Any] | None) -> str | None:
     """Prefer Claude Code creds when a persisted env OAuth token would shadow refresh.
 
     Hermes historically persisted setup tokens into ANTHROPIC_TOKEN. That makes
@@ -1111,7 +1111,7 @@ def _prefer_refreshable_claude_code_token(env_token: str, creds: Optional[Dict[s
     return None
 
 
-def resolve_anthropic_token() -> Optional[str]:
+def resolve_anthropic_token() -> str | None:
     """Resolve an Anthropic token from all available sources.
 
     Priority:
@@ -1155,7 +1155,7 @@ def resolve_anthropic_token() -> Optional[str]:
     return None
 
 
-def run_oauth_setup_token() -> Optional[str]:
+def run_oauth_setup_token() -> str | None:
     """Run 'claude setup-token' interactively and return the resulting token.
 
     Checks multiple sources after the subprocess completes:
@@ -1219,7 +1219,7 @@ def _generate_pkce() -> tuple:
     return verifier, challenge
 
 
-def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
+def run_hermes_oauth_login_pure() -> Dict[str, Any] | None:
     """Run Hermes-native OAuth PKCE flow and return credential state."""
     import secrets
     import time
@@ -1324,7 +1324,7 @@ def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
     }
 
 
-def read_hermes_oauth_credentials() -> Optional[Dict[str, Any]]:
+def read_hermes_oauth_credentials() -> Dict[str, Any] | None:
     """Read Hermes-managed OAuth credentials from ~/.hermes/.anthropic_oauth.json."""
     if _HERMES_OAUTH_FILE.exists():
         try:
@@ -1504,7 +1504,7 @@ def _image_source_from_openai_url(url: str) -> Dict[str, str]:
     return {"type": "url", "url": url}
 
 
-def _convert_content_part_to_anthropic(part: Any) -> Optional[Dict[str, Any]]:
+def _convert_content_part_to_anthropic(part: Any) -> Dict[str, Any] | None:
     """Convert a single OpenAI-style content part to Anthropic format."""
     if part is None:
         return None
@@ -1529,7 +1529,7 @@ def _convert_content_part_to_anthropic(part: Any) -> Optional[Dict[str, Any]]:
     return block
 
 
-def _to_plain_data(value: Any, *, _depth: int = 0, _path: Optional[set] = None) -> Any:
+def _to_plain_data(value: Any, *, _depth: int = 0, _path: set | None = None) -> Any:
     """Recursively convert SDK objects to plain Python data structures.
 
     Guards against circular references (``_path`` tracks ``id()`` of objects
@@ -1703,7 +1703,7 @@ def _convert_tool_message_to_result(
     the trailing user message's tool_result list.
     """
     content = m.get("content", "")
-    multimodal_blocks: Optional[List[Dict[str, Any]]] = None
+    multimodal_blocks: List[Dict[str, Any]] | None = None
     if isinstance(content, dict) and content.get("_multimodal"):
         multimodal_blocks = _content_parts_to_anthropic_blocks(
             content.get("content") or []
@@ -1990,7 +1990,7 @@ def convert_messages_to_anthropic(
     messages: List[Dict],
     base_url: str | None = None,
     model: str | None = None,
-) -> Tuple[Optional[Any], List[Dict]]:
+) -> Tuple[Any | None, List[Dict]]:
     """Convert OpenAI-format messages to Anthropic format.
 
     Returns (system_prompt, anthropic_messages).
@@ -2053,13 +2053,13 @@ def convert_messages_to_anthropic(
 def build_anthropic_kwargs(
     model: str,
     messages: List[Dict],
-    tools: Optional[List[Dict]],
-    max_tokens: Optional[int],
-    reasoning_config: Optional[Dict[str, Any]],
-    tool_choice: Optional[str] = None,
+    tools: List[Dict] | None,
+    max_tokens: int | None,
+    reasoning_config: Dict[str, Any] | None,
+    tool_choice: str | None = None,
     is_oauth: bool = False,
     preserve_dots: bool = False,
-    context_length: Optional[int] = None,
+    context_length: int | None = None,
     base_url: str | None = None,
     fast_mode: bool = False,
     drop_context_1m_beta: bool = False,

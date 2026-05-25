@@ -223,8 +223,8 @@ MAX_TEXT_LENGTH = FALLBACK_MAX_TEXT_LENGTH
 
 
 def _resolve_max_text_length(
-    provider: Optional[str],
-    tts_config: Optional[Dict[str, Any]] = None,
+    provider: str | None,
+    tts_config: Dict[str, Any] | None = None,
 ) -> int:
     """Return the input-character cap for *provider*.
 
@@ -401,7 +401,7 @@ def _is_command_provider_config(config: Dict[str, Any]) -> bool:
 def _resolve_command_provider_config(
     provider: str,
     tts_config: Dict[str, Any],
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any] | None:
     """Return the provider config if *provider* resolves to a command type.
 
     Built-in provider names are rejected (they have native handlers).
@@ -424,7 +424,7 @@ def _dispatch_to_plugin_provider(
     output_path: str,
     provider: str,
     tts_config: Dict[str, Any],
-) -> Optional[str]:
+) -> str | None:
     """Route the call to a plugin-registered TTS provider, or return None.
 
     Returns the path to the written audio file on dispatch, or ``None``
@@ -561,7 +561,7 @@ def _get_command_tts_timeout(config: Dict[str, Any]) -> float:
 
 def _get_command_tts_output_format(
     config: Dict[str, Any],
-    output_path: Optional[str] = None,
+    output_path: str | None = None,
 ) -> str:
     """Return the validated output format (mp3/wav/ogg/flac)."""
     if output_path:
@@ -585,13 +585,13 @@ def _is_command_tts_voice_compatible(config: Dict[str, Any]) -> bool:
     return bool(value)
 
 
-def _shell_quote_context(command_template: str, position: int) -> Optional[str]:
+def _shell_quote_context(command_template: str, position: int) -> str | None:
     """Return the shell quote character active right before *position*.
 
     Returns ``"'"`` / ``'"'`` when inside a single- / double-quoted region
     of the template, ``None`` for bare context.
     """
-    quote: Optional[str] = None
+    quote: str | None = None
     escaped = False
     i = 0
     while i < position:
@@ -616,7 +616,7 @@ def _shell_quote_context(command_template: str, position: int) -> Optional[str]:
     return quote
 
 
-def _quote_command_tts_placeholder(value: str, quote_context: Optional[str]) -> str:
+def _quote_command_tts_placeholder(value: str, quote_context: str | None) -> str:
     """Quote a placeholder value for its position in a shell command template."""
     if quote_context == "'":
         return value.replace("'", r"'\''")
@@ -828,7 +828,7 @@ def _generate_command_tts(
     return str(output)
 
 
-def _has_any_command_tts_provider(tts_config: Optional[Dict[str, Any]] = None) -> bool:
+def _has_any_command_tts_provider(tts_config: Dict[str, Any] | None = None) -> bool:
     """Return True when any command-type TTS provider is configured."""
     if tts_config is None:
         tts_config = _load_tts_config()
@@ -845,7 +845,7 @@ def _has_ffmpeg() -> bool:
     return shutil.which("ffmpeg") is not None
 
 
-def _convert_to_opus(mp3_path: str) -> Optional[str]:
+def _convert_to_opus(mp3_path: str) -> str | None:
     """
     Convert an MP3 file to OGG Opus format for Telegram voice bubbles.
 
@@ -1817,7 +1817,7 @@ def _generate_kittentts(text: str, output_path: str, tts_config: Dict[str, Any])
 # ===========================================================================
 def text_to_speech_tool(
     text: str,
-    output_path: Optional[str] = None,
+    output_path: str | None = None,
 ) -> str:
     """
     Convert text to speech audio.
@@ -2239,7 +2239,7 @@ def stream_tts_to_speaker(
     text_queue: queue.Queue,
     stop_event: threading.Event,
     tts_done_event: threading.Event,
-    display_callback: Optional[Callable[[str], None]] = None,
+    display_callback: Callable[[str], None] | None = None,
 ):
     """Consume text deltas from *text_queue*, buffer them into sentences,
     and stream each sentence through ElevenLabs TTS to the speaker in

@@ -29,7 +29,7 @@ _DOCKER_SEARCH_PATHS = [
     "/Applications/Docker.app/Contents/Resources/bin/docker",
 ]
 
-_docker_executable: Optional[str] = None  # resolved once, cached
+_docker_executable: str | None = None  # resolved once, cached
 _ENV_VAR_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -98,7 +98,7 @@ def _load_hermes_env_vars() -> dict[str, str]:
         return {}
 
 
-def find_docker() -> Optional[str]:
+def find_docker() -> str | None:
     """Locate the docker (or podman) CLI binary.
 
     Resolution order:
@@ -187,7 +187,7 @@ def _build_security_args(run_as_host_user: bool) -> list[str]:
     return list(_BASE_SECURITY_ARGS) + list(_PRIVDROP_CAP_ARGS)
 
 
-def _resolve_host_user_spec() -> Optional[str]:
+def _resolve_host_user_spec() -> str | None:
     """Return ``<uid>:<gid>`` for the current host user, or ``None`` on platforms
     where this is not meaningful (e.g. Windows without posix ids).
 
@@ -205,7 +205,7 @@ def _resolve_host_user_spec() -> Optional[str]:
         return None
 
 
-_storage_opt_ok: Optional[bool] = None  # cached result across instances
+_storage_opt_ok: bool | None = None  # cached result across instances
 
 
 def _ensure_docker_available() -> None:
@@ -312,7 +312,7 @@ class DockerEnvironment(BaseEnvironment):
         self._task_id = task_id
         self._forward_env = _normalize_forward_env_names(forward_env)
         self._env = _normalize_env_dict(env)
-        self._container_id: Optional[str] = None
+        self._container_id: str | None = None
         logger.info(f"DockerEnvironment volumes: {volumes}")
         # Ensure volumes is a list (config.yaml could be malformed)
         if volumes is not None and not isinstance(volumes, list):
@@ -371,8 +371,8 @@ class DockerEnvironment(BaseEnvironment):
         if auto_mount_cwd and host_cwd and not os.path.isdir(host_cwd_abs):
             logger.debug(f"Skipping docker cwd mount: host_cwd is not a valid directory: {host_cwd}")
 
-        self._workspace_dir: Optional[str] = None
-        self._home_dir: Optional[str] = None
+        self._workspace_dir: str | None = None
+        self._home_dir: str | None = None
         writable_args = []
         if self._persistent:
             sandbox = get_sandbox_dir() / "docker" / task_id

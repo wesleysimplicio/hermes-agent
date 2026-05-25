@@ -74,7 +74,7 @@ class NodeClient:
         self,
         url: str,
         guest_name: str = "Hermes Agent",
-        duration: Optional[str] = None,
+        duration: str | None = None,
         headed: bool = False,
         mode: str = "transcribe",
     ) -> Dict[str, Any]:
@@ -94,7 +94,7 @@ class NodeClient:
     def status(self) -> Dict[str, Any]:
         return self._rpc("status", {})
 
-    def transcript(self, last: Optional[int] = None) -> Dict[str, Any]:
+    def transcript(self, last: int | None = None) -> Dict[str, Any]:
         payload: Dict[str, Any] = {}
         if last is not None:
             payload["last"] = int(last)

@@ -61,7 +61,7 @@ router = APIRouter()
 # existing plugin-bypass; this is documented above).
 # ---------------------------------------------------------------------------
 
-def _check_ws_token(provided: Optional[str]) -> bool:
+def _check_ws_token(provided: str | None) -> bool:
     """Constant-time compare against the dashboard session token.
 
     Imported lazily so the plugin still loads in test contexts where the
@@ -83,7 +83,7 @@ def _check_ws_token(provided: Optional[str]) -> bool:
     return hmac.compare_digest(str(provided), str(expected))
 
 
-def _resolve_board(board: Optional[str]) -> Optional[str]:
+def _resolve_board(board: str | None) -> str | None:
     """Validate and normalise a board slug from a query param.
 
     Raises :class:`HTTPException` 400 on malformed slugs so the browser
@@ -105,7 +105,7 @@ def _resolve_board(board: Optional[str]) -> Optional[str]:
     return normed
 
 
-def _conn(board: Optional[str] = None):
+def _conn(board: str | None = None):
     """Open a kanban_db connection, creating the schema on first use.
 
     Every handler that mutates the DB goes through this so the plugin
@@ -147,7 +147,7 @@ _CARD_SUMMARY_PREVIEW_CHARS = 200
 def _task_dict(
     task: kanban_db.Task,
     *,
-    latest_summary: Optional[str] = None,
+    latest_summary: str | None = None,
 ) -> dict[str, Any]:
     d = asdict(task)
     # Add derived age metrics so the UI can colour stale cards without
@@ -221,7 +221,7 @@ _WARNING_EVENT_KINDS = (
 
 def _compute_task_diagnostics(
     conn: sqlite3.Connection,
-    task_ids: Optional[list[str]] = None,
+    task_ids: list[str] | None = None,
 ) -> dict[str, list[dict]]:
     """Run the diagnostic rule engine against every task (or a subset)
     and return ``{task_id: [diagnostic_dict, ...]}``.
@@ -289,7 +289,7 @@ def _compute_task_diagnostics(
 
 def _warnings_summary_from_diagnostics(
     diagnostics: list[dict],
-) -> Optional[dict]:
+) -> dict | None:
     """Compact summary for cards: {count, highest_severity, kinds,
     latest_at}. Replaces the old hallucination-only ``warnings`` object
     — same shape additions plus ``highest_severity`` so the UI can color
@@ -304,7 +304,7 @@ def _warnings_summary_from_diagnostics(
     kinds: dict[str, int] = {}
     latest = 0
     highest_idx = -1
-    highest_sev: Optional[str] = None
+    highest_sev: str | None = None
     count = 0
     for d in diagnostics:
         kinds[d["kind"]] = kinds.get(d["kind"], 0) + d.get("count", 1)
@@ -351,13 +351,13 @@ def _links_for(conn: sqlite3.Connection, task_id: str) -> dict[str, list[str]]:
 
 @router.get("/board")
 def get_board(
-    tenant: Optional[str] = Query(None, description="Filter to a single tenant"),
+    tenant: str | None = Query(None, description="Filter to a single tenant"),
     include_archived: bool = Query(False),
-    board: Optional[str] = Query(None, description="Kanban board slug (omit for current)"),
-    workflow_template_id: Optional[str] = Query(
+    board: str | None = Query(None, description="Kanban board slug (omit for current)"),
+    workflow_template_id: str | None = Query(
         None, description="Restrict to tasks using this workflow template id",
     ),
-    current_step_key: Optional[str] = Query(
+    current_step_key: str | None = Query(
         None, description="Restrict to tasks at this workflow step key",
     ),
 ):
@@ -491,11 +491,11 @@ def get_board(
 @router.get("/tasks/{task_id}")
 def get_task(
     task_id: str,
-    board: Optional[str] = Query(None),
-    run_state_type: Optional[str] = Query(
+    board: str | None = Query(None),
+    run_state_type: str | None = Query(
         None, description="With run_state_name: filter runs by column 'status' or 'outcome'",
     ),
-    run_state_name: Optional[str] = Query(
+    run_state_name: str | None = Query(
         None, description="With run_state_type: exact value for that run column",
     ),
 ):
@@ -552,21 +552,21 @@ def get_task(
 
 class CreateTaskBody(BaseModel):
     title: str
-    body: Optional[str] = None
-    assignee: Optional[str] = None
-    tenant: Optional[str] = None
+    body: str | None = None
+    assignee: str | None = None
+    tenant: str | None = None
     priority: int = 0
     workspace_kind: str = "scratch"
-    workspace_path: Optional[str] = None
+    workspace_path: str | None = None
     parents: list[str] = Field(default_factory=list)
     triage: bool = False
-    idempotency_key: Optional[str] = None
-    max_runtime_seconds: Optional[int] = None
-    skills: Optional[list[str]] = None
+    idempotency_key: str | None = None
+    max_runtime_seconds: int | None = None
+    skills: list[str] | None = None
 
 
 @router.post("/tasks")
-def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
+def create_task(payload: CreateTaskBody, board: str | None = Query(None)):
     board = _resolve_board(board)
     conn = _conn(board=board)
     try:
@@ -614,22 +614,22 @@ def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
 # ---------------------------------------------------------------------------
 
 class UpdateTaskBody(BaseModel):
-    status: Optional[str] = None
-    assignee: Optional[str] = None
-    priority: Optional[int] = None
-    title: Optional[str] = None
-    body: Optional[str] = None
-    result: Optional[str] = None
-    block_reason: Optional[str] = None
+    status: str | None = None
+    assignee: str | None = None
+    priority: int | None = None
+    title: str | None = None
+    body: str | None = None
+    result: str | None = None
+    block_reason: str | None = None
     # Structured handoff fields — forwarded to complete_task when status
     # transitions to 'done'. Dashboard parity with ``hermes kanban
     # complete --summary ... --metadata ...``.
-    summary: Optional[str] = None
-    metadata: Optional[dict] = None
+    summary: str | None = None
+    metadata: dict | None = None
 
 
 @router.patch("/tasks/{task_id}")
-def update_task(task_id: str, payload: UpdateTaskBody, board: Optional[str] = Query(None)):
+def update_task(task_id: str, payload: UpdateTaskBody, board: str | None = Query(None)):
     board = _resolve_board(board)
     conn = _conn(board=board)
     try:
@@ -752,7 +752,7 @@ def update_task(task_id: str, payload: UpdateTaskBody, board: Optional[str] = Qu
 # ---------------------------------------------------------------------------
 
 @router.delete("/tasks/{task_id}")
-def delete_task(task_id: str, board: Optional[str] = Query(None)):
+def delete_task(task_id: str, board: str | None = Query(None)):
     board = _resolve_board(board)
     conn = _conn(board=board)
     try:
@@ -895,11 +895,11 @@ def _set_status_direct(
 
 class CommentBody(BaseModel):
     body: str
-    author: Optional[str] = "dashboard"
+    author: str | None = "dashboard"
 
 
 @router.post("/tasks/{task_id}/comments")
-def add_comment(task_id: str, payload: CommentBody, board: Optional[str] = Query(None)):
+def add_comment(task_id: str, payload: CommentBody, board: str | None = Query(None)):
     if not payload.body.strip():
         raise HTTPException(status_code=400, detail="body is required")
     board = _resolve_board(board)
@@ -925,7 +925,7 @@ class LinkBody(BaseModel):
 
 
 @router.post("/links")
-def add_link(payload: LinkBody, board: Optional[str] = Query(None)):
+def add_link(payload: LinkBody, board: str | None = Query(None)):
     board = _resolve_board(board)
     conn = _conn(board=board)
     try:
@@ -941,7 +941,7 @@ def add_link(payload: LinkBody, board: Optional[str] = Query(None)):
 def delete_link(
     parent_id: str = Query(...),
     child_id: str = Query(...),
-    board: Optional[str] = Query(None),
+    board: str | None = Query(None),
 ):
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -958,18 +958,18 @@ def delete_link(
 
 class BulkTaskBody(BaseModel):
     ids: list[str]
-    status: Optional[str] = None
-    assignee: Optional[str] = None  # "" or None = unassign
-    priority: Optional[int] = None
+    status: str | None = None
+    assignee: str | None = None  # "" or None = unassign
+    priority: int | None = None
     archive: bool = False
-    result: Optional[str] = None
-    summary: Optional[str] = None
-    metadata: Optional[dict] = None
+    result: str | None = None
+    summary: str | None = None
+    metadata: dict | None = None
     reclaim_first: bool = False
 
 
 @router.post("/tasks/bulk")
-def bulk_update(payload: BulkTaskBody, board: Optional[str] = Query(None)):
+def bulk_update(payload: BulkTaskBody, board: str | None = Query(None)):
     """Apply the same patch to every id in ``payload.ids``.
 
     This is an *independent* iteration — per-task failures don't abort
@@ -1073,8 +1073,8 @@ def bulk_update(payload: BulkTaskBody, board: Optional[str] = Query(None)):
 
 @router.get("/diagnostics")
 def list_diagnostics(
-    board: Optional[str] = Query(None, description="Kanban board slug (omit for current)"),
-    severity: Optional[str] = Query(
+    board: str | None = Query(None, description="Kanban board slug (omit for current)"),
+    severity: str | None = Query(
         None,
         description="Filter by severity: warning|error|critical",
     ),
@@ -1161,7 +1161,7 @@ except ImportError:
 
 @router.get("/workers/active")
 def list_active_workers(
-    board: Optional[str] = Query(None, description="Kanban board slug (omit for current)"),
+    board: str | None = Query(None, description="Kanban board slug (omit for current)"),
 ):
     """Return every currently-running worker on the board.
 
@@ -1223,7 +1223,7 @@ def list_active_workers(
 @router.get("/runs/{run_id}")
 def get_run_endpoint(
     run_id: int,
-    board: Optional[str] = Query(None, description="Kanban board slug (omit for current)"),
+    board: str | None = Query(None, description="Kanban board slug (omit for current)"),
 ):
     """Direct lookup of a ``task_runs`` row by its integer id.
 
@@ -1245,7 +1245,7 @@ def get_run_endpoint(
 @router.get("/runs/{run_id}/inspect")
 def inspect_run_endpoint(
     run_id: int,
-    board: Optional[str] = Query(None, description="Kanban board slug (omit for current)"),
+    board: str | None = Query(None, description="Kanban board slug (omit for current)"),
 ):
     """Live PID stats for a run's worker process via psutil.
 
@@ -1315,14 +1315,14 @@ def inspect_run_endpoint(
 # ---------------------------------------------------------------------------
 
 class ReclaimBody(BaseModel):
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 @router.post("/tasks/{task_id}/reclaim")
 def reclaim_task_endpoint(
     task_id: str,
     payload: ReclaimBody,
-    board: Optional[str] = Query(None),
+    board: str | None = Query(None),
 ):
     """Release an active worker claim on a running task.
 
@@ -1353,14 +1353,14 @@ class SpecifyBody(BaseModel):
     dashboard — model + prompt come from ``auxiliary.triage_specifier``
     in config.yaml, same as the CLI."""
 
-    author: Optional[str] = None
+    author: str | None = None
 
 
 @router.post("/tasks/{task_id}/specify")
 def specify_task_endpoint(
     task_id: str,
     payload: SpecifyBody,
-    board: Optional[str] = Query(None),
+    board: str | None = Query(None),
 ):
     """Flesh out a triage-column task via the auxiliary LLM and promote
     it to ``todo``. Maps 1:1 to ``hermes kanban specify <task_id>``.
@@ -1404,16 +1404,16 @@ def specify_task_endpoint(
 
 
 class ReassignBody(BaseModel):
-    profile: Optional[str] = None  # "" or None = unassign
+    profile: str | None = None  # "" or None = unassign
     reclaim_first: bool = False
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 @router.post("/tasks/{task_id}/reassign")
 def reassign_task_endpoint(
     task_id: str,
     payload: ReassignBody,
-    board: Optional[str] = Query(None),
+    board: str | None = Query(None),
 ):
     """Reassign a task to a different profile, optionally reclaiming first.
 
@@ -1539,8 +1539,8 @@ def _home_sub_matches(sub: dict, home: dict) -> bool:
 
 @router.get("/home-channels")
 def get_home_channels(
-    task_id: Optional[str] = Query(None),
-    board: Optional[str] = Query(None),
+    task_id: str | None = Query(None),
+    board: str | None = Query(None),
 ):
     """List every platform with a home channel, plus whether *task_id*
     (if given) is currently subscribed to that home.
@@ -1572,7 +1572,7 @@ def get_home_channels(
 
 
 @router.post("/tasks/{task_id}/home-subscribe/{platform}")
-def subscribe_home(task_id: str, platform: str, board: Optional[str] = Query(None)):
+def subscribe_home(task_id: str, platform: str, board: str | None = Query(None)):
     """Subscribe *task_id* to notifications routed to *platform*'s home channel.
 
     Idempotent — re-subscribing is a no-op at the DB layer. 404 if the
@@ -1607,7 +1607,7 @@ def subscribe_home(task_id: str, platform: str, board: Optional[str] = Query(Non
 
 
 @router.delete("/tasks/{task_id}/home-subscribe/{platform}")
-def unsubscribe_home(task_id: str, platform: str, board: Optional[str] = Query(None)):
+def unsubscribe_home(task_id: str, platform: str, board: str | None = Query(None)):
     """Remove any notify subscription on *task_id* that matches *platform*'s home."""
     homes = _configured_home_channels()
     home = next((h for h in homes if h["platform"] == platform), None)
@@ -1636,7 +1636,7 @@ def unsubscribe_home(task_id: str, platform: str, board: Optional[str] = Query(N
 # ---------------------------------------------------------------------------
 
 @router.get("/stats")
-def get_stats(board: Optional[str] = Query(None)):
+def get_stats(board: str | None = Query(None)):
     """Per-status + per-assignee counts + oldest-ready age.
 
     Designed for the dashboard HUD and for router profiles that need to
@@ -1652,7 +1652,7 @@ def get_stats(board: Optional[str] = Query(None)):
 
 
 @router.get("/assignees")
-def get_assignees(board: Optional[str] = Query(None)):
+def get_assignees(board: str | None = Query(None)):
     """Known profiles + per-profile task counts.
 
     Returns the union of ``~/.hermes/profiles/*`` on disk and every
@@ -1675,8 +1675,8 @@ def get_assignees(board: Optional[str] = Query(None)):
 @router.get("/tasks/{task_id}/log")
 def get_task_log(
     task_id: str,
-    tail: Optional[int] = Query(None, ge=1, le=2_000_000),
-    board: Optional[str] = Query(None),
+    tail: int | None = Query(None, ge=1, le=2_000_000),
+    board: str | None = Query(None),
 ):
     """Return the worker's stdout/stderr log.
 
@@ -1716,7 +1716,7 @@ def get_task_log(
 def dispatch(
     dry_run: bool = Query(False),
     max_n: int = Query(8, alias="max"),
-    board: Optional[str] = Query(None),
+    board: str | None = Query(None),
 ):
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -1739,18 +1739,18 @@ def dispatch(
 
 class CreateBoardBody(BaseModel):
     slug: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    icon: Optional[str] = None
-    color: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
+    icon: str | None = None
+    color: str | None = None
     switch: bool = False
 
 
 class RenameBoardBody(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    icon: Optional[str] = None
-    color: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
+    icon: str | None = None
+    color: str | None = None
 
 
 def _board_counts(slug: str) -> dict[str, int]:
@@ -1866,7 +1866,7 @@ _EVENT_POLL_SECONDS = 0.3
 # ---------------------------------------------------------------------------
 
 class DescribeBody(BaseModel):
-    description: Optional[str] = None  # explicit user-authored text
+    description: str | None = None  # explicit user-authored text
 
 
 class DescribeAutoBody(BaseModel):
@@ -1969,14 +1969,14 @@ def auto_describe_profile(profile_name: str, payload: DescribeAutoBody):
 # ---------------------------------------------------------------------------
 
 class DecomposeBody(BaseModel):
-    author: Optional[str] = None
+    author: str | None = None
 
 
 @router.post("/tasks/{task_id}/decompose")
 def decompose_task_endpoint(
     task_id: str,
     payload: DecomposeBody,
-    board: Optional[str] = Query(None),
+    board: str | None = Query(None),
 ):
     """Fan a triage-column task out into a graph of child tasks via the
     auxiliary LLM, routed to specialist profiles by description. Maps
@@ -2020,10 +2020,10 @@ def decompose_task_endpoint(
 # ---------------------------------------------------------------------------
 
 class OrchestrationSettingsBody(BaseModel):
-    orchestrator_profile: Optional[str] = None
-    default_assignee: Optional[str] = None
-    auto_decompose: Optional[bool] = None
-    auto_promote_children: Optional[bool] = None
+    orchestrator_profile: str | None = None
+    default_assignee: str | None = None
+    auto_decompose: bool | None = None
+    auto_promote_children: bool | None = None
 
 
 @router.get("/orchestration")

@@ -58,7 +58,7 @@ def _voice_capture_install_hint() -> str:
     return "pip install sounddevice numpy"
 
 
-def _termux_microphone_command() -> Optional[str]:
+def _termux_microphone_command() -> str | None:
     if not _is_termux_environment():
         return None
     return shutil.which("termux-microphone-record")
@@ -253,7 +253,7 @@ class TermuxAudioRecorder:
         self._lock = threading.Lock()
         self._recording = False
         self._start_time = 0.0
-        self._recording_path: Optional[str] = None
+        self._recording_path: str | None = None
         self._current_rms = 0
 
     @property
@@ -320,7 +320,7 @@ class TermuxAudioRecorder:
             return
         subprocess.run([mic_cmd, "-q"], capture_output=True, text=True, timeout=15, check=False)
 
-    def stop(self) -> Optional[str]:
+    def stop(self) -> str | None:
         with self._lock:
             if not self._recording:
                 return None
@@ -634,7 +634,7 @@ class AudioRecorder:
         if t.is_alive():
             logger.warning("Audio stream close timed out after %.1fs — forcing ahead", timeout)
 
-    def stop(self) -> Optional[str]:
+    def stop(self) -> str | None:
         """Stop recording and write captured audio to a WAV file.
 
         The underlying stream is kept alive for reuse — only frame
@@ -787,7 +787,7 @@ def is_whisper_hallucination(transcript: str) -> bool:
 # ============================================================================
 # STT dispatch
 # ============================================================================
-def transcribe_recording(wav_path: str, model: Optional[str] = None) -> Dict[str, Any]:
+def transcribe_recording(wav_path: str, model: str | None = None) -> Dict[str, Any]:
     """Transcribe a WAV recording using the existing Whisper pipeline.
 
     Delegates to ``tools.transcription_tools.transcribe_audio()``.
@@ -828,7 +828,7 @@ def _should_chunk_for_transcription(file_path: str, max_file_size: int) -> bool:
 def _transcribe_wav_in_chunks(
     wav_path: str,
     *,
-    model: Optional[str],
+    model: str | None,
     max_file_size: int,
 ) -> Dict[str, Any]:
     """Split an oversized WAV into provider-sized chunks and join transcripts."""
@@ -928,7 +928,7 @@ def _split_wav_for_transcription(wav_path: str, *, max_file_size: int) -> List[s
 # ============================================================================
 
 # Global reference to the active playback process so it can be interrupted.
-_active_playback: Optional[subprocess.Popen] = None
+_active_playback: subprocess.Popen | None = None
 _playback_lock = threading.Lock()
 
 

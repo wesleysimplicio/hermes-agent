@@ -24,7 +24,7 @@ PLATFORMS = {k: info.label for k, info in _PLATFORMS.items() if k != "api_server
 
 # ─── Config Helpers ───────────────────────────────────────────────────────────
 
-def get_disabled_skills(config: dict, platform: Optional[str] = None) -> Set[str]:
+def get_disabled_skills(config: dict, platform: str | None = None) -> Set[str]:
     """Return disabled skill names. Platform-specific list falls back to global."""
     skills_cfg = config.get("skills", {})
     global_disabled = set(skills_cfg.get("disabled", []))
@@ -36,7 +36,7 @@ def get_disabled_skills(config: dict, platform: Optional[str] = None) -> Set[str
     return set(platform_disabled)
 
 
-def save_disabled_skills(config: dict, disabled: Set[str], platform: Optional[str] = None):
+def save_disabled_skills(config: dict, disabled: Set[str], platform: str | None = None):
     """Persist disabled skill names to config."""
     config.setdefault("skills", {})
     if platform is None:
@@ -65,7 +65,7 @@ def _get_categories(skills: List[dict]) -> List[str]:
 
 # ─── Platform Selection ──────────────────────────────────────────────────────
 
-def _select_platform() -> Optional[str]:
+def _select_platform() -> str | None:
     """Ask user which platform to configure, or global."""
     options = [("global", "All platforms (global default)")] + list(PLATFORMS.items())
     print()

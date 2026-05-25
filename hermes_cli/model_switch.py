@@ -274,8 +274,8 @@ class ModelSwitchResult:
     warning_message: str = ""
     provider_label: str = ""
     resolved_via_alias: str = ""
-    capabilities: Optional[ModelCapabilities] = None
-    model_info: Optional[ModelInfo] = None
+    capabilities: ModelCapabilities | None = None
+    model_info: ModelInfo | None = None
     is_global: bool = False
 
 
@@ -450,7 +450,7 @@ def _model_sort_key(model_id: str, prefix: str) -> tuple:
 def resolve_alias(
     raw_input: str,
     current_provider: str,
-) -> Optional[tuple[str, str, str]]:
+) -> tuple[str, str, str] | None:
     """Resolve a short alias against the current provider's catalog.
 
     Looks up *raw_input* in :data:`MODEL_ALIASES`, then searches the
@@ -549,7 +549,7 @@ def get_authenticated_provider_slugs(
 def _resolve_alias_fallback(
     raw_input: str,
     authenticated_providers: list[str] = (),
-) -> Optional[tuple[str, str, str]]:
+) -> tuple[str, str, str] | None:
     """Try to resolve an alias on the user's authenticated providers.
 
     Falls back to ``("openrouter", "nous")`` only when no authenticated
@@ -568,10 +568,10 @@ def resolve_display_context_length(
     provider: str,
     base_url: str = "",
     api_key: str = "",
-    model_info: Optional[ModelInfo] = None,
+    model_info: ModelInfo | None = None,
     custom_providers: list | None = None,
     config_context_length: int | None = None,
-) -> Optional[int]:
+) -> int | None:
     """Resolve the context length to show in /model output.
 
     models.dev reports per-vendor context (e.g. gpt-5.5 = 1.05M on openai)

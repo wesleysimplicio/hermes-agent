@@ -56,7 +56,7 @@ def _format_entry(entry: Dict[str, Any]) -> str:
     return f"{model}  (via {provider}){suffix}"
 
 
-def _extract_fallback_from_model_cfg(model_cfg: Any) -> Optional[Dict[str, Any]]:
+def _extract_fallback_from_model_cfg(model_cfg: Any) -> Dict[str, Any] | None:
     """Pull the ``{provider, model, base_url?, api_mode?}`` dict from a ``config["model"]`` snapshot."""
     if not isinstance(model_cfg, dict):
         return None
@@ -132,7 +132,7 @@ def cmd_fallback_list(args) -> None:  # noqa: ARG001
     print()
 
 
-def _describe_primary(config: Dict[str, Any]) -> Optional[str]:
+def _describe_primary(config: Dict[str, Any]) -> str | None:
     """One-line description of the primary model for display purposes."""
     model_cfg = config.get("model")
     if isinstance(model_cfg, dict):
@@ -311,7 +311,7 @@ def cmd_fallback_clear(args) -> None:  # noqa: ARG001
     print()
 
 
-def _numbered_pick(question: str, choices: List[str]) -> Optional[int]:
+def _numbered_pick(question: str, choices: List[str]) -> int | None:
     """Fallback numbered-list picker when curses is unavailable."""
     print(question)
     for i, c in enumerate(choices, 1):

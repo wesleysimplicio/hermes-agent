@@ -64,7 +64,7 @@ def list_providers() -> List[ImageGenProvider]:
     return sorted(items, key=lambda p: p.name)
 
 
-def get_provider(name: str) -> Optional[ImageGenProvider]:
+def get_provider(name: str) -> ImageGenProvider | None:
     """Return the provider registered under *name*, or None."""
     if not isinstance(name, str):
         return None
@@ -72,7 +72,7 @@ def get_provider(name: str) -> Optional[ImageGenProvider]:
         return _providers.get(name.strip())
 
 
-def get_active_provider() -> Optional[ImageGenProvider]:
+def get_active_provider() -> ImageGenProvider | None:
     """Resolve the currently-active provider.
 
     Reads ``image_gen.provider`` from config.yaml; falls back per the
@@ -89,7 +89,7 @@ def get_active_provider() -> Optional[ImageGenProvider]:
       ``is_available()`` so we don't pick a provider the user has no
       credentials for.
     """
-    configured: Optional[str] = None
+    configured: str | None = None
     try:
         from hermes_cli.config import load_config
 

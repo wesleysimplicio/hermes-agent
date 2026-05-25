@@ -97,7 +97,7 @@ def flatten_exception_chain(error: BaseException) -> str:
     deep) to surface the chain in one line.
     """
     seen: List[BaseException] = []
-    link: Optional[BaseException] = error
+    link: BaseException | None = error
     while link is not None and len(seen) < 4:
         if link in seen:
             break
@@ -125,7 +125,7 @@ def log_stream_retry(
     attempt: int,
     max_attempts: int,
     mid_tool_call: bool,
-    diag: Optional[Dict[str, Any]] = None,
+    diag: Dict[str, Any] | None = None,
 ) -> None:
     """Record a transient stream-drop and retry to ``agent.log``.
 
@@ -218,7 +218,7 @@ def emit_stream_drop(
     attempt: int,
     max_attempts: int,
     mid_tool_call: bool,
-    diag: Optional[Dict[str, Any]] = None,
+    diag: Dict[str, Any] | None = None,
 ) -> None:
     """Emit a single user-visible line for a stream drop+retry.
 

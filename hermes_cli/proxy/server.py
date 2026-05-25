@@ -256,7 +256,7 @@ async def run_server(
     adapter: UpstreamAdapter,
     host: str = DEFAULT_HOST,
     port: int = DEFAULT_PORT,
-    shutdown_event: Optional[asyncio.Event] = None,
+    shutdown_event: asyncio.Event | None = None,
 ) -> None:
     """Run the proxy in the current event loop until shutdown_event is set.
 

@@ -111,7 +111,7 @@ def _fetch_models_from_api(access_token: str) -> List[str]:
     return _add_forward_compat_models([slug for _, slug in sortable])
 
 
-def _read_default_model(codex_home: Path) -> Optional[str]:
+def _read_default_model(codex_home: Path) -> str | None:
     config_path = codex_home / "config.toml"
     if not config_path.exists():
         return None
@@ -166,7 +166,7 @@ def _read_cache_models(codex_home: Path) -> List[str]:
     return deduped
 
 
-def get_codex_model_ids(access_token: Optional[str] = None) -> List[str]:
+def get_codex_model_ids(access_token: str | None = None) -> List[str]:
     """Return available Codex model IDs, trying API first, then local sources.
     
     Resolution order: API (live, if token provided) > config.toml default >

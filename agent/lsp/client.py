@@ -146,9 +146,9 @@ class LSPClient:
         server_id: str,
         workspace_root: str,
         command: List[str],
-        env: Optional[Dict[str, str]] = None,
-        cwd: Optional[str] = None,
-        initialization_options: Optional[Dict[str, Any]] = None,
+        env: Dict[str, str] | None = None,
+        cwd: str | None = None,
+        initialization_options: Dict[str, Any] | None = None,
         seed_diagnostics_on_first_push: bool = False,
     ) -> None:
         self.server_id = server_id
@@ -160,9 +160,9 @@ class LSPClient:
         self._seed_first_push = seed_diagnostics_on_first_push
 
         # Process + streams
-        self._proc: Optional[asyncio.subprocess.Process] = None
-        self._stderr_task: Optional[asyncio.Task] = None
-        self._reader_task: Optional[asyncio.Task] = None
+        self._proc: asyncio.subprocess.Process | None = None
+        self._stderr_task: asyncio.Task | None = None
+        self._reader_task: asyncio.Task | None = None
 
         # Request/response correlation
         self._next_id: int = 0
@@ -202,7 +202,7 @@ class LSPClient:
 
         # State machine
         self._state: str = "stopped"
-        self._initialize_result: Optional[Dict[str, Any]] = None
+        self._initialize_result: Dict[str, Any] | None = None
         self._sync_kind: int = 1  # 1=Full, 2=Incremental
         self._stopping: bool = False
 

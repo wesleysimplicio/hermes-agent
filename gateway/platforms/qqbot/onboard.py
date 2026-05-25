@@ -153,7 +153,7 @@ def build_connect_url(task_id: str) -> str:
 _MAX_REFRESHES = 3
 
 
-def qr_register(timeout_seconds: int = 600) -> Optional[dict]:
+def qr_register(timeout_seconds: int = 600) -> dict | None:
     """Run the QQBot scan-to-configure QR registration flow.
 
     Mirrors ``feishu.qr_register()``: handles create → display → poll →

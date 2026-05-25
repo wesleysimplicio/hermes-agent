@@ -215,7 +215,7 @@ class EventBridge:
         self._lock = threading.Lock()
         self._new_event = threading.Event()
         self._running = False
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._last_poll_timestamps: Dict[str, float] = {}  # session_key -> unix timestamp
         # In-memory approval tracking (populated from events)
         self._pending_approvals: Dict[str, dict] = {}
@@ -244,7 +244,7 @@ class EventBridge:
     def poll_events(
         self,
         after_cursor: int = 0,
-        session_key: Optional[str] = None,
+        session_key: str | None = None,
         limit: int = 20,
     ) -> dict:
         """Return events since after_cursor, optionally filtered by session_key."""
@@ -268,9 +268,9 @@ class EventBridge:
     def wait_for_event(
         self,
         after_cursor: int = 0,
-        session_key: Optional[str] = None,
+        session_key: str | None = None,
         timeout_ms: int = 30000,
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Block until a matching event arrives or timeout expires."""
         deadline = time.monotonic() + (timeout_ms / 1000.0)
 
@@ -447,7 +447,7 @@ class EventBridge:
 # MCP Server
 # ---------------------------------------------------------------------------
 
-def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
+def create_mcp_server(event_bridge: EventBridge | None = None) -> "FastMCP":
     """Create and return the Hermes MCP server with all tools registered."""
     if not _MCP_SERVER_AVAILABLE:
         raise ImportError(
@@ -470,9 +470,9 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
 
     @mcp.tool()
     def conversations_list(
-        platform: Optional[str] = None,
+        platform: str | None = None,
         limit: int = 50,
-        search: Optional[str] = None,
+        search: str | None = None,
     ) -> str:
         """List active messaging conversations across connected platforms.
 
@@ -670,7 +670,7 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
     @mcp.tool()
     def events_poll(
         after_cursor: int = 0,
-        session_key: Optional[str] = None,
+        session_key: str | None = None,
         limit: int = 20,
     ) -> str:
         """Poll for new conversation events since a cursor position.
@@ -699,7 +699,7 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
     @mcp.tool()
     def events_wait(
         after_cursor: int = 0,
-        session_key: Optional[str] = None,
+        session_key: str | None = None,
         timeout_ms: int = 30000,
     ) -> str:
         """Wait for the next conversation event (long-poll).
@@ -767,7 +767,7 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
     # -- channels_list -----------------------------------------------------
 
     @mcp.tool()
-    def channels_list(platform: Optional[str] = None) -> str:
+    def channels_list(platform: str | None = None) -> str:
         """List available messaging channels and targets across platforms.
 
         Returns channels that you can send messages to. The target strings

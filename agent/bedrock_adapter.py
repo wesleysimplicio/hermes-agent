@@ -228,7 +228,7 @@ _AWS_CREDENTIAL_ENV_VARS = [
 ]
 
 
-def resolve_aws_auth_env_var(env: Optional[Dict[str, str]] = None) -> Optional[str]:
+def resolve_aws_auth_env_var(env: Dict[str, str] | None = None) -> str | None:
     """Return the name of the AWS auth source that is active, or None.
 
     Checks environment variables first, then falls back to boto3's credential
@@ -270,7 +270,7 @@ def resolve_aws_auth_env_var(env: Optional[Dict[str, str]] = None) -> Optional[s
     return None
 
 
-def has_aws_credentials(env: Optional[Dict[str, str]] = None) -> bool:
+def has_aws_credentials(env: Dict[str, str] | None = None) -> bool:
     """Return True if any AWS credential source is detected.
 
     Checks environment variables first (fast, no I/O), then falls back to
@@ -301,7 +301,7 @@ def has_aws_credentials(env: Optional[Dict[str, str]] = None) -> bool:
     return False
 
 
-def resolve_bedrock_region(env: Optional[Dict[str, str]] = None) -> str:
+def resolve_bedrock_region(env: Dict[str, str] | None = None) -> str:
     """Resolve the AWS region for Bedrock API calls.
 
     Priority:
@@ -332,7 +332,7 @@ def resolve_bedrock_region(env: Optional[Dict[str, str]] = None) -> str:
     return "us-east-1"
 
 
-def bedrock_model_ids_or_none() -> Optional[List[str]]:
+def bedrock_model_ids_or_none() -> List[str] | None:
     """Live-discover Bedrock model IDs for the active region.
 
     Returns a list of model ID strings if discovery succeeds and yields
@@ -492,7 +492,7 @@ def _convert_content_to_converse(content) -> List[Dict]:
 
 def convert_messages_to_converse(
     messages: List[Dict],
-) -> Tuple[Optional[List[Dict]], List[Dict]]:
+) -> Tuple[List[Dict] | None, List[Dict]]:
     """Convert OpenAI-format messages to Bedrock Converse format.
 
     Returns ``(system_prompt, converse_messages)`` where:
@@ -755,7 +755,7 @@ def stream_converse_with_callbacks(
     text_parts: List[str] = []
     reasoning_parts: List[str] = []
     tool_calls: List[SimpleNamespace] = []
-    current_tool: Optional[Dict] = None
+    current_tool: Dict | None = None
     current_text_buffer: List[str] = []
     has_tool_use = False
     stop_reason = "end_turn"
@@ -876,12 +876,12 @@ def stream_converse_with_callbacks(
 def build_converse_kwargs(
     model: str,
     messages: List[Dict],
-    tools: Optional[List[Dict]] = None,
+    tools: List[Dict] | None = None,
     max_tokens: int = 4096,
-    temperature: Optional[float] = None,
-    top_p: Optional[float] = None,
-    stop_sequences: Optional[List[str]] = None,
-    guardrail_config: Optional[Dict] = None,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    stop_sequences: List[str] | None = None,
+    guardrail_config: Dict | None = None,
 ) -> Dict[str, Any]:
     """Build kwargs for ``bedrock-runtime.converse()`` or ``converse_stream()``.
 
@@ -935,12 +935,12 @@ def call_converse(
     region: str,
     model: str,
     messages: List[Dict],
-    tools: Optional[List[Dict]] = None,
+    tools: List[Dict] | None = None,
     max_tokens: int = 4096,
-    temperature: Optional[float] = None,
-    top_p: Optional[float] = None,
-    stop_sequences: Optional[List[str]] = None,
-    guardrail_config: Optional[Dict] = None,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    stop_sequences: List[str] | None = None,
+    guardrail_config: Dict | None = None,
 ) -> SimpleNamespace:
     """Call Bedrock Converse API (non-streaming) and return an OpenAI-compatible response.
 
@@ -976,12 +976,12 @@ def call_converse_stream(
     region: str,
     model: str,
     messages: List[Dict],
-    tools: Optional[List[Dict]] = None,
+    tools: List[Dict] | None = None,
     max_tokens: int = 4096,
-    temperature: Optional[float] = None,
-    top_p: Optional[float] = None,
-    stop_sequences: Optional[List[str]] = None,
-    guardrail_config: Optional[Dict] = None,
+    temperature: float | None = None,
+    top_p: float | None = None,
+    stop_sequences: List[str] | None = None,
+    guardrail_config: Dict | None = None,
 ) -> SimpleNamespace:
     """Call Bedrock ConverseStream API and return an OpenAI-compatible response.
 
@@ -1029,7 +1029,7 @@ def reset_discovery_cache():
 
 def discover_bedrock_models(
     region: str,
-    provider_filter: Optional[List[str]] = None,
+    provider_filter: List[str] | None = None,
 ) -> List[Dict[str, Any]]:
     """Discover available Bedrock foundation models and inference profiles.
 

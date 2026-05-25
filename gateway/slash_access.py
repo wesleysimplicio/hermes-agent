@@ -66,7 +66,7 @@ class SlashAccessPolicy:
     admin_user_ids: FrozenSet[str]
     user_allowed_commands: FrozenSet[str]
 
-    def is_admin(self, user_id: Optional[str]) -> bool:
+    def is_admin(self, user_id: str | None) -> bool:
         if not self.enabled:
             # Gating disabled → treat every allowed user as admin so
             # downstream code can keep using ``is_admin`` / ``can_run``
@@ -76,7 +76,7 @@ class SlashAccessPolicy:
             return False
         return str(user_id) in self.admin_user_ids
 
-    def can_run(self, user_id: Optional[str], canonical_cmd: str) -> bool:
+    def can_run(self, user_id: str | None, canonical_cmd: str) -> bool:
         if not self.enabled:
             return True
         if self.is_admin(user_id):
@@ -137,7 +137,7 @@ def _coerce_command_list(raw: Any) -> FrozenSet[str]:
     return frozenset(out)
 
 
-def _scope_for_chat_type(chat_type: Optional[str]) -> str:
+def _scope_for_chat_type(chat_type: str | None) -> str:
     if chat_type and chat_type.lower() in _DM_CHAT_TYPES:
         return "dm"
     return "group"

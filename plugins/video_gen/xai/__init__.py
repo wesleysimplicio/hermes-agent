@@ -111,7 +111,7 @@ def _xai_headers(api_key: str) -> Dict[str, str]:
     }
 
 
-def _normalize_reference_images(reference_image_urls: Optional[List[str]]):
+def _normalize_reference_images(reference_image_urls: List[str] | None):
     refs = []
     for url in reference_image_urls or []:
         normalized = (url or "").strip()
@@ -120,7 +120,7 @@ def _normalize_reference_images(reference_image_urls: Optional[List[str]]):
     return refs or None
 
 
-def _clamp_duration(duration: Optional[int], has_reference_images: bool) -> int:
+def _clamp_duration(duration: int | None, has_reference_images: bool) -> int:
     value = duration if duration is not None else DEFAULT_DURATION
     if value < 1:
         value = 1
@@ -209,7 +209,7 @@ class XAIVideoGenProvider(VideoGenProvider):
     def list_models(self) -> List[Dict[str, Any]]:
         return [{"id": mid, **meta} for mid, meta in _MODELS.items()]
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         return DEFAULT_MODEL
 
     def get_setup_schema(self) -> Dict[str, Any]:
@@ -243,15 +243,15 @@ class XAIVideoGenProvider(VideoGenProvider):
         self,
         prompt: str,
         *,
-        model: Optional[str] = None,
-        image_url: Optional[str] = None,
-        reference_image_urls: Optional[List[str]] = None,
-        duration: Optional[int] = None,
+        model: str | None = None,
+        image_url: str | None = None,
+        reference_image_urls: List[str] | None = None,
+        duration: int | None = None,
         aspect_ratio: str = DEFAULT_ASPECT_RATIO,
         resolution: str = DEFAULT_RESOLUTION,
-        negative_prompt: Optional[str] = None,
-        audio: Optional[bool] = None,
-        seed: Optional[int] = None,
+        negative_prompt: str | None = None,
+        audio: bool | None = None,
+        seed: int | None = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         try:
@@ -283,10 +283,10 @@ class XAIVideoGenProvider(VideoGenProvider):
         self,
         *,
         prompt: str,
-        model: Optional[str],
-        image_url: Optional[str],
-        reference_image_urls: Optional[List[str]],
-        duration: Optional[int],
+        model: str | None,
+        image_url: str | None,
+        reference_image_urls: List[str] | None,
+        duration: int | None,
         aspect_ratio: str,
         resolution: str,
     ) -> Dict[str, Any]:

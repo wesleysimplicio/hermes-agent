@@ -228,7 +228,7 @@ class SessionManager:
         logger.info("Created ACP session %s (cwd=%s)", session_id, cwd)
         return state
 
-    def get_session(self, session_id: str) -> Optional[SessionState]:
+    def get_session(self, session_id: str) -> SessionState | None:
         """Return the session for *session_id*, or ``None``.
 
         If the session is not in memory but exists in the database (e.g. after
@@ -250,7 +250,7 @@ class SessionManager:
             _clear_task_cwd(session_id)
         return existed or db_existed
 
-    def fork_session(self, session_id: str, cwd: str = ".") -> Optional[SessionState]:
+    def fork_session(self, session_id: str, cwd: str = ".") -> SessionState | None:
         """Deep-copy a session's history into a new session."""
         import threading
 
@@ -354,7 +354,7 @@ class SessionManager:
         results.sort(key=lambda item: _updated_at_sort_key(item.get("updated_at")), reverse=True)
         return results
 
-    def update_cwd(self, session_id: str, cwd: str) -> Optional[SessionState]:
+    def update_cwd(self, session_id: str, cwd: str) -> SessionState | None:
         """Update the working directory for a session and its tool overrides."""
         cwd = _translate_acp_cwd(cwd)
         state = self.get_session(session_id)  # checks DB too
@@ -473,7 +473,7 @@ class SessionManager:
         except Exception:
             logger.warning("Failed to persist ACP session %s", state.session_id, exc_info=True)
 
-    def _restore(self, session_id: str) -> Optional[SessionState]:
+    def _restore(self, session_id: str) -> SessionState | None:
         """Load a session from the database into memory, recreating the AIAgent."""
         import threading
 

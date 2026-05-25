@@ -48,7 +48,7 @@ def _unicode_normalize(text: str) -> str:
 
 
 def fuzzy_find_and_replace(content: str, old_string: str, new_string: str,
-                            replace_all: bool = False) -> Tuple[str, int, Optional[str], Optional[str]]:
+                            replace_all: bool = False) -> Tuple[str, int, str | None, str | None]:
     """
     Find and replace text using a chain of increasingly fuzzy matching strategies.
 
@@ -117,7 +117,7 @@ def fuzzy_find_and_replace(content: str, old_string: str, new_string: str,
 
 
 def _detect_escape_drift(content: str, matches: List[Tuple[int, int]],
-                         old_string: str, new_string: str) -> Optional[str]:
+                         old_string: str, new_string: str) -> str | None:
     """Detect tool-call escape-drift artifacts in new_string.
 
     Looks for ``\\'`` or ``\\"`` sequences that are present in both
@@ -682,7 +682,7 @@ def find_closest_lines(old_string: str, content: str, context_lines: int = 2, ma
     return "\n---\n".join(parts)
 
 
-def format_no_match_hint(error: Optional[str], match_count: int,
+def format_no_match_hint(error: str | None, match_count: int,
                          old_string: str, content: str) -> str:
     """Return a '\\n\\nDid you mean...' snippet for plain no-match errors.
 

@@ -1078,7 +1078,7 @@ def _get_enabled_platforms() -> List[str]:
     return enabled
 
 
-def _platform_toolset_summary(config: dict, platforms: Optional[List[str]] = None) -> Dict[str, Set[str]]:
+def _platform_toolset_summary(config: dict, platforms: List[str] | None = None) -> Dict[str, Set[str]]:
     """Return a summary of enabled toolsets per platform.
 
     When ``platforms`` is None, this uses ``_get_enabled_platforms`` to
@@ -1448,7 +1448,7 @@ def _prompt_choice(question: str, choices: list, default: int = 0) -> int:
 # ─── Token Estimation ────────────────────────────────────────────────────────
 
 # Module-level cache so discovery + tokenization runs at most once per process.
-_tool_token_cache: Optional[Dict[str, int]] = None
+_tool_token_cache: Dict[str, int] | None = None
 
 
 def _estimate_tool_tokens() -> Dict[str, int]:

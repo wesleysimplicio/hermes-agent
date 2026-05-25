@@ -444,7 +444,7 @@ def _parse_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     return parse_frontmatter(content)
 
 
-def _get_category_from_path(skill_path: Path) -> Optional[str]:
+def _get_category_from_path(skill_path: Path) -> str | None:
     """
     Extract category from skill path based on directory structure.
 
@@ -629,7 +629,7 @@ def _sort_skills(skills: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(skills, key=lambda s: (s.get("category") or "", s["name"]))
 
 
-def _load_category_description(category_dir: Path) -> Optional[str]:
+def _load_category_description(category_dir: Path) -> str | None:
     """
     Load category description from DESCRIPTION.md if it exists.
 
@@ -965,10 +965,10 @@ def skill_view(
         # loaded the other) so we surface it loudly instead of guessing.
         from agent.skill_utils import iter_skill_index_files
 
-        candidates: List[Tuple[Optional[Path], Path]] = []  # (skill_dir, skill_md)
+        candidates: List[Tuple[Path | None, Path]] = []  # (skill_dir, skill_md)
         seen_md: set = set()
 
-        def _record(sd: Optional[Path], smd: Path) -> None:
+        def _record(sd: Path | None, smd: Path) -> None:
             try:
                 key = smd.resolve()
             except Exception:

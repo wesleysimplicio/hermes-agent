@@ -112,7 +112,7 @@ def adapter(monkeypatch):
 def make_attachment(
     *,
     filename: str,
-    content_type: Optional[str],
+    content_type: str | None,
     size: int = 1024,
     url: str = "https://cdn.discordapp.com/attachments/fake/file",
 ) -> SimpleNamespace:

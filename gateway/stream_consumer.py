@@ -115,10 +115,10 @@ class GatewayStreamConsumer:
         self,
         adapter: Any,
         chat_id: str,
-        config: Optional[StreamConsumerConfig] = None,
-        metadata: Optional[dict] = None,
-        on_new_message: Optional[callable] = None,
-        initial_reply_to_id: Optional[str] = None,
+        config: StreamConsumerConfig | None = None,
+        metadata: dict | None = None,
+        on_new_message: callable | None = None,
+        initial_reply_to_id: str | None = None,
     ):
         self.adapter = adapter
         self.chat_id = chat_id
@@ -135,13 +135,13 @@ class GatewayStreamConsumer:
         self._initial_reply_to_id = initial_reply_to_id
         self._queue: queue.Queue = queue.Queue()
         self._accumulated = ""
-        self._message_id: Optional[str] = None
+        self._message_id: str | None = None
         # Wall-clock timestamp (time.monotonic) when ``_message_id`` was
         # first assigned from a successful first-send.  Used by the
         # fresh-final logic to detect long-lived previews whose edit
         # timestamps would be stale by completion time.  Ported from
         # openclaw/openclaw#72038.
-        self._message_created_ts: Optional[float] = None
+        self._message_created_ts: float | None = None
         self._already_sent = False
         self._edit_supported = True  # Disabled when progressive edits are no longer usable
         self._last_edit_time = 0.0
@@ -176,7 +176,7 @@ class GatewayStreamConsumer:
         # through the normal first-send path so the user gets a real message
         # in their chat history (drafts have no message_id).
         self._use_draft_streaming = False
-        self._draft_id: Optional[int] = None
+        self._draft_id: int | None = None
         # Cumulative draft-frame failure count for this consumer.  After the
         # first failure we permanently disable drafts for the remainder of
         # this response and route through edit-based for graceful degradation.
@@ -669,7 +669,7 @@ class GatewayStreamConsumer:
         # Strip trailing whitespace/newlines but preserve leading content
         return cleaned.rstrip()
 
-    async def _send_new_chunk(self, text: str, reply_to_id: Optional[str]) -> Optional[str]:
+    async def _send_new_chunk(self, text: str, reply_to_id: str | None) -> str | None:
         """Send a new message chunk, optionally threaded to a previous message.
 
         Returns the message_id so callers can thread subsequent chunks.
@@ -790,7 +790,7 @@ class GatewayStreamConsumer:
         chunks = self._split_text_chunks(continuation, safe_limit, len_fn=_len_fn)
 
         stale_message_id = self._message_id  # partial message to clean up
-        last_message_id: Optional[str] = None
+        last_message_id: str | None = None
         last_successful_chunk = ""
         sent_any_chunk = False
         for chunk in chunks:

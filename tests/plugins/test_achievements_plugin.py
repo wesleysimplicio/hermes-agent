@@ -65,15 +65,15 @@ class _FakeSessionDB:
     def __init__(self, session_count: int, scan_delay: float = 0):
         self.session_count = session_count
         self.scan_delay = scan_delay
-        self.last_limit: Optional[int] = None
-        self.last_include_children: Optional[bool] = None
+        self.last_limit: int | None = None
+        self.last_include_children: bool | None = None
         self.list_calls = 0
         self.messages_calls = 0
 
     def list_sessions_rich(
         self,
-        source: Optional[str] = None,
-        exclude_sources: Optional[List[str]] = None,
+        source: str | None = None,
+        exclude_sources: List[str] | None = None,
         limit: int = 20,
         offset: int = 0,
         include_children: bool = False,

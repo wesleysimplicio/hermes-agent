@@ -141,7 +141,7 @@ class AdvisoryHit:
     installed_version: str
 
 
-def _installed_version(pkg_name: str) -> Optional[str]:
+def _installed_version(pkg_name: str) -> str | None:
     """Return the installed version of ``pkg_name``, or None if not installed.
 
     Uses ``importlib.metadata`` so we don't depend on pip being importable
@@ -322,7 +322,7 @@ _BANNER_CACHE_FILE = "advisory_banner_seen"
 _BANNER_REPEAT_HOURS = 24
 
 
-def _banner_cache_path() -> Optional[Path]:
+def _banner_cache_path() -> Path | None:
     try:
         from hermes_constants import get_hermes_home
         cache_dir = Path(get_hermes_home()) / "cache"
@@ -419,7 +419,7 @@ def render_doctor_section(hits: list[AdvisoryHit]) -> tuple[bool, list[str]]:
     return True, lines
 
 
-def startup_banner(hits: list[AdvisoryHit]) -> Optional[str]:
+def startup_banner(hits: list[AdvisoryHit]) -> str | None:
     """Return a printable startup banner, or None if nothing is due.
 
     Updates the banner cache as a side effect (so the next call within
@@ -436,7 +436,7 @@ def startup_banner(hits: list[AdvisoryHit]) -> Optional[str]:
     return "\n".join(lines)
 
 
-def gateway_log_message(hits: list[AdvisoryHit]) -> Optional[str]:
+def gateway_log_message(hits: list[AdvisoryHit]) -> str | None:
     """Return a one-line log message for gateway operators, or None."""
     fresh = filter_unacked(hits)
     if not fresh:

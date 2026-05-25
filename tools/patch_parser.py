@@ -52,7 +52,7 @@ class HunkLine:
 @dataclass
 class Hunk:
     """A group of changes within a file."""
-    context_hint: Optional[str] = None
+    context_hint: str | None = None
     lines: List[HunkLine] = field(default_factory=list)
 
 
@@ -61,12 +61,12 @@ class PatchOperation:
     """A single operation in a V4A patch."""
     operation: OperationType
     file_path: str
-    new_path: Optional[str] = None  # For move operations
+    new_path: str | None = None  # For move operations
     hunks: List[Hunk] = field(default_factory=list)
-    content: Optional[str] = None  # For add file operations
+    content: str | None = None  # For add file operations
 
 
-def parse_v4a_patch(patch_content: str) -> Tuple[List[PatchOperation], Optional[str]]:
+def parse_v4a_patch(patch_content: str) -> Tuple[List[PatchOperation], str | None]:
     """
     Parse a V4A format patch.
     
@@ -101,8 +101,8 @@ def parse_v4a_patch(patch_content: str) -> Tuple[List[PatchOperation], Optional[
     
     # Parse operations between boundaries
     i = start_idx + 1
-    current_op: Optional[PatchOperation] = None
-    current_hunk: Optional[Hunk] = None
+    current_op: PatchOperation | None = None
+    current_hunk: Hunk | None = None
     
     while i < end_idx:
         line = lines[i]
@@ -452,7 +452,7 @@ def apply_v4a_operations(operations: List[PatchOperation],
     )
 
 
-def _apply_add(op: PatchOperation, file_ops: Any) -> Tuple[bool, str, Optional[str]]:
+def _apply_add(op: PatchOperation, file_ops: Any) -> Tuple[bool, str, str | None]:
     """Apply an add file operation.
 
     Returns ``(success, diff_or_error, lsp_diagnostics)``.  The third
@@ -511,7 +511,7 @@ def _apply_move(op: PatchOperation, file_ops: Any) -> Tuple[bool, str]:
     return True, diff
 
 
-def _apply_update(op: PatchOperation, file_ops: Any) -> Tuple[bool, str, Optional[str]]:
+def _apply_update(op: PatchOperation, file_ops: Any) -> Tuple[bool, str, str | None]:
     """Apply an update file operation.
 
     Returns ``(success, diff_or_error, lsp_diagnostics)`` — see

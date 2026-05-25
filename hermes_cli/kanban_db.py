@@ -111,7 +111,7 @@ _IS_WINDOWS = sys.platform == "win32"
 DEFAULT_CLAIM_TTL_SECONDS = 15 * 60
 
 
-def _resolve_claim_ttl_seconds(ttl_seconds: Optional[int] = None) -> int:
+def _resolve_claim_ttl_seconds(ttl_seconds: int | None = None) -> int:
     """Return the effective claim TTL, honoring the kanban env override.
 
     Explicit call-site values win. Otherwise a positive integer from
@@ -160,7 +160,7 @@ DEFAULT_BOARD = "default"
 _BOARD_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{0,63}$")
 
 
-def _normalize_board_slug(slug: Optional[str]) -> Optional[str]:
+def _normalize_board_slug(slug: str | None) -> str | None:
     """Lowercase + strip a slug; validate; return ``None`` for empty."""
     if slug is None:
         return None
@@ -283,7 +283,7 @@ def clear_current_board() -> None:
         pass
 
 
-def board_dir(board: Optional[str] = None) -> Path:
+def board_dir(board: str | None = None) -> Path:
     """Return the on-disk directory for ``board``.
 
     ``default`` is ``<root>/kanban/boards/default/`` **for metadata only**
@@ -297,7 +297,7 @@ def board_dir(board: Optional[str] = None) -> Path:
     return boards_root() / slug
 
 
-def board_exists(board: Optional[str] = None) -> bool:
+def board_exists(board: str | None = None) -> bool:
     """Return True if the board has persisted metadata or a DB on disk.
 
     ``default`` is considered to always exist — its DB is created
@@ -311,7 +311,7 @@ def board_exists(board: Optional[str] = None) -> bool:
     return (d / "board.json").exists() or (d / "kanban.db").exists()
 
 
-def kanban_db_path(board: Optional[str] = None) -> Path:
+def kanban_db_path(board: str | None = None) -> Path:
     """Return the path to the ``kanban.db`` for ``board``.
 
     Resolution (highest precedence first):
@@ -336,7 +336,7 @@ def kanban_db_path(board: Optional[str] = None) -> Path:
     return board_dir(slug) / "kanban.db"
 
 
-def workspaces_root(board: Optional[str] = None) -> Path:
+def workspaces_root(board: str | None = None) -> Path:
     """Return the directory under which ``scratch`` workspaces are created.
 
     Anchored per-board so workspaces don't leak between projects.
@@ -358,7 +358,7 @@ def workspaces_root(board: Optional[str] = None) -> Path:
     return board_dir(slug) / "workspaces"
 
 
-def worker_logs_dir(board: Optional[str] = None) -> Path:
+def worker_logs_dir(board: str | None = None) -> Path:
     """Return the directory under which per-task worker logs are written.
 
     ``default`` keeps the legacy path ``<root>/kanban/logs/``. Other
@@ -374,7 +374,7 @@ def worker_logs_dir(board: Optional[str] = None) -> Path:
     return board_dir(slug) / "logs"
 
 
-def board_metadata_path(board: Optional[str] = None) -> Path:
+def board_metadata_path(board: str | None = None) -> Path:
     """Return the path to ``board.json`` for ``board``.
 
     Stores display metadata (display name, description, icon, color,
@@ -395,7 +395,7 @@ def _default_board_display_name(slug: str) -> str:
     return " ".join(part.capitalize() for part in slug.replace("_", "-").split("-") if part) or slug
 
 
-def read_board_metadata(board: Optional[str] = None) -> dict:
+def read_board_metadata(board: str | None = None) -> dict:
     """Return ``board.json`` contents (or synthesized defaults).
 
     Never raises — a missing / malformed ``board.json`` falls back to a
@@ -430,14 +430,14 @@ def read_board_metadata(board: Optional[str] = None) -> dict:
 
 
 def write_board_metadata(
-    board: Optional[str],
+    board: str | None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    icon: Optional[str] = None,
-    color: Optional[str] = None,
-    archived: Optional[bool] = None,
-    default_workdir: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
+    icon: str | None = None,
+    color: str | None = None,
+    archived: bool | None = None,
+    default_workdir: str | None = None,
 ) -> dict:
     """Create / update ``board.json`` for ``board``.
 
@@ -476,11 +476,11 @@ def write_board_metadata(
 def create_board(
     slug: str,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    icon: Optional[str] = None,
-    color: Optional[str] = None,
-    default_workdir: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
+    icon: str | None = None,
+    color: str | None = None,
+    default_workdir: str | None = None,
 ) -> dict:
     """Create a new board directory + DB + metadata. Idempotent.
 
@@ -605,22 +605,22 @@ class Task:
 
     id: str
     title: str
-    body: Optional[str]
-    assignee: Optional[str]
+    body: str | None
+    assignee: str | None
     status: str
     priority: int
-    created_by: Optional[str]
+    created_by: str | None
     created_at: int
-    started_at: Optional[int]
-    completed_at: Optional[int]
+    started_at: int | None
+    completed_at: int | None
     workspace_kind: str
-    workspace_path: Optional[str]
-    claim_lock: Optional[str]
-    claim_expires: Optional[int]
-    tenant: Optional[str]
-    branch_name: Optional[str] = None
-    result: Optional[str] = None
-    idempotency_key: Optional[str] = None
+    workspace_path: str | None
+    claim_lock: str | None
+    claim_expires: int | None
+    tenant: str | None
+    branch_name: str | None = None
+    result: str | None = None
+    idempotency_key: str | None = None
     # Unified non-success counter. Incremented on any of:
     #   * spawn failure (dispatcher couldn't launch the worker)
     #   * timed_out outcome (worker exceeded max_runtime_seconds)
@@ -629,21 +629,21 @@ class Task:
     # ``_record_task_failure`` for the circuit-breaker trip rule.
     # (Pre-rename column: ``spawn_failures``.)
     consecutive_failures: int = 0
-    worker_pid: Optional[int] = None
+    worker_pid: int | None = None
     # Short excerpt of the last failure's error text (any outcome, not
     # just spawn). Pre-rename column: ``last_spawn_error``.
-    last_failure_error: Optional[str] = None
-    max_runtime_seconds: Optional[int] = None
-    last_heartbeat_at: Optional[int] = None
-    current_run_id: Optional[int] = None
-    workflow_template_id: Optional[str] = None
-    current_step_key: Optional[str] = None
+    last_failure_error: str | None = None
+    max_runtime_seconds: int | None = None
+    last_heartbeat_at: int | None = None
+    current_run_id: int | None = None
+    workflow_template_id: str | None = None
+    current_step_key: str | None = None
     # Force-loaded skills for the worker on this task (appended to the
     # dispatcher's built-in `kanban-worker` via --skills). Stored as a
     # JSON array of skill names. None = use only the defaults; empty
     # list = explicitly no extra skills.
-    skills: Optional[list] = None
-    model_override: Optional[str] = None
+    skills: list | None = None
+    model_override: str | None = None
     # Per-task override for the consecutive-failure circuit breaker.
     # The value is the failure count at which the breaker trips — e.g.
     # ``max_retries=1`` blocks on the first failure (zero retries),
@@ -651,19 +651,19 @@ class Task:
     # ``None`` (the common case) falls through to the dispatcher-level
     # ``kanban.failure_limit`` config, and then to ``DEFAULT_FAILURE_LIMIT``.
     # Name matches the ``--max-retries`` CLI flag on ``kanban create``.
-    max_retries: Optional[int] = None
+    max_retries: int | None = None
     # Originating chat/agent session id, when the task was created from
     # within an agent loop that propagated ``HERMES_SESSION_ID``. NULL for
     # tasks created from the CLI, the dashboard, or any path that doesn't
     # set the env var. Lets clients render a per-session board without
     # relying on tenant + time-window heuristics.
-    session_id: Optional[str] = None
+    session_id: str | None = None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Task":
         keys = set(row.keys())
         # Parse skills JSON blob if present
-        skills_value: Optional[list] = None
+        skills_value: list | None = None
         if "skills" in keys and row["skills"]:
             try:
                 parsed = json.loads(row["skills"])
@@ -743,20 +743,20 @@ class Run:
 
     id: int
     task_id: str
-    profile: Optional[str]
-    step_key: Optional[str]
+    profile: str | None
+    step_key: str | None
     status: str
-    claim_lock: Optional[str]
-    claim_expires: Optional[int]
-    worker_pid: Optional[int]
-    max_runtime_seconds: Optional[int]
-    last_heartbeat_at: Optional[int]
+    claim_lock: str | None
+    claim_expires: int | None
+    worker_pid: int | None
+    max_runtime_seconds: int | None
+    last_heartbeat_at: int | None
     started_at: int
-    ended_at: Optional[int]
-    outcome: Optional[str]
-    summary: Optional[str]
-    metadata: Optional[dict]
-    error: Optional[str]
+    ended_at: int | None
+    outcome: str | None
+    summary: str | None
+    metadata: dict | None
+    error: str | None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Run":
@@ -798,9 +798,9 @@ class Event:
     id: int
     task_id: str
     kind: str
-    payload: Optional[dict]
+    payload: dict | None
     created_at: int
-    run_id: Optional[int] = None
+    run_id: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -1015,7 +1015,7 @@ class KanbanDbCorruptError(RuntimeError):
     original path and the timestamped backup we made before refusing.
     """
 
-    def __init__(self, db_path: Path, backup_path: Optional[Path], reason: str):
+    def __init__(self, db_path: Path, backup_path: Path | None, reason: str):
         self.db_path = db_path
         self.backup_path = backup_path
         self.reason = reason
@@ -1026,7 +1026,7 @@ class KanbanDbCorruptError(RuntimeError):
         )
 
 
-def _backup_corrupt_db(path: Path) -> Optional[Path]:
+def _backup_corrupt_db(path: Path) -> Path | None:
     """Copy a corrupt DB (and its WAL/SHM sidecars) to a timestamped backup.
 
     Returns the backup path of the main DB file, or ``None`` if the copy
@@ -1112,7 +1112,7 @@ def _guard_existing_db_is_healthy(path: Path) -> None:
         return
     if str(resolved) in _INITIALIZED_PATHS:
         return
-    reason: Optional[str] = None
+    reason: str | None = None
     try:
         probe = sqlite3.connect(str(resolved), timeout=5, isolation_level=None)
         try:
@@ -1133,9 +1133,9 @@ def _guard_existing_db_is_healthy(path: Path) -> None:
 
 
 def connect(
-    db_path: Optional[Path] = None,
+    db_path: Path | None = None,
     *,
-    board: Optional[str] = None,
+    board: str | None = None,
 ) -> sqlite3.Connection:
     """Open (and initialize if needed) the kanban DB.
 
@@ -1200,9 +1200,9 @@ def connect(
 
 
 def init_db(
-    db_path: Optional[Path] = None,
+    db_path: Path | None = None,
     *,
-    board: Optional[str] = None,
+    board: str | None = None,
 ) -> Path:
     """Create the schema if it doesn't exist; return the path used.
 
@@ -1515,7 +1515,7 @@ def _claimer_id() -> str:
 # Task creation / mutation
 # ---------------------------------------------------------------------------
 
-def _canonical_assignee(assignee: Optional[str]) -> Optional[str]:
+def _canonical_assignee(assignee: str | None) -> str | None:
     """Lowercase-assignee normalization for Kanban rows (dashboard/CLI parity)."""
     if assignee is None:
         return None
@@ -1528,23 +1528,23 @@ def create_task(
     conn: sqlite3.Connection,
     *,
     title: str,
-    body: Optional[str] = None,
-    assignee: Optional[str] = None,
-    created_by: Optional[str] = None,
+    body: str | None = None,
+    assignee: str | None = None,
+    created_by: str | None = None,
     workspace_kind: str = "scratch",
-    workspace_path: Optional[str] = None,
-    branch_name: Optional[str] = None,
-    tenant: Optional[str] = None,
+    workspace_path: str | None = None,
+    branch_name: str | None = None,
+    tenant: str | None = None,
     priority: int = 0,
     parents: Iterable[str] = (),
     triage: bool = False,
-    idempotency_key: Optional[str] = None,
-    max_runtime_seconds: Optional[int] = None,
-    skills: Optional[Iterable[str]] = None,
-    max_retries: Optional[int] = None,
+    idempotency_key: str | None = None,
+    max_runtime_seconds: int | None = None,
+    skills: Iterable[str] | None = None,
+    max_retries: int | None = None,
     initial_status: str = "running",
-    session_id: Optional[str] = None,
-    board: Optional[str] = None,
+    session_id: str | None = None,
+    board: str | None = None,
 ) -> str:
     """Create a new task and optionally link it under parent tasks.
 
@@ -1593,7 +1593,7 @@ def create_task(
     # invisibly splatter a comma-joined string into one argv slot — the
     # `hermes --skills X,Y` comma syntax is handled in the dispatcher,
     # not here.
-    skills_list: Optional[list[str]] = None
+    skills_list: list[str] | None = None
     if skills is not None:
         cleaned: list[str] = []
         seen: set[str] = set()
@@ -1772,7 +1772,7 @@ def _find_missing_parents(conn: sqlite3.Connection, parents: Iterable[str]) -> l
     return [p for p in parents if p not in present]
 
 
-def get_task(conn: sqlite3.Connection, task_id: str) -> Optional[Task]:
+def get_task(conn: sqlite3.Connection, task_id: str) -> Task | None:
     row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
     return Task.from_row(row) if row else None
 
@@ -1794,15 +1794,15 @@ VALID_SORT_ORDERS: dict[str, str] = {
 def list_tasks(
     conn: sqlite3.Connection,
     *,
-    assignee: Optional[str] = None,
-    status: Optional[str] = None,
-    tenant: Optional[str] = None,
-    session_id: Optional[str] = None,
+    assignee: str | None = None,
+    status: str | None = None,
+    tenant: str | None = None,
+    session_id: str | None = None,
     include_archived: bool = False,
-    limit: Optional[int] = None,
-    order_by: Optional[str] = None,
-    workflow_template_id: Optional[str] = None,
-    current_step_key: Optional[str] = None,
+    limit: int | None = None,
+    order_by: str | None = None,
+    workflow_template_id: str | None = None,
+    current_step_key: str | None = None,
 ) -> list[Task]:
     query = "SELECT * FROM tasks WHERE 1=1"
     params: list[Any] = []
@@ -1843,7 +1843,7 @@ def list_tasks(
     return [Task.from_row(r) for r in rows]
 
 
-def assign_task(conn: sqlite3.Connection, task_id: str, profile: Optional[str]) -> bool:
+def assign_task(conn: sqlite3.Connection, task_id: str, profile: str | None) -> bool:
     """Assign or reassign a task.  Returns True on success.
 
     Refuses to reassign a task that's currently running (claim_lock set).
@@ -1970,7 +1970,7 @@ def child_ids(conn: sqlite3.Connection, task_id: str) -> list[str]:
     return [r["child_id"] for r in rows]
 
 
-def parent_results(conn: sqlite3.Connection, task_id: str) -> list[tuple[str, Optional[str]]]:
+def parent_results(conn: sqlite3.Connection, task_id: str) -> list[tuple[str, str | None]]:
     """Return ``(parent_id, result)`` for every done parent of ``task_id``."""
     rows = conn.execute(
         """
@@ -2056,9 +2056,9 @@ def _append_event(
     conn: sqlite3.Connection,
     task_id: str,
     kind: str,
-    payload: Optional[dict] = None,
+    payload: dict | None = None,
     *,
-    run_id: Optional[int] = None,
+    run_id: int | None = None,
 ) -> None:
     """Record an event row.  Called from within an already-open txn.
 
@@ -2081,11 +2081,11 @@ def _end_run(
     task_id: str,
     *,
     outcome: str,
-    summary: Optional[str] = None,
-    error: Optional[str] = None,
-    metadata: Optional[dict] = None,
-    status: Optional[str] = None,
-) -> Optional[int]:
+    summary: str | None = None,
+    error: str | None = None,
+    metadata: dict | None = None,
+    status: str | None = None,
+) -> int | None:
     """Close the currently-active run for ``task_id`` and clear the pointer.
 
     ``outcome`` is the semantic result (completed / blocked / crashed /
@@ -2133,7 +2133,7 @@ def _end_run(
     return run_id
 
 
-def _current_run_id(conn: sqlite3.Connection, task_id: str) -> Optional[int]:
+def _current_run_id(conn: sqlite3.Connection, task_id: str) -> int | None:
     row = conn.execute(
         "SELECT current_run_id FROM tasks WHERE id = ?", (task_id,),
     ).fetchone()
@@ -2145,9 +2145,9 @@ def _synthesize_ended_run(
     task_id: str,
     *,
     outcome: str,
-    summary: Optional[str] = None,
-    error: Optional[str] = None,
-    metadata: Optional[dict] = None,
+    summary: str | None = None,
+    error: str | None = None,
+    metadata: dict | None = None,
 ) -> int:
     """Insert a zero-duration, already-closed run row.
 
@@ -2297,9 +2297,9 @@ def claim_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    ttl_seconds: Optional[int] = None,
-    claimer: Optional[str] = None,
-) -> Optional[Task]:
+    ttl_seconds: int | None = None,
+    claimer: str | None = None,
+) -> Task | None:
     """Atomically transition ``ready -> running``.
 
     Returns the claimed ``Task`` on success, ``None`` if the task was
@@ -2411,9 +2411,9 @@ def claim_review_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    ttl_seconds: Optional[int] = None,
-    claimer: Optional[str] = None,
-) -> Optional[Task]:
+    ttl_seconds: int | None = None,
+    claimer: str | None = None,
+) -> Task | None:
     """Atomically transition ``review -> running``.
 
     Returns the claimed ``Task`` on success, ``None`` if the task was
@@ -2486,8 +2486,8 @@ def heartbeat_claim(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    ttl_seconds: Optional[int] = None,
-    claimer: Optional[str] = None,
+    ttl_seconds: int | None = None,
+    claimer: str | None = None,
 ) -> bool:
     """Extend a running claim.  Returns True if we still own it.
 
@@ -2630,7 +2630,7 @@ def reclaim_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    reason: Optional[str] = None,
+    reason: str | None = None,
     signal_fn=None,
 ) -> bool:
     """Operator-driven reclaim: release the claim and reset to ``ready``.
@@ -2698,10 +2698,10 @@ def reclaim_task(
 def reassign_task(
     conn: sqlite3.Connection,
     task_id: str,
-    profile: Optional[str],
+    profile: str | None,
     *,
     reclaim_first: bool = False,
-    reason: Optional[str] = None,
+    reason: str | None = None,
 ) -> bool:
     """Reassign a task, optionally reclaiming a stuck running worker first.
 
@@ -2862,11 +2862,11 @@ def complete_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    result: Optional[str] = None,
-    summary: Optional[str] = None,
-    metadata: Optional[dict] = None,
-    created_cards: Optional[Iterable[str]] = None,
-    expected_run_id: Optional[int] = None,
+    result: str | None = None,
+    summary: str | None = None,
+    metadata: dict | None = None,
+    created_cards: Iterable[str] | None = None,
+    expected_run_id: int | None = None,
 ) -> bool:
     """Transition ``running|ready -> done`` and record ``result``.
 
@@ -3134,8 +3134,8 @@ def _cleanup_workspace(conn: sqlite3.Connection, task_id: str) -> None:
         ).fetchone()
         if not row:
             return
-        kind: Optional[str] = row["workspace_kind"]
-        path: Optional[str] = row["workspace_path"]
+        kind: str | None = row["workspace_kind"]
+        path: str | None = row["workspace_path"]
         if kind != "scratch" or not path:
             return
         import shutil
@@ -3250,7 +3250,7 @@ def _mark_scratch_tip_shown() -> None:
 def _maybe_emit_scratch_tip(
     conn: sqlite3.Connection,
     task_id: str,
-    workspace_kind: Optional[str],
+    workspace_kind: str | None,
 ) -> None:
     """Emit the first-use scratch-workspace tip exactly once per install.
 
@@ -3281,8 +3281,8 @@ def edit_completed_task_result(
     task_id: str,
     *,
     result: str,
-    summary: Optional[str] = None,
-    metadata: Optional[dict] = None,
+    summary: str | None = None,
+    metadata: dict | None = None,
 ) -> bool:
     """Backfill the user-visible result for an already completed task."""
     handoff_summary = summary if summary is not None else result
@@ -3347,8 +3347,8 @@ def block_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    reason: Optional[str] = None,
-    expected_run_id: Optional[int] = None,
+    reason: str | None = None,
+    expected_run_id: int | None = None,
 ) -> bool:
     """Transition ``running -> blocked``."""
     with write_txn(conn):
@@ -3404,10 +3404,10 @@ def promote_task(
     task_id: str,
     *,
     actor: str,
-    reason: Optional[str] = None,
+    reason: str | None = None,
     force: bool = False,
     dry_run: bool = False,
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """Manually promote a `todo` or `blocked` task to `ready`.
 
     Mirrors the automatic promotion done by ``recompute_ready`` but
@@ -3529,10 +3529,10 @@ def specify_triage_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    title: Optional[str] = None,
-    body: Optional[str] = None,
-    assignee: Optional[str] = None,
-    author: Optional[str] = None,
+    title: str | None = None,
+    body: str | None = None,
+    assignee: str | None = None,
+    author: str | None = None,
 ) -> bool:
     """Flesh out a triage task and promote it to ``todo``.
 
@@ -3620,11 +3620,11 @@ def decompose_triage_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    root_assignee: Optional[str],
+    root_assignee: str | None,
     children: list[dict],
-    author: Optional[str] = None,
+    author: str | None = None,
     auto_promote: bool = True,
-) -> Optional[list[str]]:
+) -> list[str] | None:
     """Fan a triage task out into child tasks and promote the root to ``todo``.
 
     The root task stays alive and becomes the parent of every child —
@@ -3896,7 +3896,7 @@ def delete_task(conn: sqlite3.Connection, task_id: str) -> bool:
 # Workspace resolution
 # ---------------------------------------------------------------------------
 
-def resolve_workspace(task: Task, *, board: Optional[str] = None) -> Path:
+def resolve_workspace(task: Task, *, board: str | None = None) -> Path:
     """Resolve (and create if needed) the workspace for a task.
 
     - ``scratch``: a fresh dir under ``<board-root>/workspaces/<id>/``,
@@ -3975,8 +3975,8 @@ def schedule_task(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    reason: Optional[str] = None,
-    expected_run_id: Optional[int] = None,
+    reason: str | None = None,
+    expected_run_id: int | None = None,
 ) -> bool:
     """Park a task in ``scheduled`` so it is waiting on time, not human input.
 
@@ -4134,7 +4134,7 @@ def _record_worker_exit(pid: int, raw_status: int) -> None:
             _recent_worker_exits.pop(_pid, None)
 
 
-def _classify_worker_exit(pid: int) -> "tuple[str, Optional[int]]":
+def _classify_worker_exit(pid: int) -> "tuple[str, int | None]":
     """Classify a recently-reaped worker by pid.
 
     Returns ``(kind, code)`` where ``kind`` is one of:
@@ -4169,7 +4169,7 @@ def _classify_worker_exit(pid: int) -> "tuple[str, Optional[int]]":
     return ("unknown", None)
 
 
-def _pid_alive(pid: Optional[int]) -> bool:
+def _pid_alive(pid: int | None) -> bool:
     """Return True if ``pid`` is still running on this host.
 
     Cross-platform: uses ``OpenProcess`` + ``WaitForSingleObject`` on
@@ -4234,8 +4234,8 @@ def _pid_alive(pid: Optional[int]) -> bool:
 
 
 def _terminate_reclaimed_worker(
-    pid: Optional[int],
-    claim_lock: Optional[str],
+    pid: int | None,
+    claim_lock: str | None,
     *,
     signal_fn=None,
 ) -> dict[str, Any]:
@@ -4293,8 +4293,8 @@ def heartbeat_worker(
     conn: sqlite3.Connection,
     task_id: str,
     *,
-    note: Optional[str] = None,
-    expected_run_id: Optional[int] = None,
+    note: str | None = None,
+    expected_run_id: int | None = None,
 ) -> bool:
     """Record a ``heartbeat`` event + touch ``last_heartbeat_at``.
 
@@ -4583,7 +4583,7 @@ def detect_stale_running(
 def set_max_runtime(
     conn: sqlite3.Connection,
     task_id: str,
-    seconds: Optional[int],
+    seconds: int | None,
 ) -> bool:
     """Set or clear the per-task max_runtime_seconds. Returns True on
     success."""
@@ -4753,7 +4753,7 @@ def _record_task_failure(
     failure_limit: int = None,
     release_claim: bool = False,
     end_run: bool = False,
-    event_payload_extra: Optional[dict] = None,
+    event_payload_extra: dict | None = None,
 ) -> bool:
     """Record a non-success outcome (spawn_failed / crashed / timed_out)
     and maybe trip the circuit breaker.
@@ -4959,7 +4959,7 @@ def _clear_failure_counter(conn: sqlite3.Connection, task_id: str) -> None:
 _clear_spawn_failures = _clear_failure_counter
 
 
-def check_respawn_guard(conn: sqlite3.Connection, task_id: str) -> Optional[str]:
+def check_respawn_guard(conn: sqlite3.Connection, task_id: str) -> str | None:
     """Return a guard reason if ``task_id`` should NOT be re-spawned, else None.
 
     Called per ready task in ``dispatch_once`` before any claim attempt.
@@ -5089,13 +5089,13 @@ def dispatch_once(
     conn: sqlite3.Connection,
     *,
     spawn_fn=None,
-    ttl_seconds: Optional[int] = None,
+    ttl_seconds: int | None = None,
     dry_run: bool = False,
-    max_spawn: Optional[int] = None,
-    max_in_progress: Optional[int] = None,
+    max_spawn: int | None = None,
+    max_in_progress: int | None = None,
     failure_limit: int = DEFAULT_SPAWN_FAILURE_LIMIT,
     stale_timeout_seconds: int = 0,
-    board: Optional[str] = None,
+    board: str | None = None,
 ) -> DispatchResult:
     """Run one dispatcher tick.
 
@@ -5397,7 +5397,7 @@ def _positive_int(value: Any, default: int, *, minimum: int = 1) -> int:
     return parsed if parsed >= minimum else default
 
 
-def worker_log_rotation_config(kanban_cfg: Optional[dict] = None) -> tuple[int, int]:
+def worker_log_rotation_config(kanban_cfg: dict | None = None) -> tuple[int, int]:
     """Return ``(rotate_bytes, backup_count)`` for worker log rotation.
 
     Defaults preserve the historical behavior: rotate at 2 MiB and keep one
@@ -5511,7 +5511,7 @@ def _path_search_names(command: str) -> list[str]:
     return [command + ext for ext in exts]
 
 
-def _safe_which_no_cwd(command: str) -> Optional[str]:
+def _safe_which_no_cwd(command: str) -> str | None:
     """Resolve a bare command from PATH without implicit current-dir search.
 
     ``shutil.which`` follows platform search behavior. On Windows that can
@@ -5587,7 +5587,7 @@ def _resolve_hermes_argv() -> list[str]:
     return _module_hermes_argv()
 
 
-def _kanban_worker_skill_available(hermes_home: Optional[str]) -> bool:
+def _kanban_worker_skill_available(hermes_home: str | None) -> bool:
     """True if the bundled ``kanban-worker`` skill resolves for the home the
     spawned worker will run under.
 
@@ -5623,9 +5623,9 @@ def _kanban_worker_skill_available(hermes_home: Optional[str]) -> bool:
 
 
 def _worker_terminal_timeout_env(
-    max_runtime_seconds: Optional[int],
-    current_timeout: Optional[str],
-) -> Optional[str]:
+    max_runtime_seconds: int | None,
+    current_timeout: str | None,
+) -> str | None:
     """Return a worker-scoped TERMINAL_TIMEOUT override, if needed.
 
     Kanban's ``max_runtime_seconds`` bounds the whole worker attempt. The
@@ -5656,8 +5656,8 @@ def _default_spawn(
     task: Task,
     workspace: str,
     *,
-    board: Optional[str] = None,
-) -> Optional[int]:
+    board: str | None = None,
+) -> int | None:
     """Fire-and-forget ``hermes -p <profile> chat -q ...`` subprocess.
 
     Returns the spawned child's PID so the dispatcher can detect crashes
@@ -5826,7 +5826,7 @@ def _default_spawn(
 def run_daemon(
     *,
     interval: float = 60.0,
-    max_spawn: Optional[int] = None,
+    max_spawn: int | None = None,
     failure_limit: int = DEFAULT_SPAWN_FAILURE_LIMIT,
     stop_event=None,
     on_tick=None,
@@ -5909,7 +5909,7 @@ def build_worker_context(conn: sqlite3.Connection, task_id: str) -> str:
     if not task:
         raise ValueError(f"unknown task {task_id}")
 
-    def _cap(s: Optional[str], limit: int = _CTX_MAX_FIELD_BYTES) -> str:
+    def _cap(s: str | None, limit: int = _CTX_MAX_FIELD_BYTES) -> str:
         """Truncate a string to `limit` chars with a visible ellipsis."""
         if not s:
             return ""
@@ -6124,7 +6124,7 @@ def board_stats(conn: sqlite3.Connection) -> dict:
     }
 
 
-def _to_epoch(val) -> Optional[int]:
+def _to_epoch(val) -> int | None:
     """Normalise a timestamp to unix epoch seconds.
 
     Accepts ints (pass-through), numeric strings, and ISO-8601 strings.
@@ -6180,9 +6180,9 @@ def add_notify_sub(
     task_id: str,
     platform: str,
     chat_id: str,
-    thread_id: Optional[str] = None,
-    user_id: Optional[str] = None,
-    notifier_profile: Optional[str] = None,
+    thread_id: str | None = None,
+    user_id: str | None = None,
+    notifier_profile: str | None = None,
 ) -> None:
     """Register a gateway source that wants terminal-state notifications
     for ``task_id``. Idempotent on (task, platform, chat, thread)."""
@@ -6211,7 +6211,7 @@ def add_notify_sub(
 
 
 def list_notify_subs(
-    conn: sqlite3.Connection, task_id: Optional[str] = None,
+    conn: sqlite3.Connection, task_id: str | None = None,
 ) -> list[dict]:
     if task_id is not None:
         rows = conn.execute(
@@ -6228,7 +6228,7 @@ def remove_notify_sub(
     task_id: str,
     platform: str,
     chat_id: str,
-    thread_id: Optional[str] = None,
+    thread_id: str | None = None,
 ) -> bool:
     with write_txn(conn):
         cur = conn.execute(
@@ -6245,8 +6245,8 @@ def unseen_events_for_sub(
     task_id: str,
     platform: str,
     chat_id: str,
-    thread_id: Optional[str] = None,
-    kinds: Optional[Iterable[str]] = None,
+    thread_id: str | None = None,
+    kinds: Iterable[str] | None = None,
 ) -> tuple[int, list[Event]]:
     """Return ``(new_cursor, events)`` for a given subscription.
 
@@ -6294,8 +6294,8 @@ def claim_unseen_events_for_sub(
     task_id: str,
     platform: str,
     chat_id: str,
-    thread_id: Optional[str] = None,
-    kinds: Optional[Iterable[str]] = None,
+    thread_id: str | None = None,
+    kinds: Iterable[str] | None = None,
 ) -> tuple[int, int, list[Event]]:
     """Atomically claim unseen notification events for one subscription.
 
@@ -6345,7 +6345,7 @@ def advance_notify_cursor(
     task_id: str,
     platform: str,
     chat_id: str,
-    thread_id: Optional[str] = None,
+    thread_id: str | None = None,
     new_cursor: int,
 ) -> None:
     with write_txn(conn):
@@ -6362,7 +6362,7 @@ def rewind_notify_cursor(
     task_id: str,
     platform: str,
     chat_id: str,
-    thread_id: Optional[str] = None,
+    thread_id: str | None = None,
     claimed_cursor: int,
     old_cursor: int,
 ) -> bool:
@@ -6408,7 +6408,7 @@ def gc_events(
 
 def gc_worker_logs(
     *, older_than_seconds: int = 30 * 24 * 3600,
-    board: Optional[str] = None,
+    board: str | None = None,
 ) -> int:
     """Delete worker log files older than ``older_than_seconds``. Returns
     the number of files removed. Kept separate from ``gc_events`` because
@@ -6434,7 +6434,7 @@ def gc_worker_logs(
 # Worker log accessor
 # ---------------------------------------------------------------------------
 
-def worker_log_path(task_id: str, *, board: Optional[str] = None) -> Path:
+def worker_log_path(task_id: str, *, board: str | None = None) -> Path:
     """Return the path to a worker's log file. The file may not exist
     (task never spawned, or log already GC'd).
 
@@ -6446,9 +6446,9 @@ def worker_log_path(task_id: str, *, board: Optional[str] = None) -> Path:
 
 
 def read_worker_log(
-    task_id: str, *, tail_bytes: Optional[int] = None,
-    board: Optional[str] = None,
-) -> Optional[str]:
+    task_id: str, *, tail_bytes: int | None = None,
+    board: str | None = None,
+) -> str | None:
     """Read the worker log for ``task_id``. Returns None if the file
     doesn't exist. If ``tail_bytes`` is set, only the last N bytes are
     returned (useful for the dashboard drawer which shouldn't page megabytes)."""
@@ -6559,8 +6559,8 @@ def list_runs(
     task_id: str,
     *,
     include_active: bool = True,
-    state_type: Optional[str] = None,
-    state_name: Optional[str] = None,
+    state_type: str | None = None,
+    state_name: str | None = None,
 ) -> list[Run]:
     """Return all runs for ``task_id`` in start order.
 
@@ -6589,14 +6589,14 @@ def list_runs(
     return [Run.from_row(r) for r in rows]
 
 
-def get_run(conn: sqlite3.Connection, run_id: int) -> Optional[Run]:
+def get_run(conn: sqlite3.Connection, run_id: int) -> Run | None:
     row = conn.execute(
         "SELECT * FROM task_runs WHERE id = ?", (int(run_id),),
     ).fetchone()
     return Run.from_row(row) if row else None
 
 
-def active_run(conn: sqlite3.Connection, task_id: str) -> Optional[Run]:
+def active_run(conn: sqlite3.Connection, task_id: str) -> Run | None:
     """Return the currently-open run for ``task_id`` (``ended_at IS NULL``)."""
     row = conn.execute(
         "SELECT * FROM task_runs WHERE task_id = ? AND ended_at IS NULL "
@@ -6606,7 +6606,7 @@ def active_run(conn: sqlite3.Connection, task_id: str) -> Optional[Run]:
     return Run.from_row(row) if row else None
 
 
-def latest_run(conn: sqlite3.Connection, task_id: str) -> Optional[Run]:
+def latest_run(conn: sqlite3.Connection, task_id: str) -> Run | None:
     """Return the most recent run regardless of outcome (active or closed)."""
     row = conn.execute(
         "SELECT * FROM task_runs WHERE task_id = ? "
@@ -6616,7 +6616,7 @@ def latest_run(conn: sqlite3.Connection, task_id: str) -> Optional[Run]:
     return Run.from_row(row) if row else None
 
 
-def latest_summary(conn: sqlite3.Connection, task_id: str) -> Optional[str]:
+def latest_summary(conn: sqlite3.Connection, task_id: str) -> str | None:
     """Return the latest non-null ``task_runs.summary`` for ``task_id``.
 
     The kanban-worker skill writes its handoff to ``task_runs.summary``

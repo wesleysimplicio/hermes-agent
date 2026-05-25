@@ -98,7 +98,7 @@ class RemovalStep:
     provider: str
     source_id: str
     remove_fn: Callable[..., RemovalResult]
-    match_fn: Optional[Callable[[str], bool]] = None
+    match_fn: Callable[[str], bool] | None = None
     description: str = ""
 
     def matches(self, provider: str, source: str) -> bool:
@@ -117,7 +117,7 @@ def register(step: RemovalStep) -> RemovalStep:
     return step
 
 
-def find_removal_step(provider: str, source: str) -> Optional[RemovalStep]:
+def find_removal_step(provider: str, source: str) -> RemovalStep | None:
     """Return the first matching RemovalStep, or None if unregistered.
 
     Unregistered sources fall through to the default remove path in

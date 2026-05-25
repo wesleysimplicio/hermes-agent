@@ -115,7 +115,7 @@ def list_providers() -> List[TTSProvider]:
     return sorted(items, key=lambda p: p.name)
 
 
-def get_provider(name: str) -> Optional[TTSProvider]:
+def get_provider(name: str) -> TTSProvider | None:
     """Return the provider registered under *name*, or None.
 
     Name matching is case-insensitive and whitespace-tolerant — mirrors

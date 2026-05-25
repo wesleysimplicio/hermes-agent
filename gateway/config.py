@@ -94,7 +94,7 @@ def _ensure_platform_extra_dict(platforms_data: dict, name: str) -> tuple[dict, 
 
 # Module-level cache for bundled platform plugin names (lives outside the
 # enum so it doesn't become an accidental enum member).
-_Platform__bundled_plugin_names: Optional[set] = None
+_Platform__bundled_plugin_names: set | None = None
 
 
 class Platform(Enum):
@@ -212,7 +212,7 @@ class HomeChannel:
     platform: Platform
     chat_id: str
     name: str  # Human-readable name for display
-    thread_id: Optional[str] = None
+    thread_id: str | None = None
     
     def to_dict(self) -> Dict[str, Any]:
         result = {
@@ -281,9 +281,9 @@ class SessionResetPolicy:
 class PlatformConfig:
     """Configuration for a single messaging platform."""
     enabled: bool = False
-    token: Optional[str] = None  # Bot token (Telegram, Discord)
-    api_key: Optional[str] = None  # API key if different from token
-    home_channel: Optional[HomeChannel] = None
+    token: str | None = None  # Bot token (Telegram, Discord)
+    api_key: str | None = None  # API key if different from token
+    home_channel: HomeChannel | None = None
     
     # Reply threading mode (Telegram/Slack)
     # - "off": Never thread replies to original message
@@ -539,7 +539,7 @@ class GatewayConfig:
 
         return False
     
-    def get_home_channel(self, platform: Platform) -> Optional[HomeChannel]:
+    def get_home_channel(self, platform: Platform) -> HomeChannel | None:
         """Get the home channel for a platform."""
         config = self.platforms.get(platform)
         if config:
@@ -548,8 +548,8 @@ class GatewayConfig:
     
     def get_reset_policy(
         self, 
-        platform: Optional[Platform] = None,
-        session_type: Optional[str] = None
+        platform: Platform | None = None,
+        session_type: str | None = None
     ) -> SessionResetPolicy:
         """
         Get the appropriate reset policy for a session.
@@ -658,7 +658,7 @@ class GatewayConfig:
             session_store_max_age_days=session_store_max_age_days,
         )
 
-    def get_unauthorized_dm_behavior(self, platform: Optional[Platform] = None) -> str:
+    def get_unauthorized_dm_behavior(self, platform: Platform | None = None) -> str:
         """Return the effective unauthorized-DM behavior for a platform."""
         if platform:
             platform_cfg = self.platforms.get(platform)
@@ -669,7 +669,7 @@ class GatewayConfig:
                 )
         return self.unauthorized_dm_behavior
 
-    def get_notice_delivery(self, platform: Optional[Platform] = None) -> str:
+    def get_notice_delivery(self, platform: Platform | None = None) -> str:
         """Return the effective notice-delivery mode for a platform."""
         if platform:
             platform_cfg = self.platforms.get(platform)

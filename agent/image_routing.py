@@ -58,7 +58,7 @@ _TRUE_TOKENS = frozenset({"true", "yes", "on", "1"})
 _FALSE_TOKENS = frozenset({"false", "no", "off", "0"})
 
 
-def _coerce_capability_bool(raw: Any) -> Optional[bool]:
+def _coerce_capability_bool(raw: Any) -> bool | None:
     """Return True/False for recognised boolean values, None otherwise."""
     if isinstance(raw, bool):
         return raw
@@ -76,10 +76,10 @@ def _coerce_capability_bool(raw: Any) -> Optional[bool]:
 
 
 def _supports_vision_override(
-    cfg: Optional[Dict[str, Any]],
+    cfg: Dict[str, Any] | None,
     provider: str,
     model: str,
-) -> Optional[bool]:
+) -> bool | None:
     """Resolve user-declared vision capability from config.yaml.
 
     Resolution order, first hit wins:
@@ -134,7 +134,7 @@ def _coerce_mode(raw: Any) -> str:
     return "auto"
 
 
-def _explicit_aux_vision_override(cfg: Optional[Dict[str, Any]]) -> bool:
+def _explicit_aux_vision_override(cfg: Dict[str, Any] | None) -> bool:
     """True when the user configured a specific auxiliary vision backend.
 
     An explicit override means the user *wants* the text pipeline (they're
@@ -162,8 +162,8 @@ def _explicit_aux_vision_override(cfg: Optional[Dict[str, Any]]) -> bool:
 def _lookup_supports_vision(
     provider: str,
     model: str,
-    cfg: Optional[Dict[str, Any]] = None,
-) -> Optional[bool]:
+    cfg: Dict[str, Any] | None = None,
+) -> bool | None:
     """Return True/False if we can resolve caps, None if unknown.
 
     Consults the user's ``supports_vision`` override in config.yaml first
@@ -189,7 +189,7 @@ def _lookup_supports_vision(
 def decide_image_input_mode(
     provider: str,
     model: str,
-    cfg: Optional[Dict[str, Any]],
+    cfg: Dict[str, Any] | None,
 ) -> str:
     """Return ``"native"`` or ``"text"`` for the given turn.
 
@@ -234,7 +234,7 @@ def decide_image_input_mode(
 # it fires, which is cheaper than permanent quality loss.
 
 
-def _sniff_mime_from_bytes(raw: bytes) -> Optional[str]:
+def _sniff_mime_from_bytes(raw: bytes) -> str | None:
     """Detect image MIME from magic bytes. Returns None if unrecognised.
 
     Filename-based detection (``mimetypes.guess_type``) is unreliable when
@@ -269,7 +269,7 @@ def _sniff_mime_from_bytes(raw: bytes) -> Optional[str]:
     return None
 
 
-def _guess_mime(path: Path, raw: Optional[bytes] = None) -> str:
+def _guess_mime(path: Path, raw: bytes | None = None) -> str:
     """Return image MIME type for *path*.
 
     If *raw* bytes are provided, magic-byte sniffing wins (authoritative).
@@ -295,7 +295,7 @@ def _guess_mime(path: Path, raw: Optional[bytes] = None) -> str:
     }.get(suffix, "image/jpeg")
 
 
-def _file_to_data_url(path: Path) -> Optional[str]:
+def _file_to_data_url(path: Path) -> str | None:
     """Encode a local image as a base64 data URL at its native size.
 
     Size limits are NOT enforced here — the agent retry loop

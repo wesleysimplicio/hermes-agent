@@ -79,7 +79,7 @@ class FalImageGenProvider(ImageGenProvider):
             for model_id, meta in _it.FAL_MODELS.items()
         ]
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         import tools.image_generation_tool as _it
         return _it.DEFAULT_MODEL
 

@@ -100,8 +100,8 @@ class FakeHAServer:
         self.force_500 = False
 
         # Internal bookkeeping.
-        self._app: Optional[web.Application] = None
-        self._server: Optional[TestServer] = None
+        self._app: web.Application | None = None
+        self._server: TestServer | None = None
         self._ws_connections: List[web.WebSocketResponse] = []
 
     # -- Public helpers --------------------------------------------------------
@@ -162,7 +162,7 @@ class FakeHAServer:
 
     # -- Auth helper -----------------------------------------------------------
 
-    def _check_rest_auth(self, request: web.Request) -> Optional[web.Response]:
+    def _check_rest_auth(self, request: web.Request) -> web.Response | None:
         """Return a 401 response if the Bearer token is wrong, else None."""
         auth = request.headers.get("Authorization", "")
         if auth != f"Bearer {self.token}":

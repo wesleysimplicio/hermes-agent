@@ -96,7 +96,7 @@ class FileStateRegistry:
         resolved: str,
         *,
         partial: bool = False,
-        mtime: Optional[float] = None,
+        mtime: float | None = None,
     ) -> None:
         if _disabled():
             return
@@ -116,7 +116,7 @@ class FileStateRegistry:
         task_id: str,
         resolved: str,
         *,
-        mtime: Optional[float] = None,
+        mtime: float | None = None,
     ) -> None:
         """Record a successful write.
 
@@ -139,7 +139,7 @@ class FileStateRegistry:
             self._reads[task_id][resolved] = (float(mtime), now, False)
             _cap_dict(self._reads[task_id], _MAX_PATHS_PER_AGENT)
 
-    def check_stale(self, task_id: str, resolved: str) -> Optional[str]:
+    def check_stale(self, task_id: str, resolved: str) -> str | None:
         """Return a model-facing warning if this write would be stale.
 
         Three staleness classes, in order of severity:
@@ -300,7 +300,7 @@ def note_write(task_id: str, resolved_or_path: str | Path) -> None:
     _registry.note_write(task_id, str(resolved_or_path))
 
 
-def check_stale(task_id: str, resolved_or_path: str | Path) -> Optional[str]:
+def check_stale(task_id: str, resolved_or_path: str | Path) -> str | None:
     return _registry.check_stale(task_id, str(resolved_or_path))
 
 

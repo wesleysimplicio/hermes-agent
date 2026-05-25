@@ -63,7 +63,7 @@ _WAL_INCOMPAT_MARKERS = (
 # Only SessionDB.__init__ writes to this; kanban_db.connect() failures
 # do not update it (by design — kanban failures are reported via their
 # own caller's error handling, not via /resume-style slash commands).
-_last_init_error: Optional[str] = None
+_last_init_error: str | None = None
 _last_init_error_lock = threading.Lock()
 
 # Paths for which we've already logged a WAL-fallback WARNING.  Without
@@ -74,7 +74,7 @@ _wal_fallback_warned_paths: set[str] = set()
 _wal_fallback_warned_lock = threading.Lock()
 
 
-def _set_last_init_error(msg: Optional[str]) -> None:
+def _set_last_init_error(msg: str | None) -> None:
     """Record (or clear) the most recent state.db init failure.
 
     Thread-safe via _last_init_error_lock.  Callers pass a message to
@@ -91,7 +91,7 @@ def _set_last_init_error(msg: Optional[str]) -> None:
         _last_init_error = msg
 
 
-def get_last_init_error() -> Optional[str]:
+def get_last_init_error() -> str | None:
     """Return the most recent state.db init failure, if any.
 
     Slash-command handlers (``/resume``, ``/title``, ``/history``, ``/branch``)
@@ -389,7 +389,7 @@ class SessionDB:
 
         Returns whatever *fn* returns.
         """
-        last_err: Optional[Exception] = None
+        last_err: Exception | None = None
         for attempt in range(self._WRITE_MAX_RETRIES):
             try:
                 with self._lock:
@@ -774,14 +774,14 @@ class SessionDB:
         cache_read_tokens: int = 0,
         cache_write_tokens: int = 0,
         reasoning_tokens: int = 0,
-        estimated_cost_usd: Optional[float] = None,
-        actual_cost_usd: Optional[float] = None,
-        cost_status: Optional[str] = None,
-        cost_source: Optional[str] = None,
-        pricing_version: Optional[str] = None,
-        billing_provider: Optional[str] = None,
-        billing_base_url: Optional[str] = None,
-        billing_mode: Optional[str] = None,
+        estimated_cost_usd: float | None = None,
+        actual_cost_usd: float | None = None,
+        cost_status: str | None = None,
+        cost_source: str | None = None,
+        pricing_version: str | None = None,
+        billing_provider: str | None = None,
+        billing_base_url: str | None = None,
+        billing_mode: str | None = None,
         api_call_count: int = 0,
         absolute: bool = False,
     ) -> None:
@@ -875,7 +875,7 @@ class SessionDB:
         self._insert_session_row(session_id, source, model=model, **kwargs)
         return session_id
 
-    def prune_empty_ghost_sessions(self, sessions_dir: "Optional[Path]" = None) -> int:
+    def prune_empty_ghost_sessions(self, sessions_dir: "Path | None" = None) -> int:
         """Remove empty TUI ghost sessions (no messages, no title, >24hr old)."""
         cutoff = time.time() - 86400  # Only sessions older than 24 hours
 
@@ -944,7 +944,7 @@ class SessionDB:
 
         return self._execute_write(_do) or 0
 
-    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_session(self, session_id: str) -> Dict[str, Any] | None:
         """Get a session by ID."""
         with self._lock:
             cursor = self._conn.execute(
@@ -953,7 +953,7 @@ class SessionDB:
             row = cursor.fetchone()
         return dict(row) if row else None
 
-    def resolve_session_id(self, session_id_or_prefix: str) -> Optional[str]:
+    def resolve_session_id(self, session_id_or_prefix: str) -> str | None:
         """Resolve an exact or uniquely prefixed session ID to the full ID.
 
         Returns the exact ID when it exists. Otherwise treats the input as a
@@ -984,7 +984,7 @@ class SessionDB:
     MAX_TITLE_LENGTH = 100
 
     @staticmethod
-    def sanitize_title(title: Optional[str]) -> Optional[str]:
+    def sanitize_title(title: str | None) -> str | None:
         """Validate and sanitize a session title.
 
         - Strips leading/trailing whitespace
@@ -1056,7 +1056,7 @@ class SessionDB:
         rowcount = self._execute_write(_do)
         return rowcount > 0
 
-    def get_session_title(self, session_id: str) -> Optional[str]:
+    def get_session_title(self, session_id: str) -> str | None:
         """Get the title for a session, or None."""
         with self._lock:
             cursor = self._conn.execute(
@@ -1065,7 +1065,7 @@ class SessionDB:
             row = cursor.fetchone()
         return row["title"] if row else None
 
-    def get_session_by_title(self, title: str) -> Optional[Dict[str, Any]]:
+    def get_session_by_title(self, title: str) -> Dict[str, Any] | None:
         """Look up a session by exact title. Returns session dict or None."""
         with self._lock:
             cursor = self._conn.execute(
@@ -1074,7 +1074,7 @@ class SessionDB:
             row = cursor.fetchone()
         return dict(row) if row else None
 
-    def resolve_session_by_title(self, title: str) -> Optional[str]:
+    def resolve_session_by_title(self, title: str) -> str | None:
         """Resolve a title to a session ID, preferring the latest in a lineage.
 
         If the exact title exists, returns that session's ID.
@@ -1138,7 +1138,7 @@ class SessionDB:
 
         return f"{base} #{max_num + 1}"
 
-    def get_compression_tip(self, session_id: str) -> Optional[str]:
+    def get_compression_tip(self, session_id: str) -> str | None:
         """Walk the compression-continuation chain forward and return the tip.
 
         A compression continuation is a child session where:
@@ -1364,7 +1364,7 @@ class SessionDB:
 
         return sessions
 
-    def _get_session_rich_row(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def _get_session_rich_row(self, session_id: str) -> Dict[str, Any] | None:
         """Fetch a single session with the same enriched columns as
         ``list_sessions_rich`` (preview + last_active). Returns None if the
         session doesn't exist.
@@ -1734,7 +1734,7 @@ class SessionDB:
         around_message_id: int,
         window: int = 5,
         bookend: int = 3,
-        keep_roles: Optional[Tuple[str, ...]] = ("user", "assistant"),
+        keep_roles: Tuple[str, ...] | None = ("user", "assistant"),
     ) -> Dict[str, Any]:
         """Return an anchored window plus session bookends.
 
@@ -2482,7 +2482,7 @@ class SessionDB:
     # Export and cleanup
     # =========================================================================
 
-    def export_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def export_session(self, session_id: str) -> Dict[str, Any] | None:
         """Export a single session with all its messages as a dict."""
         session = self.get_session(session_id)
         if not session:
@@ -2515,7 +2515,7 @@ class SessionDB:
         self._execute_write(_do)
 
     @staticmethod
-    def _remove_session_files(sessions_dir: Optional[Path], session_id: str) -> None:
+    def _remove_session_files(sessions_dir: Path | None, session_id: str) -> None:
         """Remove on-disk transcript files for a session.
 
         Cleans up ``{session_id}.json``, ``{session_id}.jsonl``, and any
@@ -2544,7 +2544,7 @@ class SessionDB:
     def delete_session(
         self,
         session_id: str,
-        sessions_dir: Optional[Path] = None,
+        sessions_dir: Path | None = None,
     ) -> bool:
         """Delete a session and all its messages.
 
@@ -2579,7 +2579,7 @@ class SessionDB:
         self,
         older_than_days: int = 90,
         source: str = None,
-        sessions_dir: Optional[Path] = None,
+        sessions_dir: Path | None = None,
     ) -> int:
         """Delete sessions older than N days. Returns count of deleted sessions.
 
@@ -2632,7 +2632,7 @@ class SessionDB:
 
     # ── Meta key/value (for scheduler bookkeeping) ──
 
-    def get_meta(self, key: str) -> Optional[str]:
+    def get_meta(self, key: str) -> str | None:
         """Read a value from the state_meta key/value store."""
         with self._lock:
             row = self._conn.execute(
@@ -2757,8 +2757,8 @@ class SessionDB:
         *,
         chat_id: str,
         user_id: str,
-        has_topics_enabled: Optional[bool] = None,
-        allows_users_to_create_topics: Optional[bool] = None,
+        has_topics_enabled: bool | None = None,
+        allows_users_to_create_topics: bool | None = None,
     ) -> None:
         """Enable Telegram DM topic mode for one private chat/user.
 
@@ -2768,7 +2768,7 @@ class SessionDB:
         self.apply_telegram_topic_migration()
         now = time.time()
 
-        def _to_int(value: Optional[bool]) -> Optional[int]:
+        def _to_int(value: bool | None) -> int | None:
             if value is None:
                 return None
             return 1 if value else 0
@@ -2857,7 +2857,7 @@ class SessionDB:
         *,
         chat_id: str,
         thread_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any] | None:
         """Return the session binding for a Telegram DM topic, if present."""
         with self._lock:
             try:
@@ -2897,7 +2897,7 @@ class SessionDB:
         self,
         *,
         session_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any] | None:
         """Return the Telegram DM topic binding for a given session_id, if present.
 
         Uses the UNIQUE INDEX on telegram_dm_topic_bindings(session_id) for an
@@ -3109,7 +3109,7 @@ class SessionDB:
         retention_days: int = 90,
         min_interval_hours: int = 24,
         vacuum: bool = True,
-        sessions_dir: Optional[Path] = None,
+        sessions_dir: Path | None = None,
     ) -> Dict[str, Any]:
         """Idempotent auto-maintenance: prune old sessions + optional VACUUM.
 
@@ -3208,7 +3208,7 @@ class SessionDB:
             return cur.rowcount > 0
         return self._execute_write(_do)
 
-    def get_handoff_state(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_handoff_state(self, session_id: str) -> Dict[str, Any] | None:
         """Read the current handoff state for a session.
 
         Returns ``{"state", "platform", "error"}`` or None if the session has

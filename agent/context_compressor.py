@@ -581,12 +581,12 @@ class ContextCompressor(ContextEngine):
         self.summary_model = summary_model_override or ""
 
         # Stores the previous compaction summary for iterative updates
-        self._previous_summary: Optional[str] = None
+        self._previous_summary: str | None = None
         # Anti-thrashing: track whether last compression was effective
         self._last_compression_savings_pct: float = 100.0
         self._ineffective_compression_count: int = 0
         self._summary_failure_cooldown_until: float = 0.0
-        self._last_summary_error: Optional[str] = None
+        self._last_summary_error: str | None = None
         # When summary generation fails and a static fallback is inserted,
         # record how many turns were unrecoverably dropped so callers
         # (gateway hygiene, /compress) can surface a visible warning.
@@ -602,8 +602,8 @@ class ContextCompressor(ContextEngine):
         # retrying on the main model, record the failure so gateway /
         # CLI callers can still warn the user even though compression
         # succeeded.  Silent recovery would hide the broken config.
-        self._last_aux_model_failure_error: Optional[str] = None
-        self._last_aux_model_failure_model: Optional[str] = None
+        self._last_aux_model_failure_error: str | None = None
+        self._last_aux_model_failure_model: str | None = None
 
     def update_from_response(self, usage: Dict[str, Any]):
         """Update tracked token usage from API response."""
@@ -911,7 +911,7 @@ class ContextCompressor(ContextEngine):
         self.summary_model = ""  # empty = use main model
         self._summary_failure_cooldown_until = 0.0  # no cooldown — retry immediately
 
-    def _generate_summary(self, turns_to_summarize: List[Dict[str, Any]], focus_topic: str = None) -> Optional[str]:
+    def _generate_summary(self, turns_to_summarize: List[Dict[str, Any]], focus_topic: str = None) -> str | None:
         """Generate a structured summary of conversation turns.
 
         Uses a structured template (Goal, Progress, Decisions, Resolved/Pending
@@ -1217,7 +1217,7 @@ The user has requested that this compaction PRIORITISE preserving all informatio
         messages: List[Dict[str, Any]],
         start: int,
         end: int,
-    ) -> tuple[Optional[int], str]:
+    ) -> tuple[int | None, str]:
         """Find the newest handoff summary inside a compression window."""
         for idx in range(end - 1, start - 1, -1):
             content = messages[idx].get("content")

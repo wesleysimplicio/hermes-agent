@@ -70,7 +70,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from firecrawl import Firecrawl as FirecrawlSDK  # noqa: F401 — type hints only
 
-_FIRECRAWL_CLS_CACHE: Optional[type] = None
+_FIRECRAWL_CLS_CACHE: type | None = None
 
 
 def _load_firecrawl_cls() -> type:
@@ -119,7 +119,7 @@ Firecrawl = _FirecrawlProxy()
 # :func:`_get_firecrawl_client` below.
 
 
-def _get_direct_firecrawl_config() -> Optional[tuple]:
+def _get_direct_firecrawl_config() -> tuple | None:
     """Return explicit direct Firecrawl kwargs + cache key, or None when unset."""
     api_key = os.getenv("FIRECRAWL_API_KEY", "").strip()
     api_url = os.getenv("FIRECRAWL_API_URL", "").strip().rstrip("/")

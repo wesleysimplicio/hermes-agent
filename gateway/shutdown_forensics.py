@@ -45,7 +45,7 @@ def _signal_name(sig: Any) -> str:
     return _SIGNAL_NAME_BY_NUM.get(sig_int, f"signal#{sig_int}")
 
 
-def _read_proc_field(pid: int, key: str) -> Optional[str]:
+def _read_proc_field(pid: int, key: str) -> str | None:
     """Read a single field from /proc/<pid>/status.  Linux only; None elsewhere."""
     try:
         with open(f"/proc/{pid}/status", encoding="utf-8") as fh:
@@ -57,7 +57,7 @@ def _read_proc_field(pid: int, key: str) -> Optional[str]:
     return None
 
 
-def _read_proc_cmdline(pid: int) -> Optional[str]:
+def _read_proc_cmdline(pid: int) -> str | None:
     """Read /proc/<pid>/cmdline as a printable string.  Linux only; None elsewhere."""
     try:
         with open(f"/proc/{pid}/cmdline", "rb") as fh:
@@ -199,7 +199,7 @@ def spawn_async_diagnostic(
     signal_name: str,
     *,
     timeout_seconds: float = 5.0,
-) -> Optional[int]:
+) -> int | None:
     """Fire-and-forget ``ps``-style snapshot written to ``log_path``.
 
     Runs as a detached subprocess so it can't block the asyncio event loop
@@ -319,7 +319,7 @@ def context_as_json(ctx: Dict[str, Any]) -> str:
         return "{}"
 
 
-def check_systemd_timing_alignment(drain_timeout: float) -> Optional[Dict[str, Any]]:
+def check_systemd_timing_alignment(drain_timeout: float) -> Dict[str, Any] | None:
     """At startup, sanity-check that systemd's TimeoutStopSec >= drain_timeout.
 
     When the gateway is run under a stale systemd unit file (e.g. the user
@@ -341,7 +341,7 @@ def check_systemd_timing_alignment(drain_timeout: float) -> Optional[Dict[str, A
         return None  # Not running under systemd (or at least not directly)
 
     # Try to identify our unit name and ask systemctl for its config.
-    unit_name: Optional[str] = None
+    unit_name: str | None = None
     try:
         # /proc/self/cgroup gives us "0::/user.slice/.../hermes-gateway.service"
         with open("/proc/self/cgroup", encoding="utf-8") as fh:
@@ -363,7 +363,7 @@ def check_systemd_timing_alignment(drain_timeout: float) -> Optional[Dict[str, A
     # Query systemctl for TimeoutStopUSec.  Use --user OR system depending
     # on which manager actually owns the unit.  Try user first since
     # that's the common case for hermes.
-    timeout_us: Optional[int] = None
+    timeout_us: int | None = None
     for flag in (["--user"], []):
         try:
             result = subprocess.run(
@@ -406,7 +406,7 @@ def check_systemd_timing_alignment(drain_timeout: float) -> Optional[Dict[str, A
     }
 
 
-def _parse_systemd_duration_to_us(raw: str) -> Optional[int]:
+def _parse_systemd_duration_to_us(raw: str) -> int | None:
     """Parse 'TimeoutStopUSec=1min 30s' / '90s' style values to microseconds.
 
     systemd accepts a wide grammar; we cover the common cases (s, ms, min,

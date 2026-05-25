@@ -193,7 +193,7 @@ def _get_disabled_plugins() -> set:
         return set()
 
 
-def _get_enabled_plugins() -> Optional[set]:
+def _get_enabled_plugins() -> set | None:
     """Read the enabled-plugins allow-list from config.yaml.
 
     Plugins are opt-in by default — only plugins whose name appears in
@@ -242,7 +242,7 @@ class PluginManifest:
     provides_tools: List[str] = field(default_factory=list)
     provides_hooks: List[str] = field(default_factory=list)
     source: str = ""        # "user", "project", or "entrypoint"
-    path: Optional[str] = None
+    path: str | None = None
     # Plugin kind — see plugins.py module docstring for semantics.
     # ``standalone`` (default): hooks/tools of its own; opt-in via
     #                           ``plugins.enabled``.
@@ -272,12 +272,12 @@ class LoadedPlugin:
     """Runtime state for a single loaded plugin."""
 
     manifest: PluginManifest
-    module: Optional[types.ModuleType] = None
+    module: types.ModuleType | None = None
     tools_registered: List[str] = field(default_factory=list)
     hooks_registered: List[str] = field(default_factory=list)
     commands_registered: List[str] = field(default_factory=list)
     enabled: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -744,7 +744,7 @@ class PluginContext:
         *,
         display_name: str,
         description: str,
-        defaults: Optional[Dict[str, Any]] = None,
+        defaults: Dict[str, Any] | None = None,
     ) -> None:
         """Register a plugin-defined auxiliary LLM task.
 
@@ -1117,7 +1117,7 @@ class PluginManager:
         self,
         path: Path,
         source: str,
-        skip_names: Optional[Set[str]] = None,
+        skip_names: Set[str] | None = None,
     ) -> List[PluginManifest]:
         """Read ``plugin.yaml`` manifests from subdirectories of *path*.
 
@@ -1143,7 +1143,7 @@ class PluginManager:
         path: Path,
         source: str,
         *,
-        skip_names: Optional[Set[str]],
+        skip_names: Set[str] | None,
         prefix: str,
         depth: int,
     ) -> List[PluginManifest]:
@@ -1200,7 +1200,7 @@ class PluginManager:
         plugin_dir: Path,
         source: str,
         prefix: str,
-    ) -> Optional[PluginManifest]:
+    ) -> PluginManifest | None:
         """Parse a single ``plugin.yaml`` into a :class:`PluginManifest`.
 
         Returns ``None`` on parse failure (logs a warning).
@@ -1513,7 +1513,7 @@ class PluginManager:
     # Plugin skill lookups
     # -----------------------------------------------------------------------
 
-    def find_plugin_skill(self, qualified_name: str) -> Optional[Path]:
+    def find_plugin_skill(self, qualified_name: str) -> Path | None:
         """Return the ``Path`` to a plugin skill's SKILL.md, or ``None``."""
         entry = self._plugin_skills.get(qualified_name)
         return entry["path"] if entry else None
@@ -1536,7 +1536,7 @@ class PluginManager:
 # Module-level singleton & convenience functions
 # ---------------------------------------------------------------------------
 
-_plugin_manager: Optional[PluginManager] = None
+_plugin_manager: PluginManager | None = None
 
 
 def get_plugin_manager() -> PluginManager:
@@ -1569,7 +1569,7 @@ _thread_tool_whitelist = threading.local()
 
 
 def set_thread_tool_whitelist(
-    allowed: Optional[Set[str]],
+    allowed: Set[str] | None,
     deny_msg_fmt: str = "Tool '{tool_name}' denied: not in this thread's tool whitelist",
 ) -> None:
     _thread_tool_whitelist.allowed = allowed
@@ -1582,11 +1582,11 @@ def clear_thread_tool_whitelist() -> None:
 
 def get_pre_tool_call_block_message(
     tool_name: str,
-    args: Optional[Dict[str, Any]],
+    args: Dict[str, Any] | None,
     task_id: str = "",
     session_id: str = "",
     tool_call_id: str = "",
-) -> Optional[str]:
+) -> str | None:
     """Check ``pre_tool_call`` hooks for a blocking directive.
 
     Plugins that need to enforce policy (rate limiting, security
@@ -1639,7 +1639,7 @@ def get_plugin_context_engine():
     return _ensure_plugins_discovered()._context_engine
 
 
-def get_plugin_command_handler(name: str) -> Optional[Callable]:
+def get_plugin_command_handler(name: str) -> Callable | None:
     """Return the handler for a plugin-registered slash command, or ``None``."""
     entry = _ensure_plugins_discovered()._plugin_commands.get(name)
     return entry["handler"] if entry else None

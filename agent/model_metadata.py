@@ -390,7 +390,7 @@ except Exception:
     pass
 
 
-def _infer_provider_from_url(base_url: str) -> Optional[str]:
+def _infer_provider_from_url(base_url: str) -> str | None:
     """Infer the models.dev provider name from a base URL.
 
     This allows context length resolution via models.dev for custom endpoints
@@ -464,7 +464,7 @@ def is_local_endpoint(base_url: str) -> bool:
     return False
 
 
-def detect_local_server_type(base_url: str, api_key: str = "") -> Optional[str]:
+def detect_local_server_type(base_url: str, api_key: str = "") -> str | None:
     """Detect which local server is running at base_url by probing known endpoints.
 
     Returns one of: "ollama", "lm-studio", "vllm", "llamacpp", or None.
@@ -535,7 +535,7 @@ def _iter_nested_dicts(value: Any):
             yield from _iter_nested_dicts(item)
 
 
-def _coerce_reasonable_int(value: Any, minimum: int = 1024, maximum: int = 10_000_000) -> Optional[int]:
+def _coerce_reasonable_int(value: Any, minimum: int = 1024, maximum: int = 10_000_000) -> int | None:
     try:
         if isinstance(value, bool):
             return None
@@ -549,7 +549,7 @@ def _coerce_reasonable_int(value: Any, minimum: int = 1024, maximum: int = 10_00
     return None
 
 
-def _extract_first_int(payload: Dict[str, Any], keys: tuple[str, ...]) -> Optional[int]:
+def _extract_first_int(payload: Dict[str, Any], keys: tuple[str, ...]) -> int | None:
     keyset = {key.lower() for key in keys}
     for mapping in _iter_nested_dicts(payload):
         for key, value in mapping.items():
@@ -561,11 +561,11 @@ def _extract_first_int(payload: Dict[str, Any], keys: tuple[str, ...]) -> Option
     return None
 
 
-def _extract_context_length(payload: Dict[str, Any]) -> Optional[int]:
+def _extract_context_length(payload: Dict[str, Any]) -> int | None:
     return _extract_first_int(payload, _CONTEXT_LENGTH_KEYS)
 
 
-def _extract_max_completion_tokens(payload: Dict[str, Any]) -> Optional[int]:
+def _extract_max_completion_tokens(payload: Dict[str, Any]) -> int | None:
     return _extract_first_int(payload, _MAX_COMPLETION_KEYS)
 
 
@@ -674,7 +674,7 @@ def fetch_endpoint_model_metadata(
         candidates.append(alternate)
 
     headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-    last_error: Optional[Exception] = None
+    last_error: Exception | None = None
 
     if is_local_endpoint(normalized):
         try:
@@ -793,7 +793,7 @@ def _resolve_endpoint_context_length(
     model: str,
     base_url: str,
     api_key: str = "",
-) -> Optional[int]:
+) -> int | None:
     """Resolve context length from an endpoint's live ``/models`` metadata."""
     endpoint_metadata = fetch_endpoint_model_metadata(base_url, api_key=api_key)
     matched = endpoint_metadata.get(model)
@@ -853,7 +853,7 @@ def save_context_length(model: str, base_url: str, length: int) -> None:
         logger.debug("Failed to save context length cache: %s", e)
 
 
-def get_cached_context_length(model: str, base_url: str) -> Optional[int]:
+def get_cached_context_length(model: str, base_url: str) -> int | None:
     """Look up a previously discovered context length for model+provider."""
     key = f"{model}@{base_url}"
     cache = _load_context_cache()
@@ -876,7 +876,7 @@ def _invalidate_cached_context_length(model: str, base_url: str) -> None:
         logger.debug("Failed to invalidate context length cache entry %s: %s", key, e)
 
 
-def get_next_probe_tier(current_length: int) -> Optional[int]:
+def get_next_probe_tier(current_length: int) -> int | None:
     """Return the next lower probe tier, or None if already at minimum."""
     for tier in CONTEXT_PROBE_TIERS:
         if tier < current_length:
@@ -884,7 +884,7 @@ def get_next_probe_tier(current_length: int) -> Optional[int]:
     return None
 
 
-def parse_context_limit_from_error(error_msg: str) -> Optional[int]:
+def parse_context_limit_from_error(error_msg: str) -> int | None:
     """Try to extract the actual context limit from an API error message.
 
     Many providers include the limit in their error text, e.g.:
@@ -912,7 +912,7 @@ def parse_context_limit_from_error(error_msg: str) -> Optional[int]:
     return None
 
 
-def parse_available_output_tokens_from_error(error_msg: str) -> Optional[int]:
+def parse_available_output_tokens_from_error(error_msg: str) -> int | None:
     """Detect an "output cap too large" error and return how many output tokens are available.
 
     Background — two distinct context errors exist:
@@ -974,7 +974,7 @@ def _model_id_matches(candidate_id: str, lookup_model: str) -> bool:
     return False
 
 
-def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Optional[int]:
+def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> int | None:
     """Query an Ollama server for the model's context length.
 
     Returns the model's maximum context from GGUF metadata via ``/api/show``,
@@ -1029,7 +1029,7 @@ def query_ollama_num_ctx(model: str, base_url: str, api_key: str = "") -> Option
     return None
 
 
-def _query_ollama_api_show(model: str, base_url: str, api_key: str = "") -> Optional[int]:
+def _query_ollama_api_show(model: str, base_url: str, api_key: str = "") -> int | None:
     """Query an Ollama server's native ``/api/show`` for context length.
 
     Provider-agnostic: works against ANY Ollama-compatible server regardless
@@ -1102,7 +1102,7 @@ def _model_name_suggests_kimi(model: str) -> bool:
     return lower.startswith("kimi") or "moonshot" in lower
 
 
-def _query_local_context_length(model: str, base_url: str, api_key: str = "") -> Optional[int]:
+def _query_local_context_length(model: str, base_url: str, api_key: str = "") -> int | None:
     """Query a local server for the model's context length."""
     import httpx
 
@@ -1206,7 +1206,7 @@ def _normalize_model_version(model: str) -> str:
     return model.replace(".", "-")
 
 
-def _query_anthropic_context_length(model: str, base_url: str, api_key: str) -> Optional[int]:
+def _query_anthropic_context_length(model: str, base_url: str, api_key: str) -> int | None:
     """Query Anthropic's /v1/models endpoint for context length.
 
     Only works with regular ANTHROPIC_API_KEY (sk-ant-api*).
@@ -1322,7 +1322,7 @@ def _fetch_codex_oauth_context_lengths(access_token: str) -> Dict[str, int]:
 
 def _resolve_codex_oauth_context_length(
     model: str, access_token: str = ""
-) -> Optional[int]:
+) -> int | None:
     """Resolve a Codex OAuth model's real context window.
 
     Prefers a live probe of chatgpt.com/backend-api/codex/models (when we
@@ -1357,7 +1357,7 @@ def _resolve_nous_context_length(
     model: str,
     base_url: str = "",
     api_key: str = "",
-) -> Tuple[Optional[int], str]:
+) -> Tuple[int | None, str]:
     """Resolve Nous Portal model context length.
 
     Tries the live Nous inference endpoint first (authoritative), then falls
@@ -1386,7 +1386,7 @@ def _resolve_nous_context_length(
 
     metadata = fetch_model_metadata()
 
-    def _safe_ctx(or_id: str, entry: dict) -> Optional[int]:
+    def _safe_ctx(or_id: str, entry: dict) -> int | None:
         ctx = entry.get("context_length")
         if ctx is None:
             return None
@@ -1808,7 +1808,7 @@ def estimate_request_tokens_rough(
     messages: List[Dict[str, Any]],
     *,
     system_prompt: str = "",
-    tools: Optional[List[Dict[str, Any]]] = None,
+    tools: List[Dict[str, Any]] | None = None,
 ) -> int:
     """Rough token estimate for a full chat-completions request.
 

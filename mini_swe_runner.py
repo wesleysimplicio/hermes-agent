@@ -46,8 +46,8 @@ load_dotenv()
 
 def _effective_temperature_for_model(
     model: str,
-    base_url: Optional[str] = None,
-) -> Optional[float]:
+    base_url: str | None = None,
+) -> float | None:
     """Return a fixed temperature for models with strict sampling contracts.
 
     Returns ``None`` when the model manages temperature server-side (Kimi);

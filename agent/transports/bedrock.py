@@ -33,7 +33,7 @@ class BedrockTransport(ProviderTransport):
         self,
         model: str,
         messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: List[Dict[str, Any]] | None = None,
         **params,
     ) -> Dict[str, Any]:
         """Build Bedrock converse() kwargs.

@@ -52,7 +52,7 @@ def register(
     session_key: str,
     confirm_id: str,
     command: str,
-    handler: Callable[[str], Awaitable[Optional[str]]],
+    handler: Callable[[str], Awaitable[str | None]],
 ) -> None:
     """Register a pending slash-command confirmation.
 
@@ -68,7 +68,7 @@ def register(
         }
 
 
-def get_pending(session_key: str) -> Optional[Dict[str, Any]]:
+def get_pending(session_key: str) -> Dict[str, Any] | None:
     """Return the pending confirm dict for a session, or None."""
     with _lock:
         entry = _pending.get(session_key)
@@ -101,7 +101,7 @@ async def resolve(
     confirm_id: str,
     choice: str,
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
-) -> Optional[str]:
+) -> str | None:
     """Resolve a pending confirm.
 
     ``choice`` must be one of ``"once"``, ``"always"``, or ``"cancel"``.
@@ -145,7 +145,7 @@ def resolve_sync_compat(
     session_key: str,
     confirm_id: str,
     choice: str,
-) -> Optional[str]:
+) -> str | None:
     """Synchronous helper: schedule resolve() on a loop and wait for the result.
 
     Used by platform callback paths that run on a different thread than the

@@ -452,7 +452,7 @@ class XAIWebSearchProvider(WebSearchProvider):
         text: str,
         *,
         limit: int,
-    ) -> Optional[List[Dict[str, Any]]]:
+    ) -> List[Dict[str, Any]] | None:
         """Parse a JSON object with a ``results`` array out of ``text``.
 
         Returns the normalized result list on success, ``None`` when the

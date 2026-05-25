@@ -101,7 +101,7 @@ def _resolve_model() -> Tuple[str, Dict[str, Any]]:
 
     cfg = _load_openai_config()
     openai_cfg = cfg.get("openai") if isinstance(cfg.get("openai"), dict) else {}
-    candidate: Optional[str] = None
+    candidate: str | None = None
     if isinstance(openai_cfg, dict):
         value = openai_cfg.get("model")
         if isinstance(value, str) and value in _MODELS:
@@ -154,7 +154,7 @@ class OpenAIImageGenProvider(ImageGenProvider):
             for model_id, meta in _MODELS.items()
         ]
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         return DEFAULT_MODEL
 
     def get_setup_schema(self) -> Dict[str, Any]:

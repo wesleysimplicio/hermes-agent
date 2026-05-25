@@ -546,7 +546,7 @@ TOOLSETS = {
 
 
 
-def get_toolset(name: str) -> Optional[Dict[str, Any]]:
+def get_toolset(name: str) -> Dict[str, Any] | None:
     """
     Get a toolset definition by name.
     

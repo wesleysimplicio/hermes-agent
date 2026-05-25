@@ -75,7 +75,7 @@ def _guard_agent_created_enabled() -> bool:
         return False
 
 
-def _security_scan_skill(skill_dir: Path) -> Optional[str]:
+def _security_scan_skill(skill_dir: Path) -> str | None:
     """Scan a skill directory after write. Returns error string if blocked, else None.
 
     No-op when skills.guard_agent_created is disabled (the default).
@@ -134,7 +134,7 @@ def _containing_skills_root(skill_path: Path) -> Path:
     return SKILLS_DIR
 
 
-def _pinned_guard(name: str) -> Optional[str]:
+def _pinned_guard(name: str) -> str | None:
     """Return a refusal message if *name* is pinned, else None.
 
     Pin protects a skill from **deletion** — both the curator's auto-archive
@@ -175,7 +175,7 @@ ALLOWED_SUBDIRS = {"references", "templates", "scripts", "assets"}
 # Validation helpers
 # =============================================================================
 
-def _validate_name(name: str) -> Optional[str]:
+def _validate_name(name: str) -> str | None:
     """Validate a skill name. Returns error message or None if valid."""
     if not name:
         return "Skill name is required."
@@ -189,7 +189,7 @@ def _validate_name(name: str) -> Optional[str]:
     return None
 
 
-def _validate_category(category: Optional[str]) -> Optional[str]:
+def _validate_category(category: str | None) -> str | None:
     """Validate an optional category name used as a single directory segment."""
     if category is None:
         return None
@@ -214,7 +214,7 @@ def _validate_category(category: Optional[str]) -> Optional[str]:
     return None
 
 
-def _validate_frontmatter(content: str) -> Optional[str]:
+def _validate_frontmatter(content: str) -> str | None:
     """
     Validate that SKILL.md content has proper frontmatter with required fields.
     Returns error message or None if valid.
@@ -253,7 +253,7 @@ def _validate_frontmatter(content: str) -> Optional[str]:
     return None
 
 
-def _validate_content_size(content: str, label: str = "SKILL.md") -> Optional[str]:
+def _validate_content_size(content: str, label: str = "SKILL.md") -> str | None:
     """Check that content doesn't exceed the character limit for agent writes.
 
     Returns an error message or None if within bounds.
@@ -275,7 +275,7 @@ def _resolve_skill_dir(name: str, category: str = None) -> Path:
     return SKILLS_DIR / name
 
 
-def _find_skill(name: str) -> Optional[Dict[str, Any]]:
+def _find_skill(name: str) -> Dict[str, Any] | None:
     """
     Find a skill by name across all skill directories.
 
@@ -398,7 +398,7 @@ def _skill_not_found_error(name: str, suffix: str = "") -> str:
     return base
 
 
-def _validate_file_path(file_path: str) -> Optional[str]:
+def _validate_file_path(file_path: str) -> str | None:
     """
     Validate a file path for write_file/remove_file.
     Must be under an allowed subdirectory and not escape the skill dir.
@@ -426,7 +426,7 @@ def _validate_file_path(file_path: str) -> Optional[str]:
     return None
 
 
-def _resolve_skill_target(skill_dir: Path, file_path: str) -> Tuple[Optional[Path], Optional[str]]:
+def _resolve_skill_target(skill_dir: Path, file_path: str) -> Tuple[Path | None, str | None]:
     """Resolve a supporting-file path and ensure it stays within the skill directory."""
     from tools.path_security import validate_within_dir
 
@@ -657,7 +657,7 @@ def _patch_skill(
     }
 
 
-def _delete_skill(name: str, absorbed_into: Optional[str] = None) -> Dict[str, Any]:
+def _delete_skill(name: str, absorbed_into: str | None = None) -> Dict[str, Any]:
     """Delete a skill.
 
     ``absorbed_into`` declares intent:

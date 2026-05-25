@@ -45,7 +45,7 @@ class CaptureResult:
     mode: str
     width: int                      # screenshot width (logical px, pre-Anthropic-scale)
     height: int
-    png_b64: Optional[str] = None
+    png_b64: str | None = None
     elements: List[UIElement] = field(default_factory=list)
     # Optional: the target app/window the elements were captured for.
     app: str = ""
@@ -63,7 +63,7 @@ class ActionResult:
     message: str = ""                # human-readable summary
     # Optional trailing screenshot — set when the caller asked for a
     # post-action capture or the backend always returns one.
-    capture: Optional[CaptureResult] = None
+    capture: CaptureResult | None = None
     # Arbitrary extra fields for debugging / telemetry.
     meta: Dict[str, Any] = field(default_factory=dict)
 
@@ -86,31 +86,31 @@ class ComputerUseBackend(ABC):
 
     # ── Capture ─────────────────────────────────────────────────────
     @abstractmethod
-    def capture(self, mode: str = "som", app: Optional[str] = None) -> CaptureResult: ...
+    def capture(self, mode: str = "som", app: str | None = None) -> CaptureResult: ...
 
     # ── Pointer actions ─────────────────────────────────────────────
     @abstractmethod
     def click(
         self,
         *,
-        element: Optional[int] = None,
-        x: Optional[int] = None,
-        y: Optional[int] = None,
+        element: int | None = None,
+        x: int | None = None,
+        y: int | None = None,
         button: str = "left",           # left | right | middle
         click_count: int = 1,
-        modifiers: Optional[List[str]] = None,
+        modifiers: List[str] | None = None,
     ) -> ActionResult: ...
 
     @abstractmethod
     def drag(
         self,
         *,
-        from_element: Optional[int] = None,
-        to_element: Optional[int] = None,
-        from_xy: Optional[Tuple[int, int]] = None,
-        to_xy: Optional[Tuple[int, int]] = None,
+        from_element: int | None = None,
+        to_element: int | None = None,
+        from_xy: Tuple[int, int] | None = None,
+        to_xy: Tuple[int, int] | None = None,
         button: str = "left",
-        modifiers: Optional[List[str]] = None,
+        modifiers: List[str] | None = None,
     ) -> ActionResult: ...
 
     @abstractmethod
@@ -119,10 +119,10 @@ class ComputerUseBackend(ABC):
         *,
         direction: str,                 # up | down | left | right
         amount: int = 3,                # wheel ticks
-        element: Optional[int] = None,
-        x: Optional[int] = None,
-        y: Optional[int] = None,
-        modifiers: Optional[List[str]] = None,
+        element: int | None = None,
+        x: int | None = None,
+        y: int | None = None,
+        modifiers: List[str] | None = None,
     ) -> ActionResult: ...
 
     # ── Keyboard ────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ class ComputerUseBackend(ABC):
 
     # ── Native-value mutation ────────────────────────────────────────
     @abstractmethod
-    def set_value(self, value: str, element: Optional[int] = None) -> ActionResult:
+    def set_value(self, value: str, element: int | None = None) -> ActionResult:
         """Set a native value on an element (e.g. AXPopUpButton selection).
 
         `element` is the 1-based SOM index returned by a prior capture call.

@@ -264,7 +264,7 @@ class MemoryProvider(ABC):
         action: str,
         target: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> None:
         """Called when the built-in memory tool writes an entry.
 

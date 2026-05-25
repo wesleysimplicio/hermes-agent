@@ -59,8 +59,8 @@ load_hermes_dotenv(hermes_home=_hermes_home, project_env=_project_env)
 def _effective_temperature_for_model(
     model: str,
     requested_temperature: float,
-    base_url: Optional[str] = None,
-) -> Optional[float]:
+    base_url: str | None = None,
+) -> float | None:
     """Apply fixed model temperature contracts to direct client calls.
 
     Returns ``None`` when the model manages temperature server-side (Kimi);

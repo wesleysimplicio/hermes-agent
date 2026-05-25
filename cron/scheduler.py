@@ -148,7 +148,7 @@ def _get_lock_paths() -> tuple[Path, Path]:
 
 
 @contextmanager
-def _job_profile_context(job_id: str, profile: Optional[str]):
+def _job_profile_context(job_id: str, profile: str | None):
     """Temporarily run a job under a specific Hermes profile.
 
     Cron jobs are stored and scheduled by the profile running the scheduler, but
@@ -212,7 +212,7 @@ def _job_profile_context(job_id: str, profile: Optional[str]):
                 os.environ[k] = v
 
 
-def _resolve_origin(job: dict) -> Optional[dict]:
+def _resolve_origin(job: dict) -> dict | None:
     """Extract origin info from a job, preserving any extra routing metadata.
 
     Treats non-dict origins (free-form provenance strings, ints, lists from
@@ -292,7 +292,7 @@ def _get_home_target_chat_id(platform_name: str) -> str:
     return value
 
 
-def _get_home_target_thread_id(platform_name: str) -> Optional[str]:
+def _get_home_target_thread_id(platform_name: str) -> str | None:
     """Return the optional thread/topic ID for a platform home target.
 
     Telegram-only override: ``TELEGRAM_CRON_THREAD_ID`` takes precedence over
@@ -336,7 +336,7 @@ def _iter_home_target_platforms():
         pass
 
 
-def _resolve_single_delivery_target(job: dict, deliver_value: str) -> Optional[dict]:
+def _resolve_single_delivery_target(job: dict, deliver_value: str) -> dict | None:
     """Resolve one concrete auto-delivery target for a cron job."""
 
     origin = _resolve_origin(job)
@@ -500,7 +500,7 @@ def _resolve_delivery_targets(job: dict) -> List[dict]:
     return targets
 
 
-def _resolve_delivery_target(job: dict) -> Optional[dict]:
+def _resolve_delivery_target(job: dict) -> dict | None:
     """Resolve the concrete auto-delivery target for a cron job, if any."""
     targets = _resolve_delivery_targets(job)
     return targets[0] if targets else None
@@ -568,7 +568,7 @@ def _send_media_via_adapter(
             logger.warning("Job '%s': failed to send media %s: %s", job.get("id", "?"), media_path, e)
 
 
-def _deliver_result(job: dict, content: str, adapters=None, loop=None) -> Optional[str]:
+def _deliver_result(job: dict, content: str, adapters=None, loop=None) -> str | None:
     """
     Deliver job output to the configured target(s) (origin chat, specific platform, etc.).
 
@@ -954,7 +954,7 @@ def _parse_wake_gate(script_output: str) -> bool:
     return gate.get("wakeAgent", True) is not False
 
 
-def _build_job_prompt(job: dict, prerun_script: Optional[tuple] = None) -> str:
+def _build_job_prompt(job: dict, prerun_script: tuple | None = None) -> str:
     """Build the effective prompt for a cron job, optionally loading one or more skills first.
 
     Args:
@@ -1134,14 +1134,14 @@ def _scan_assembled_cron_prompt(assembled: str, job: dict) -> str:
     return assembled
 
 
-def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
+def run_job(job: dict) -> tuple[bool, str, str, str | None]:
     """Execute a single cron job, applying any per-job profile override."""
     job_id = job["id"]
     with _job_profile_context(job_id, job.get("profile")):
         return _run_job_impl(job)
 
 
-def _run_job_impl(job: dict) -> tuple[bool, str, str, Optional[str]]:
+def _run_job_impl(job: dict) -> tuple[bool, str, str, str | None]:
     """
     Execute a single cron job.
     
@@ -1836,7 +1836,7 @@ def tick(verbose: bool = True, adapters=None, loop=None) -> int:
 
         # Resolve max parallel workers: env var > config.yaml > unbounded.
         # Set HERMES_CRON_MAX_PARALLEL=1 to restore old serial behaviour.
-        _max_workers: Optional[int] = None
+        _max_workers: int | None = None
         try:
             _env_par = os.getenv("HERMES_CRON_MAX_PARALLEL", "").strip()
             if _env_par:

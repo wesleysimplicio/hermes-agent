@@ -24,7 +24,7 @@ def _reset_registry():
 
 
 class _FakeResponse:
-    def __init__(self, status: int = 200, payload: Optional[Dict[str, Any]] = None):
+    def __init__(self, status: int = 200, payload: Dict[str, Any] | None = None):
         self.status_code = status
         self._payload = payload or {}
         self.text = json.dumps(self._payload)

@@ -407,7 +407,7 @@ def normalize_provider(name: str) -> str:
     return ALIASES.get(key, key)
 
 
-def get_provider(name: str) -> Optional[ProviderDef]:
+def get_provider(name: str) -> ProviderDef | None:
     """Look up a built-in provider by id or alias.
 
     Resolution order:
@@ -545,7 +545,7 @@ def determine_api_mode(provider: str, base_url: str = "") -> str:
 
 # -- Provider from user config ------------------------------------------------
 
-def resolve_user_provider(name: str, user_config: Dict[str, Any]) -> Optional[ProviderDef]:
+def resolve_user_provider(name: str, user_config: Dict[str, Any]) -> ProviderDef | None:
     """Resolve a provider from the user's config.yaml ``providers:`` section.
 
     Args:
@@ -596,8 +596,8 @@ def custom_provider_slug(display_name: str) -> str:
 
 def resolve_custom_provider(
     name: str,
-    custom_providers: Optional[List[Dict[str, Any]]],
-) -> Optional[ProviderDef]:
+    custom_providers: List[Dict[str, Any]] | None,
+) -> ProviderDef | None:
     """Resolve a provider from the user's config.yaml ``custom_providers`` list."""
     if not custom_providers or not isinstance(custom_providers, list):
         return None
@@ -665,9 +665,9 @@ def resolve_custom_provider(
 
 def resolve_provider_full(
     name: str,
-    user_providers: Optional[Dict[str, Any]] = None,
-    custom_providers: Optional[List[Dict[str, Any]]] = None,
-) -> Optional[ProviderDef]:
+    user_providers: Dict[str, Any] | None = None,
+    custom_providers: List[Dict[str, Any]] | None = None,
+) -> ProviderDef | None:
     """Full resolution chain: built-in → models.dev → user config.
 
     This is the main entry point for --provider flag resolution.

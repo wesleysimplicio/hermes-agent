@@ -32,8 +32,8 @@ _DEFAULT_WEBSITE_BLOCKLIST = {
 # URL check (a web_crawl with 50 pages would otherwise mean 51 YAML parses).
 _CACHE_TTL_SECONDS = 30.0
 _cache_lock = threading.Lock()
-_cached_policy: Optional[Dict[str, Any]] = None
-_cached_policy_path: Optional[str] = None
+_cached_policy: Dict[str, Any] | None = None
+_cached_policy_path: str | None = None
 _cached_policy_time: float = 0.0
 
 
@@ -49,7 +49,7 @@ def _normalize_host(host: str) -> str:
     return (host or "").strip().lower().rstrip(".")
 
 
-def _normalize_rule(rule: Any) -> Optional[str]:
+def _normalize_rule(rule: Any) -> str | None:
     if not isinstance(rule, str):
         return None
     value = rule.strip().lower()
@@ -90,7 +90,7 @@ def _iter_blocklist_file_rules(path: Path) -> List[str]:
     return rules
 
 
-def _load_policy_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
+def _load_policy_config(config_path: Path | None = None) -> Dict[str, Any]:
     config_path = config_path or _get_default_config_path()
     if not config_path.exists():
         return dict(_DEFAULT_WEBSITE_BLOCKLIST)
@@ -128,7 +128,7 @@ def _load_policy_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
     return policy
 
 
-def load_website_blocklist(config_path: Optional[Path] = None) -> Dict[str, Any]:
+def load_website_blocklist(config_path: Path | None = None) -> Dict[str, Any]:
     """Load and return the parsed website blocklist policy.
 
     Results are cached for ``_CACHE_TTL_SECONDS`` to avoid re-reading
@@ -229,7 +229,7 @@ def _extract_host_from_urlish(url: str) -> str:
     return ""
 
 
-def check_website_access(url: str, config_path: Optional[Path] = None) -> Optional[Dict[str, str]]:
+def check_website_access(url: str, config_path: Path | None = None) -> Dict[str, str] | None:
     """Check whether a URL is allowed by the website blocklist policy.
 
     Returns ``None`` if access is allowed, or a dict with block metadata

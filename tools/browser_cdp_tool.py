@@ -95,7 +95,7 @@ async def _cdp_call(
     ws_url: str,
     method: str,
     params: Dict[str, Any],
-    target_id: Optional[str],
+    target_id: str | None,
     timeout: float,
 ) -> Dict[str, Any]:
     """Make a single CDP call, optionally attaching to a target first.
@@ -117,7 +117,7 @@ async def _cdp_call(
         ping_interval=None,  # CDP server doesn't expect pings
     ) as ws:
         next_id = 1
-        session_id: Optional[str] = None
+        session_id: str | None = None
 
         # --- Step 1: attach to target if requested ---
         if target_id:
@@ -191,7 +191,7 @@ def _browser_cdp_via_supervisor(
     task_id: str,
     frame_id: str,
     method: str,
-    params: Optional[Dict[str, Any]],
+    params: Dict[str, Any] | None,
     timeout: float,
 ) -> str:
     """Route a CDP call through the live supervisor session for an OOPIF frame.
@@ -222,7 +222,7 @@ def _browser_cdp_via_supervisor(
     snap = supervisor.snapshot()
     # Search both the top frame and the children for the requested id.
     top = snap.frame_tree.get("top")
-    frame_info: Optional[Dict[str, Any]] = None
+    frame_info: Dict[str, Any] | None = None
     if top and top.get("frame_id") == frame_id:
         frame_info = top
     else:
@@ -300,11 +300,11 @@ def _browser_cdp_via_supervisor(
 
 def browser_cdp(
     method: str,
-    params: Optional[Dict[str, Any]] = None,
-    target_id: Optional[str] = None,
-    frame_id: Optional[str] = None,
+    params: Dict[str, Any] | None = None,
+    target_id: str | None = None,
+    frame_id: str | None = None,
     timeout: float = 30.0,
-    task_id: Optional[str] = None,
+    task_id: str | None = None,
 ) -> str:
     """Send a raw CDP command.  See ``CDP_DOCS_URL`` for method documentation.
 

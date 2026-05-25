@@ -119,7 +119,7 @@ def format_items_as_markdown(
     *,
     title_key: str = "title",
     url_key: str = "url",
-    body_key: Optional[str] = None,
+    body_key: str | None = None,
     max_body_chars: int = 500,
 ) -> str:
     """Render a list of items as Markdown for cron delivery.

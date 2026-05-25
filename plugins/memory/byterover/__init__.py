@@ -45,10 +45,10 @@ _MIN_OUTPUT_LEN = 20
 # ---------------------------------------------------------------------------
 
 _brv_path_lock = threading.Lock()
-_cached_brv_path: Optional[str] = None
+_cached_brv_path: str | None = None
 
 
-def _resolve_brv_path() -> Optional[str]:
+def _resolve_brv_path() -> str | None:
     """Find the brv binary on PATH or well-known install locations."""
     global _cached_brv_path
     with _brv_path_lock:
@@ -175,7 +175,7 @@ class ByteRoverMemoryProvider(MemoryProvider):
         self._cwd = ""
         self._session_id = ""
         self._turn_count = 0
-        self._sync_thread: Optional[threading.Thread] = None
+        self._sync_thread: threading.Thread | None = None
 
     @property
     def name(self) -> str:

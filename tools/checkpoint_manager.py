@@ -152,7 +152,7 @@ _COMMIT_HASH_RE = re.compile(r'^[0-9a-fA-F]{4,64}$')
 # Input validation helpers
 # ---------------------------------------------------------------------------
 
-def _validate_commit_hash(commit_hash: str) -> Optional[str]:
+def _validate_commit_hash(commit_hash: str) -> str | None:
     """Validate a commit hash to prevent git argument injection.
 
     Returns an error string if invalid, None if valid.
@@ -168,7 +168,7 @@ def _validate_commit_hash(commit_hash: str) -> Optional[str]:
     return None
 
 
-def _validate_file_path(file_path: str, working_dir: str) -> Optional[str]:
+def _validate_file_path(file_path: str, working_dir: str) -> str | None:
     """Validate a file path to prevent path traversal outside the working directory.
 
     Returns an error string if invalid, None if valid.
@@ -201,7 +201,7 @@ def _project_hash(working_dir: str) -> str:
     return hashlib.sha256(abs_path.encode()).hexdigest()[:16]
 
 
-def _store_path(base: Optional[Path] = None) -> Path:
+def _store_path(base: Path | None = None) -> Path:
     """Return the single shared shadow store path."""
     return (base or CHECKPOINT_BASE) / _STORE_DIRNAME
 
@@ -236,7 +236,7 @@ def _project_meta_path(store: Path, dir_hash: str) -> Path:
 def _git_env(
     store: Path,
     working_dir: str,
-    index_file: Optional[Path] = None,
+    index_file: Path | None = None,
 ) -> dict:
     """Build env dict that redirects git to the shared store.
 
@@ -275,8 +275,8 @@ def _run_git(
     store: Path,
     working_dir: str,
     timeout: int = _GIT_TIMEOUT,
-    allowed_returncodes: Optional[Set[int]] = None,
-    index_file: Optional[Path] = None,
+    allowed_returncodes: Set[int] | None = None,
+    index_file: Path | None = None,
 ) -> Tuple[bool, str, str]:
     """Run a git command against the shared store.  Returns (ok, stdout, stderr).
 
@@ -336,7 +336,7 @@ def _run_git(
 # Store initialisation + legacy migration
 # ---------------------------------------------------------------------------
 
-def _migrate_legacy_store(base: Path) -> Optional[Path]:
+def _migrate_legacy_store(base: Path) -> Path | None:
     """Move pre-v2 per-project shadow repos into a ``legacy-<ts>/`` dir.
 
     The pre-v2 layout had one shadow git repo per working directory directly
@@ -351,7 +351,7 @@ def _migrate_legacy_store(base: Path) -> Optional[Path]:
     if not base.exists():
         return None
     store = _store_path(base)
-    legacy_root: Optional[Path] = None
+    legacy_root: Path | None = None
     # Reserved top-level entries managed by v2.
     reserved = {_STORE_DIRNAME, _PRUNE_MARKER_NAME}
     for child in list(base.iterdir()):
@@ -384,7 +384,7 @@ def _migrate_legacy_store(base: Path) -> Optional[Path]:
     return legacy_root
 
 
-def _init_store(store: Path, working_dir: str) -> Optional[str]:
+def _init_store(store: Path, working_dir: str) -> str | None:
     """Initialise the shared shadow store if needed.  Returns error or None.
 
     Also performs one-time migration of pre-v2 per-directory shadow repos
@@ -545,7 +545,7 @@ def _dir_size_bytes(path: Path) -> int:
 # those markers, but inside the shared store + under ``projects/<hash>.json``.
 # The shim initialises the store and registers the project so the old
 # surface keeps roughly the same shape.
-def _init_shadow_repo(shadow_repo: Path, working_dir: str) -> Optional[str]:
+def _init_shadow_repo(shadow_repo: Path, working_dir: str) -> str | None:
     """Backwards-compatible initialiser.
 
     In v1 ``shadow_repo`` was a per-project dir; in v2 it's the shared
@@ -606,7 +606,7 @@ class CheckpointManager:
         self.max_total_size_mb = max(0, int(max_total_size_mb))
         self.max_file_size_mb = max(0, int(max_file_size_mb))
         self._checkpointed_dirs: Set[str] = set()
-        self._git_available: Optional[bool] = None  # lazy probe
+        self._git_available: bool | None = None  # lazy probe
 
     # ------------------------------------------------------------------
     # Turn lifecycle
@@ -1049,7 +1049,7 @@ class CheckpointManager:
         keep = commits[-self.max_snapshots:]
 
         # Rebuild a linear chain off keep[0]'s tree.
-        new_parent: Optional[str] = None
+        new_parent: str | None = None
         for sha in keep:
             ok_tree, tree_sha, _ = _run_git(
                 ["rev-parse", f"{sha}^{{tree}}"], store, working_dir,
@@ -1132,7 +1132,7 @@ class CheckpointManager:
                     continue
                 commits = list_out.splitlines()
                 keep = commits[1:]  # drop oldest
-                new_parent: Optional[str] = None
+                new_parent: str | None = None
                 fail = False
                 for sha in keep:
                     ok_tree, tree_sha, _ = _run_git(
@@ -1223,7 +1223,7 @@ def _delete_ref(store: Path, ref: str) -> bool:
 def prune_checkpoints(
     retention_days: int = 7,
     delete_orphans: bool = True,
-    checkpoint_base: Optional[Path] = None,
+    checkpoint_base: Path | None = None,
     max_total_size_mb: int = 0,
 ) -> Dict[str, int]:
     """Delete stale/orphan checkpoints and reclaim store space.
@@ -1295,9 +1295,9 @@ def prune_checkpoints(
         if not (child / "HEAD").exists():
             continue
         result["scanned"] += 1
-        reason: Optional[str] = None
+        reason: str | None = None
         if delete_orphans:
-            workdir: Optional[str] = None
+            workdir: str | None = None
             wd_marker = child / "HERMES_WORKDIR"
             if wd_marker.exists():
                 try:
@@ -1415,7 +1415,7 @@ def prune_checkpoints(
                         continue
                     commits = lo.splitlines()
                     keep = commits[1:]
-                    new_parent: Optional[str] = None
+                    new_parent: str | None = None
                     fail = False
                     for sha in keep:
                         ok_t, tsha, _ = _run_git(
@@ -1463,7 +1463,7 @@ def maybe_auto_prune_checkpoints(
     retention_days: int = 7,
     min_interval_hours: int = 24,
     delete_orphans: bool = True,
-    checkpoint_base: Optional[Path] = None,
+    checkpoint_base: Path | None = None,
     max_total_size_mb: int = 0,
 ) -> Dict[str, object]:
     """Idempotent wrapper around ``prune_checkpoints`` for startup hooks.
@@ -1530,7 +1530,7 @@ def maybe_auto_prune_checkpoints(
 # Public helpers for `hermes checkpoints` CLI
 # ---------------------------------------------------------------------------
 
-def store_status(checkpoint_base: Optional[Path] = None) -> Dict:
+def store_status(checkpoint_base: Path | None = None) -> Dict:
     """Return a summary of the shadow store.
 
     ``{"base": path, "store_size_bytes": N, "legacy_size_bytes": N,
@@ -1597,7 +1597,7 @@ def store_status(checkpoint_base: Optional[Path] = None) -> Dict:
     return out
 
 
-def clear_all(checkpoint_base: Optional[Path] = None) -> Dict[str, int]:
+def clear_all(checkpoint_base: Path | None = None) -> Dict[str, int]:
     """Nuke the entire checkpoint base (store + legacy).  Irreversible.
 
     Returns ``{"bytes_freed": N, "deleted": bool}``.
@@ -1616,7 +1616,7 @@ def clear_all(checkpoint_base: Optional[Path] = None) -> Dict[str, int]:
     return out
 
 
-def clear_legacy(checkpoint_base: Optional[Path] = None) -> Dict[str, int]:
+def clear_legacy(checkpoint_base: Path | None = None) -> Dict[str, int]:
     """Delete all ``legacy-*`` archive directories.
 
     Returns ``{"bytes_freed": N, "deleted": count}``.

@@ -21,13 +21,13 @@ from agent.skill_preprocessing import (
 logger = logging.getLogger(__name__)
 
 _skill_commands: Dict[str, Dict[str, Any]] = {}
-_skill_commands_platform: Optional[str] = None
+_skill_commands_platform: str | None = None
 # Patterns for sanitizing skill names into clean hyphen-separated slugs.
 _SKILL_INVALID_CHARS = re.compile(r"[^a-z0-9-]")
 _SKILL_MULTI_HYPHEN = re.compile(r"-{2,}")
 
 
-def _resolve_skill_commands_platform() -> Optional[str]:
+def _resolve_skill_commands_platform() -> str | None:
     """Return the current platform scope used for disabled-skill filtering.
 
     Used to detect when the active platform has shifted so
@@ -406,7 +406,7 @@ def reload_skills() -> Dict[str, Any]:
     }
 
 
-def resolve_skill_command_key(command: str) -> Optional[str]:
+def resolve_skill_command_key(command: str) -> str | None:
     """Resolve a user-typed /command to its canonical skill_cmds key.
 
     Skills are always stored with hyphens — ``scan_skill_commands`` normalizes
@@ -430,7 +430,7 @@ def build_skill_invocation_message(
     user_instruction: str = "",
     task_id: str | None = None,
     runtime_note: str = "",
-) -> Optional[str]:
+) -> str | None:
     """Build the user message content for a skill slash command invocation.
 
     Args:

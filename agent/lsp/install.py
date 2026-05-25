@@ -106,7 +106,7 @@ INSTALL_RECIPES: Dict[str, Dict[str, Any]] = {
 
 
 _install_locks: Dict[str, threading.Lock] = {}
-_install_results: Dict[str, Optional[str]] = {}
+_install_results: Dict[str, str | None] = {}
 _install_lock_meta = threading.Lock()
 
 
@@ -120,7 +120,7 @@ def hermes_lsp_bin_dir() -> Path:
     return p
 
 
-def _existing_binary(name: str) -> Optional[str]:
+def _existing_binary(name: str) -> str | None:
     """Probe the staging dir + PATH for a binary named ``name``."""
     staged = hermes_lsp_bin_dir() / name
     if staged.exists() and os.access(staged, os.X_OK):
@@ -140,7 +140,7 @@ def _get_lock(pkg: str) -> threading.Lock:
         return lock
 
 
-def try_install(pkg: str, strategy: str = "auto") -> Optional[str]:
+def try_install(pkg: str, strategy: str = "auto") -> str | None:
     """Try to install ``pkg`` and return the binary path if successful.
 
     ``strategy`` is ``"auto"``, ``"manual"``, or ``"off"``.  In
@@ -171,7 +171,7 @@ def try_install(pkg: str, strategy: str = "auto") -> Optional[str]:
         return result
 
 
-def _do_install(pkg: str) -> Optional[str]:
+def _do_install(pkg: str) -> str | None:
     recipe = INSTALL_RECIPES.get(pkg)
     if recipe is None:
         # Not in our registry — best-effort: just probe PATH.
@@ -207,8 +207,8 @@ def _do_install(pkg: str) -> Optional[str]:
 def _install_npm(
     pkg: str,
     bin_name: str,
-    extra_pkgs: Optional[list] = None,
-) -> Optional[str]:
+    extra_pkgs: list | None = None,
+) -> str | None:
     """Install an npm package into our staging dir.
 
     Uses ``npm install --prefix`` so the binaries land in
@@ -273,7 +273,7 @@ def _install_npm(
     return None
 
 
-def _install_go(pkg: str, bin_name: str) -> Optional[str]:
+def _install_go(pkg: str, bin_name: str) -> str | None:
     """Install a Go module to GOBIN=<staging>."""
     go = shutil.which("go")
     if go is None:
@@ -309,7 +309,7 @@ def _install_go(pkg: str, bin_name: str) -> Optional[str]:
     return None
 
 
-def _install_pip(pkg: str, bin_name: str) -> Optional[str]:
+def _install_pip(pkg: str, bin_name: str) -> str | None:
     """Install a Python package into a hermes-owned target dir.
 
     We avoid polluting the user's site-packages by using

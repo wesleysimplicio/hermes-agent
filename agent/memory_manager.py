@@ -306,7 +306,7 @@ class MemoryManager:
         """All registered providers in order."""
         return list(self._providers)
 
-    def get_provider(self, name: str) -> Optional[MemoryProvider]:
+    def get_provider(self, name: str) -> MemoryProvider | None:
         """Get a provider by name, or None if not registered."""
         for p in self._providers:
             if p.name == name:
@@ -539,7 +539,7 @@ class MemoryManager:
         action: str,
         target: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> None:
         """Notify external providers when the built-in memory tool writes.
 

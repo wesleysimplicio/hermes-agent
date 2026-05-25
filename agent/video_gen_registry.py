@@ -65,7 +65,7 @@ def list_providers() -> List[VideoGenProvider]:
     return sorted(items, key=lambda p: p.name)
 
 
-def get_provider(name: str) -> Optional[VideoGenProvider]:
+def get_provider(name: str) -> VideoGenProvider | None:
     """Return the provider registered under *name*, or None."""
     if not isinstance(name, str):
         return None
@@ -73,13 +73,13 @@ def get_provider(name: str) -> Optional[VideoGenProvider]:
         return _providers.get(name.strip())
 
 
-def get_active_provider() -> Optional[VideoGenProvider]:
+def get_active_provider() -> VideoGenProvider | None:
     """Resolve the currently-active provider.
 
     Reads ``video_gen.provider`` from config.yaml; falls back per the
     module docstring.
     """
-    configured: Optional[str] = None
+    configured: str | None = None
     try:
         from hermes_cli.config import load_config
 

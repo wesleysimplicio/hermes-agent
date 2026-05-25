@@ -128,8 +128,8 @@ class SimplexAdapter(BasePlatformAdapter):
 
         # Running state
         self._ws = None  # websockets connection
-        self._ws_task: Optional[asyncio.Task] = None
-        self._health_task: Optional[asyncio.Task] = None
+        self._ws_task: asyncio.Task | None = None
+        self._health_task: asyncio.Task | None = None
         self._typing_tasks: Dict[str, asyncio.Task] = {}
         self._running = False
         self._last_ws_activity = 0.0
@@ -428,7 +428,7 @@ class SimplexAdapter(BasePlatformAdapter):
 
         await self.handle_message(event_obj)
 
-    async def _fetch_file(self, file_id: Any, file_name: str) -> Optional[str]:
+    async def _fetch_file(self, file_id: Any, file_name: str) -> str | None:
         """Ask the daemon to receive and return a file attachment."""
         # simplex-chat exposes `/api/v1/files/{fileId}` on an HTTP port
         # when started with --http-port. However, the canonical WebSocket API
@@ -498,8 +498,8 @@ class SimplexAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a text message to a contact or group."""
         corr_id = self._make_corr_id()
@@ -526,9 +526,9 @@ class SimplexAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send an image (URL) as a message with optional caption.
 
@@ -611,8 +611,8 @@ async def _standalone_send(
     chat_id: str,
     message: str,
     *,
-    thread_id: Optional[str] = None,
-    media_files: Optional[List[str]] = None,
+    thread_id: str | None = None,
+    media_files: List[str] | None = None,
     force_document: bool = False,
 ) -> Dict[str, Any]:
     """Open an ephemeral WebSocket to the daemon, send, and close.

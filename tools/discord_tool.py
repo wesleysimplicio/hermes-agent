@@ -50,7 +50,7 @@ _FLAG_GATEWAY_MESSAGE_CONTENT_LIMITED = 1 << 19
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _get_bot_token() -> Optional[str]:
+def _get_bot_token() -> str | None:
     """Resolve the Discord bot token from environment."""
     return os.getenv("DISCORD_BOT_TOKEN", "").strip() or None
 
@@ -59,8 +59,8 @@ def _discord_request(
     method: str,
     path: str,
     token: str,
-    params: Optional[Dict[str, str]] = None,
-    body: Optional[Dict[str, Any]] = None,
+    params: Dict[str, str] | None = None,
+    body: Dict[str, Any] | None = None,
     timeout: int = 15,
 ) -> Any:
     """Make a request to the Discord REST API."""
@@ -224,7 +224,7 @@ def _list_channels(token: str, guild_id: str, **_kwargs: Any) -> str:
     channels = _discord_request("GET", f"/guilds/{guild_id}/channels", token)
 
     # Organize: categories first, then channels under each
-    categories: Dict[Optional[str], Dict[str, Any]] = {}
+    categories: Dict[str | None, Dict[str, Any]] = {}
     uncategorized: List[Dict[str, Any]] = []
 
     # First pass: collect categories
@@ -350,7 +350,7 @@ def _search_members(token: str, guild_id: str, query: str, limit: int = 20, **_k
 
 def _fetch_messages(
     token: str, channel_id: str, limit: int = 50,
-    before: Optional[str] = None, after: Optional[str] = None,
+    before: str | None = None, after: str | None = None,
     **_kwargs: Any,
 ) -> str:
     """Fetch recent messages from a channel."""
@@ -426,7 +426,7 @@ def _delete_message(token: str, channel_id: str, message_id: str, **_kwargs: Any
 
 def _create_thread(
     token: str, channel_id: str, name: str,
-    message_id: Optional[str] = None,
+    message_id: str | None = None,
     auto_archive_duration: int = 1440,
     **_kwargs: Any,
 ) -> str:
@@ -541,7 +541,7 @@ _REQUIRED_PARAMS: Dict[str, List[str]] = {
 # Config-based action allowlist
 # ---------------------------------------------------------------------------
 
-def _load_allowed_actions_config() -> Optional[List[str]]:
+def _load_allowed_actions_config() -> List[str] | None:
     """Read ``discord.server_actions`` from user config.
 
     Returns a list of allowed action names, or ``None`` if the user
@@ -584,7 +584,7 @@ def _load_allowed_actions_config() -> Optional[List[str]]:
 
 def _available_actions(
     caps: Dict[str, Any],
-    allowlist: Optional[List[str]],
+    allowlist: List[str] | None,
 ) -> List[str]:
     """Compute the visible action list from intents + config allowlist.
 
@@ -608,9 +608,9 @@ def _available_actions(
 
 def _build_schema(
     actions: List[str],
-    caps: Optional[Dict[str, Any]] = None,
+    caps: Dict[str, Any] | None = None,
     tool_name: str = "discord",
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any] | None:
     """Build the tool schema for the given filtered action list.
 
     Returns ``None`` when *actions* is empty — callers should drop the
@@ -728,7 +728,7 @@ def _build_schema(
 def _get_dynamic_schema(
     action_subset: Dict[str, Any],
     tool_name: str,
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any] | None:
     """Build a dynamic schema for *action_subset* filtered by intents + config."""
     token = _get_bot_token()
     if not token:
@@ -741,15 +741,15 @@ def _get_dynamic_schema(
     return _build_schema(actions, caps, tool_name=tool_name)
 
 
-def get_dynamic_schema_core() -> Optional[Dict[str, Any]]:
+def get_dynamic_schema_core() -> Dict[str, Any] | None:
     return _get_dynamic_schema(_CORE_ACTIONS, "discord")
 
 
-def get_dynamic_schema_admin() -> Optional[Dict[str, Any]]:
+def get_dynamic_schema_admin() -> Dict[str, Any] | None:
     return _get_dynamic_schema(_ADMIN_ACTIONS, "discord_admin")
 
 
-def get_dynamic_schema() -> Optional[Dict[str, Any]]:
+def get_dynamic_schema() -> Dict[str, Any] | None:
     """Backward-compat wrapper — returns core schema."""
     return get_dynamic_schema_core()
 

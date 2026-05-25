@@ -90,7 +90,7 @@ _INVISIBLE_CHARS = {
 }
 
 
-def _scan_memory_content(content: str) -> Optional[str]:
+def _scan_memory_content(content: str) -> str | None:
     """Scan memory content for injection/exfil patterns. Returns error string if blocked."""
     # Check invisible unicode
     for char in _INVISIBLE_CHARS:
@@ -216,7 +216,7 @@ class MemoryStore:
             return mem_dir / "USER.md"
         return mem_dir / "MEMORY.md"
 
-    def _reload_target(self, target: str) -> Optional[str]:
+    def _reload_target(self, target: str) -> str | None:
         """Re-read entries from disk into in-memory state.
 
         Called under file lock to get the latest state before mutating.
@@ -407,7 +407,7 @@ class MemoryStore:
 
         return self._success_response(target, "Entry removed.")
 
-    def format_for_system_prompt(self, target: str) -> Optional[str]:
+    def format_for_system_prompt(self, target: str) -> str | None:
         """
         Return the frozen snapshot for system prompt injection.
 
@@ -479,7 +479,7 @@ class MemoryStore:
         entries = [e.strip() for e in raw.split(ENTRY_DELIMITER)]
         return [e for e in entries if e]
 
-    def _detect_external_drift(self, target: str) -> Optional[str]:
+    def _detect_external_drift(self, target: str) -> str | None:
         """Return a backup-path string if on-disk content shows external drift.
 
         The memory file is supposed to be a list of small entries the tool
@@ -571,7 +571,7 @@ def memory_tool(
     target: str = "memory",
     content: str = None,
     old_text: str = None,
-    store: Optional[MemoryStore] = None,
+    store: MemoryStore | None = None,
 ) -> str:
     """
     Single entry point for the memory tool. Dispatches to MemoryStore methods.

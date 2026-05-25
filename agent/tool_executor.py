@@ -498,7 +498,7 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
             function_args = {}
 
         # Check plugin hooks for a block directive before executing.
-        _block_msg: Optional[str] = None
+        _block_msg: str | None = None
         try:
             from hermes_cli.plugins import get_pre_tool_call_block_message
             _block_msg = get_pre_tool_call_block_message(

@@ -249,7 +249,7 @@ def _credentials_lock(timeout_seconds: float = LOCK_TIMEOUT_SECONDS):
 _scraped_creds_cache: Dict[str, str] = {}
 
 
-def _locate_gemini_cli_oauth_js() -> Optional[Path]:
+def _locate_gemini_cli_oauth_js() -> Path | None:
     """Walk the user's gemini binary install to find its oauth2.js.
 
     Returns None if gemini isn't installed. Supports both the npm install
@@ -465,7 +465,7 @@ class GoogleCredentials:
 # Credential I/O (atomic + locked)
 # =============================================================================
 
-def load_credentials() -> Optional[GoogleCredentials]:
+def load_credentials() -> GoogleCredentials | None:
     """Load credentials from disk. Returns None if missing or corrupt."""
     path = _credentials_path()
     if not path.exists():
@@ -578,8 +578,8 @@ def exchange_code(
     verifier: str,
     redirect_uri: str,
     *,
-    client_id: Optional[str] = None,
-    client_secret: Optional[str] = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
     timeout: float = TOKEN_REQUEST_TIMEOUT_SECONDS,
 ) -> Dict[str, Any]:
     """Exchange authorization code for access + refresh tokens."""
@@ -600,8 +600,8 @@ def exchange_code(
 def refresh_access_token(
     refresh_token: str,
     *,
-    client_id: Optional[str] = None,
-    client_secret: Optional[str] = None,
+    client_id: str | None = None,
+    client_secret: str | None = None,
     timeout: float = TOKEN_REQUEST_TIMEOUT_SECONDS,
 ) -> Dict[str, Any]:
     """Refresh the access token."""
@@ -739,9 +739,9 @@ def update_project_ids(project_id: str = "", managed_project_id: str = "") -> No
 
 class _OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
     expected_state: str = ""
-    captured_code: Optional[str] = None
-    captured_error: Optional[str] = None
-    ready: Optional[threading.Event] = None
+    captured_code: str | None = None
+    captured_error: str | None = None
+    ready: threading.Event | None = None
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002, N802
         logger.debug("OAuth callback: " + format, *args)
@@ -903,7 +903,7 @@ def start_oauth_flow(
         except Exception as exc:
             logger.debug("webbrowser.open failed: %s", exc)
 
-    code: Optional[str] = None
+    code: str | None = None
     try:
         if ready.wait(timeout=callback_wait_seconds):
             code = _OAuthCallbackHandler.captured_code
@@ -983,7 +983,7 @@ def _paste_mode_login(
     return _persist_token_response(token_resp, project_id=project_id)
 
 
-def _prompt_paste_fallback() -> Optional[str]:
+def _prompt_paste_fallback() -> str | None:
     print()
     print("Paste the full redirect URL Google showed you, OR just the 'code=' parameter value.")
     raw = input("Callback URL or code: ").strip()

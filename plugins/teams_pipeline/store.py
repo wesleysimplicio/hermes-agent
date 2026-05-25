@@ -80,7 +80,7 @@ class TeamsPipelineStore:
         with self._lock:
             return deepcopy(self._state["subscriptions"])
 
-    def get_subscription(self, subscription_id: str) -> Optional[Dict[str, Any]]:
+    def get_subscription(self, subscription_id: str) -> Dict[str, Any] | None:
         with self._lock:
             record = self._state["subscriptions"].get(subscription_id)
             return deepcopy(record) if isinstance(record, dict) else None
@@ -120,9 +120,9 @@ class TeamsPipelineStore:
     def record_notification_receipt(
         self,
         receipt_key: str,
-        payload: Optional[Dict[str, Any]] = None,
+        payload: Dict[str, Any] | None = None,
         *,
-        received_at: Optional[str] = None,
+        received_at: str | None = None,
     ) -> bool:
         with self._lock:
             if receipt_key in self._state["notification_receipts"]:
@@ -134,14 +134,14 @@ class TeamsPipelineStore:
             self._persist()
             return True
 
-    def record_event_timestamp(self, event_key: str, timestamp: Optional[str] = None) -> str:
+    def record_event_timestamp(self, event_key: str, timestamp: str | None = None) -> str:
         with self._lock:
             value = timestamp or _utc_now_iso()
             self._state["event_timestamps"][event_key] = value
             self._persist()
             return value
 
-    def get_event_timestamp(self, event_key: str) -> Optional[str]:
+    def get_event_timestamp(self, event_key: str) -> str | None:
         with self._lock:
             value = self._state["event_timestamps"].get(event_key)
             return str(value) if value is not None else None
@@ -167,7 +167,7 @@ class TeamsPipelineStore:
             self._persist()
             return deepcopy(merged)
 
-    def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
+    def get_job(self, job_id: str) -> Dict[str, Any] | None:
         with self._lock:
             record = self._state["jobs"].get(job_id)
             return deepcopy(record) if isinstance(record, dict) else None
@@ -187,7 +187,7 @@ class TeamsPipelineStore:
             self._persist()
             return deepcopy(merged)
 
-    def get_sink_record(self, sink_key: str) -> Optional[Dict[str, Any]]:
+    def get_sink_record(self, sink_key: str) -> Dict[str, Any] | None:
         with self._lock:
             record = self._state["sink_records"].get(sink_key)
             return deepcopy(record) if isinstance(record, dict) else None

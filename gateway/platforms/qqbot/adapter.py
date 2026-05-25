@@ -219,14 +219,14 @@ class QQAdapter(BasePlatformAdapter):
         )
 
         # Connection state
-        self._session: Optional[aiohttp.ClientSession] = None
-        self._ws: Optional[aiohttp.ClientWebSocketResponse] = None
-        self._http_client: Optional[httpx.AsyncClient] = None
-        self._listen_task: Optional[asyncio.Task] = None
-        self._heartbeat_task: Optional[asyncio.Task] = None
+        self._session: aiohttp.ClientSession | None = None
+        self._ws: aiohttp.ClientWebSocketResponse | None = None
+        self._http_client: httpx.AsyncClient | None = None
+        self._listen_task: asyncio.Task | None = None
+        self._heartbeat_task: asyncio.Task | None = None
         self._heartbeat_interval: float = 30.0  # seconds, updated by Hello
-        self._session_id: Optional[str] = None
-        self._last_seq: Optional[int] = None
+        self._session_id: str | None = None
+        self._last_seq: int | None = None
         self._chat_type_map: Dict[str, str] = {}  # chat_id → "c2c"|"group"|"guild"|"dm"
 
         # Request/response correlation
@@ -239,7 +239,7 @@ class QQAdapter(BasePlatformAdapter):
         self._typing_sent_at: Dict[str, float] = {}
 
         # Token cache
-        self._access_token: Optional[str] = None
+        self._access_token: str | None = None
         self._token_expires_at: float = 0.0
         self._token_lock = asyncio.Lock()
 
@@ -250,9 +250,7 @@ class QQAdapter(BasePlatformAdapter):
         # for every INTERACTION_CREATE event after the adapter has already
         # ACKed it. Callers (gateway wiring for approvals / update prompts)
         # register via set_interaction_callback().
-        self._interaction_callback: Optional[
-            Callable[[InteractionEvent], Awaitable[None]]
-        ] = None
+        self._interaction_callback: Callable[[InteractionEvent], Awaitable[None]] | None = None
 
         # Default interaction dispatcher: routes approval-button clicks to
         # tools.approval.resolve_gateway_approval() and update-prompt clicks
@@ -886,7 +884,7 @@ class QQAdapter(BasePlatformAdapter):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _parse_json(raw: Any) -> Optional[Dict[str, Any]]:
+    def _parse_json(raw: Any) -> Dict[str, Any] | None:
         try:
             payload = json.loads(raw)
         except Exception:
@@ -944,7 +942,7 @@ class QQAdapter(BasePlatformAdapter):
 
     def set_interaction_callback(
         self,
-        callback: Optional[Callable[[InteractionEvent], Awaitable[None]]],
+        callback: Callable[[InteractionEvent], Awaitable[None]] | None,
     ) -> None:
         """Register (or clear) the interaction callback.
 
@@ -1055,7 +1053,7 @@ class QQAdapter(BasePlatformAdapter):
     }
 
     @staticmethod
-    def _parse_gateway_session_key(session_key: str) -> Optional[Dict[str, str]]:
+    def _parse_gateway_session_key(session_key: str) -> Dict[str, str] | None:
         """Parse ``agent:main:<platform>:<chat_type>:<chat_id>[:<user_id>]``."""
         parts = str(session_key or "").split(":")
         if len(parts) < 5 or parts[0] != "agent" or parts[1] != "main":
@@ -1743,7 +1741,7 @@ class QQAdapter(BasePlatformAdapter):
 
     async def _download_and_cache(
             self, url: str, content_type: str, original_name: str = "",
-    ) -> Optional[str]:
+    ) -> str | None:
         """Download a URL and cache it locally.
 
         :param original_name: Preferred filename from attachment metadata.
@@ -1825,9 +1823,9 @@ class QQAdapter(BasePlatformAdapter):
             content_type: str,
             filename: str,
             *,
-            asr_refer_text: Optional[str] = None,
-            voice_wav_url: Optional[str] = None,
-    ) -> Optional[str]:
+            asr_refer_text: str | None = None,
+            voice_wav_url: str | None = None,
+    ) -> str | None:
         """Download a voice attachment, convert to wav, and transcribe.
 
         Priority:
@@ -1945,7 +1943,7 @@ class QQAdapter(BasePlatformAdapter):
 
     async def _convert_audio_to_wav_file(
             self, audio_data: bytes, filename: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Convert audio bytes to a temp .wav file using pilk (SILK) or ffmpeg.
 
         QQ voice messages are typically SILK format which ffmpeg cannot decode.
@@ -2018,7 +2016,7 @@ class QQAdapter(BasePlatformAdapter):
         """Check if bytes look like a SILK audio file."""
         return data[:6] == b"#!SILK" or data[:2] == b"\x02!" or data[:9] == b"#!SILK_V3"
 
-    async def _convert_silk_to_wav(self, src_path: str, wav_path: str) -> Optional[str]:
+    async def _convert_silk_to_wav(self, src_path: str, wav_path: str) -> str | None:
         """Convert audio file to WAV using the pilk library.
 
         Tries the file as-is first, then as .silk if the extension differs.
@@ -2072,7 +2070,7 @@ class QQAdapter(BasePlatformAdapter):
 
         return None
 
-    async def _convert_raw_to_wav(self, audio_data: bytes, wav_path: str) -> Optional[str]:
+    async def _convert_raw_to_wav(self, audio_data: bytes, wav_path: str) -> str | None:
         """Last resort: try writing audio data as raw PCM 16-bit mono 16kHz WAV.
 
         This will produce garbage if the data isn't raw PCM, but at least
@@ -2091,7 +2089,7 @@ class QQAdapter(BasePlatformAdapter):
             logger.debug("[%s] raw PCM fallback failed: %s", self._log_tag, exc)
             return None
 
-    async def _convert_ffmpeg_to_wav(self, src_path: str, wav_path: str) -> Optional[str]:
+    async def _convert_ffmpeg_to_wav(self, src_path: str, wav_path: str) -> str | None:
         """Convert audio file to WAV using ffmpeg."""
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -2136,7 +2134,7 @@ class QQAdapter(BasePlatformAdapter):
         )
         return wav_path
 
-    def _resolve_stt_config(self) -> Optional[Dict[str, str]]:
+    def _resolve_stt_config(self) -> Dict[str, str] | None:
         """Resolve STT backend configuration from config/environment.
 
         Priority:
@@ -2192,7 +2190,7 @@ class QQAdapter(BasePlatformAdapter):
 
         return None
 
-    async def _call_stt(self, wav_path: str) -> Optional[str]:
+    async def _call_stt(self, wav_path: str) -> str | None:
         """Call an OpenAI-compatible STT API to transcribe a wav file.
 
         Uses the provider configured in ``channels.qqbot.stt`` config,
@@ -2245,7 +2243,7 @@ class QQAdapter(BasePlatformAdapter):
 
     async def _convert_audio_to_wav(
             self, audio_data: bytes, source_url: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Convert audio bytes to .wav using pilk (SILK) or ffmpeg, caching the result."""
         import tempfile
 
@@ -2312,7 +2310,7 @@ class QQAdapter(BasePlatformAdapter):
             self,
             method: str,
             path: str,
-            body: Optional[Dict[str, Any]] = None,
+            body: Dict[str, Any] | None = None,
             timeout: float = DEFAULT_API_TIMEOUT,
     ) -> Dict[str, Any]:
         """Make an authenticated REST API request to QQ Bot API."""
@@ -2349,10 +2347,10 @@ class QQAdapter(BasePlatformAdapter):
             target_type: str,
             target_id: str,
             file_type: int,
-            url: Optional[str] = None,
-            file_data: Optional[str] = None,
+            url: str | None = None,
+            file_data: str | None = None,
             srv_send_msg: bool = False,
-            file_name: Optional[str] = None,
+            file_name: str | None = None,
     ) -> Dict[str, Any]:
         """Upload media and return file_info."""
         path = (
@@ -2421,8 +2419,8 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             content: str,
-            reply_to: Optional[str] = None,
-            metadata: Optional[Dict[str, Any]] = None,
+            reply_to: str | None = None,
+            metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a text or markdown message to a QQ user or group.
 
@@ -2454,10 +2452,10 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             content: str,
-            reply_to: Optional[str] = None,
+            reply_to: str | None = None,
     ) -> SendResult:
         """Send a single chunk with retry + exponential backoff."""
-        last_exc: Optional[Exception] = None
+        last_exc: Exception | None = None
         chat_type = self._guess_chat_type(chat_id)
 
         for attempt in range(3):
@@ -2504,8 +2502,8 @@ class QQAdapter(BasePlatformAdapter):
             self,
             openid: str,
             content: str,
-            reply_to: Optional[str] = None,
-            keyboard: Optional[InlineKeyboard] = None,
+            reply_to: str | None = None,
+            keyboard: InlineKeyboard | None = None,
     ) -> SendResult:
         """Send text to a C2C user via REST API.
 
@@ -2526,8 +2524,8 @@ class QQAdapter(BasePlatformAdapter):
             self,
             group_openid: str,
             content: str,
-            reply_to: Optional[str] = None,
-            keyboard: Optional[InlineKeyboard] = None,
+            reply_to: str | None = None,
+            keyboard: InlineKeyboard | None = None,
     ) -> SendResult:
         """Send text to a group via REST API.
 
@@ -2547,7 +2545,7 @@ class QQAdapter(BasePlatformAdapter):
         return SendResult(success=True, message_id=msg_id, raw_response=data)
 
     async def _send_guild_text(
-            self, channel_id: str, content: str, reply_to: Optional[str] = None
+            self, channel_id: str, content: str, reply_to: str | None = None
     ) -> SendResult:
         """Send text to a guild channel via REST API."""
         body: Dict[str, Any] = {"content": content[: self.MAX_MESSAGE_LENGTH]}
@@ -2567,7 +2565,7 @@ class QQAdapter(BasePlatformAdapter):
             chat_id: str,
             content: str,
             keyboard: InlineKeyboard,
-            reply_to: Optional[str] = None,
+            reply_to: str | None = None,
     ) -> SendResult:
         """Send a single text message with an inline keyboard attached.
 
@@ -2615,7 +2613,7 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             req: ApprovalRequest,
-            reply_to: Optional[str] = None,
+            reply_to: str | None = None,
     ) -> SendResult:
         """Send a 3-button approval request (``allow-once / allow-always / deny``).
 
@@ -2649,7 +2647,7 @@ class QQAdapter(BasePlatformAdapter):
             command: str,
             session_key: str,
             description: str = "dangerous command",
-            metadata: Optional[Dict[str, Any]] = None,
+            metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a button-based exec-approval prompt for a dangerous command.
 
@@ -2684,7 +2682,7 @@ class QQAdapter(BasePlatformAdapter):
             prompt: str,
             default: str = "",
             session_key: str = "",
-            metadata: Optional[Dict[str, Any]] = None,
+            metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a Yes/No update-confirmation prompt with inline buttons.
 
@@ -2709,7 +2707,7 @@ class QQAdapter(BasePlatformAdapter):
         )
 
     def _build_text_body(
-            self, content: str, reply_to: Optional[str] = None
+            self, content: str, reply_to: str | None = None
     ) -> Dict[str, Any]:
         """Build the message body for C2C/group text sending."""
         msg_seq = self._next_msg_seq(reply_to or "default")
@@ -2742,9 +2740,9 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             image_url: str,
-            caption: Optional[str] = None,
-            reply_to: Optional[str] = None,
-            metadata: Optional[Dict[str, Any]] = None,
+            caption: str | None = None,
+            reply_to: str | None = None,
+            metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send an image natively via QQ Bot API upload."""
         del metadata
@@ -2768,8 +2766,8 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             image_path: str,
-            caption: Optional[str] = None,
-            reply_to: Optional[str] = None,
+            caption: str | None = None,
+            reply_to: str | None = None,
             **kwargs,
     ) -> SendResult:
         """Send a local image file natively."""
@@ -2782,8 +2780,8 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             audio_path: str,
-            caption: Optional[str] = None,
-            reply_to: Optional[str] = None,
+            caption: str | None = None,
+            reply_to: str | None = None,
             **kwargs,
     ) -> SendResult:
         """Send a voice message natively."""
@@ -2796,8 +2794,8 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             video_path: str,
-            caption: Optional[str] = None,
-            reply_to: Optional[str] = None,
+            caption: str | None = None,
+            reply_to: str | None = None,
             **kwargs,
     ) -> SendResult:
         """Send a video natively."""
@@ -2810,9 +2808,9 @@ class QQAdapter(BasePlatformAdapter):
             self,
             chat_id: str,
             file_path: str,
-            caption: Optional[str] = None,
-            file_name: Optional[str] = None,
-            reply_to: Optional[str] = None,
+            caption: str | None = None,
+            file_name: str | None = None,
+            reply_to: str | None = None,
             **kwargs,
     ) -> SendResult:
         """Send a file/document natively."""
@@ -2833,9 +2831,9 @@ class QQAdapter(BasePlatformAdapter):
             media_source: str,
             file_type: int,
             kind: str,
-            caption: Optional[str] = None,
-            reply_to: Optional[str] = None,
-            file_name: Optional[str] = None,
+            caption: str | None = None,
+            reply_to: str | None = None,
+            file_name: str | None = None,
     ) -> SendResult:
         """Upload media and send as a native message.
 
@@ -2959,7 +2957,7 @@ class QQAdapter(BasePlatformAdapter):
             chat_id: str,
             media_source: str,
             file_type: int,
-            file_name: Optional[str],
+            file_name: str | None,
     ) -> Tuple[str, Dict[str, Any]]:
         """Chunked-upload a local file and return ``(resolved_name, complete_response)``.
 
@@ -3002,7 +3000,7 @@ class QQAdapter(BasePlatformAdapter):
         return resolved_name, complete
 
     async def _load_media(
-            self, source: str, file_name: Optional[str] = None
+            self, source: str, file_name: str | None = None
     ) -> Tuple[str, str, str]:
         """Load media from URL or local path. Returns (base64_or_url, content_type, filename)."""
         source = str(source).strip()

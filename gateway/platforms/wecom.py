@@ -167,11 +167,11 @@ class WeComAdapter(BasePlatformAdapter):
         self._group_allow_from = _coerce_list(extra.get("group_allow_from") or extra.get("groupAllowFrom"))
         self._groups = extra.get("groups") if isinstance(extra.get("groups"), dict) else {}
 
-        self._session: Optional["aiohttp.ClientSession"] = None
-        self._ws: Optional["aiohttp.ClientWebSocketResponse"] = None
-        self._http_client: Optional["httpx.AsyncClient"] = None
-        self._listen_task: Optional[asyncio.Task] = None
-        self._heartbeat_task: Optional[asyncio.Task] = None
+        self._session: "aiohttp.ClientSession" | None = None
+        self._ws: "aiohttp.ClientWebSocketResponse" | None = None
+        self._http_client: "httpx.AsyncClient" | None = None
+        self._listen_task: asyncio.Task | None = None
+        self._heartbeat_task: asyncio.Task | None = None
         self._pending_responses: Dict[str, asyncio.Future] = {}
         self._dedup = MessageDeduplicator(max_size=DEDUP_MAX_SIZE)
         self._reply_req_ids: Dict[str, str] = {}
@@ -469,7 +469,7 @@ class WeComAdapter(BasePlatformAdapter):
         return ""
 
     @staticmethod
-    def _parse_json(raw: Any) -> Optional[Dict[str, Any]]:
+    def _parse_json(raw: Any) -> Dict[str, Any] | None:
         try:
             payload = json.loads(raw)
         except Exception:
@@ -641,10 +641,10 @@ class WeComAdapter(BasePlatformAdapter):
                 self._pending_text_batch_tasks.pop(key, None)
 
     @staticmethod
-    def _extract_text(body: Dict[str, Any]) -> Tuple[str, Optional[str]]:
+    def _extract_text(body: Dict[str, Any]) -> Tuple[str, str | None]:
         """Extract plain text and quoted text from a callback payload."""
         text_parts: List[str] = []
-        reply_text: Optional[str] = None
+        reply_text: str | None = None
         msgtype = str(body.get("msgtype") or "").lower()
 
         if msgtype == "mixed":
@@ -738,7 +738,7 @@ class WeComAdapter(BasePlatformAdapter):
 
         return media_paths, media_types
 
-    async def _cache_media(self, kind: str, media: Dict[str, Any]) -> Optional[Tuple[str, str]]:
+    async def _cache_media(self, kind: str, media: Dict[str, Any]) -> Tuple[str, str] | None:
         """Cache an inbound image/file/media reference to local storage."""
         if "base64" in media and media.get("base64"):
             try:
@@ -820,7 +820,7 @@ class WeComAdapter(BasePlatformAdapter):
         return fallback
 
     @staticmethod
-    def _guess_filename(url: str, content_disposition: Optional[str], content_type: str) -> str:
+    def _guess_filename(url: str, content_disposition: str | None, content_type: str) -> str:
         if content_disposition:
             match = re.search(r'filename="?([^";]+)"?', content_disposition)
             if match:
@@ -904,7 +904,7 @@ class WeComAdapter(BasePlatformAdapter):
         while len(self._last_chat_req_ids) > DEDUP_MAX_SIZE:
             self._last_chat_req_ids.pop(next(iter(self._last_chat_req_ids)))
 
-    def _reply_req_id_for_message(self, reply_to: Optional[str]) -> Optional[str]:
+    def _reply_req_id_for_message(self, reply_to: str | None) -> str | None:
         normalized = str(reply_to or "").strip()
         if not normalized or normalized.startswith("quote:"):
             return None
@@ -945,7 +945,7 @@ class WeComAdapter(BasePlatformAdapter):
         return "file"
 
     @staticmethod
-    def _apply_file_size_limits(file_size: int, detected_type: str, content_type: Optional[str] = None) -> Dict[str, Any]:
+    def _apply_file_size_limits(file_size: int, detected_type: str, content_type: str | None = None) -> Dict[str, Any]:
         file_size_mb = file_size / (1024 * 1024)
         normalized_type = str(detected_type or "file").lower()
         normalized_content_type = str(content_type or "").strip().lower()
@@ -1009,7 +1009,7 @@ class WeComAdapter(BasePlatformAdapter):
         }
 
     @staticmethod
-    def _response_error(response: Dict[str, Any]) -> Optional[str]:
+    def _response_error(response: Dict[str, Any]) -> str | None:
         errcode = response.get("errcode", 0)
         if errcode in {0, None}:
             return None
@@ -1104,7 +1104,7 @@ class WeComAdapter(BasePlatformAdapter):
     async def _load_outbound_media(
         self,
         media_source: str,
-        file_name: Optional[str] = None,
+        file_name: str | None = None,
     ) -> Tuple[bytes, str, str]:
         source = str(media_source or "").strip()
         if not source:
@@ -1139,7 +1139,7 @@ class WeComAdapter(BasePlatformAdapter):
     async def _prepare_outbound_media(
         self,
         media_source: str,
-        file_name: Optional[str] = None,
+        file_name: str | None = None,
     ) -> Dict[str, Any]:
         data, content_type, resolved_name = await self._load_outbound_media(media_source, file_name=file_name)
         detected_type = self._detect_wecom_media_type(content_type)
@@ -1253,8 +1253,8 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-    ) -> Optional[SendResult]:
+        reply_to: str | None = None,
+    ) -> SendResult | None:
         if not content:
             return None
         result = await self.send(chat_id=chat_id, content=content, reply_to=reply_to)
@@ -1266,9 +1266,9 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         media_source: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
     ) -> SendResult:
         if not chat_id:
             return SendResult(success=False, error="chat_id is required")
@@ -1349,8 +1349,8 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send markdown to a WeCom chat via proactive ``aibot_send_msg``."""
         del metadata
@@ -1395,9 +1395,9 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         del metadata
 
@@ -1418,8 +1418,8 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1434,9 +1434,9 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1452,8 +1452,8 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1468,8 +1468,8 @@ class WeComAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1506,7 +1506,7 @@ _QR_POLL_TIMEOUT = 300  # 5 minutes
 def qr_scan_for_bot_info(
     *,
     timeout_seconds: int = _QR_POLL_TIMEOUT,
-) -> Optional[Dict[str, str]]:
+) -> Dict[str, str] | None:
     """Run the WeCom QR scan flow to obtain bot_id and secret.
 
     Fetches a QR code from WeCom, renders it in the terminal, and polls

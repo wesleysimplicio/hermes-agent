@@ -130,7 +130,7 @@ def _backup_cron_jobs_into(dest: Path) -> Dict[str, Any]:
     return info
 
 
-def _utc_id(now: Optional[datetime] = None) -> str:
+def _utc_id(now: datetime | None = None) -> str:
     """UTC ISO-ish filesystem-safe timestamp: ``2026-05-01T13-05-42Z``."""
     if now is None:
         now = datetime.now(timezone.utc)
@@ -186,7 +186,7 @@ def _count_skill_files(base: Path) -> int:
 
 def _write_manifest(dest: Path, reason: str, archive_path: Path,
                     skills_counted: int,
-                    cron_info: Optional[Dict[str, Any]] = None) -> None:
+                    cron_info: Dict[str, Any] | None = None) -> None:
     manifest = {
         "id": dest.name,
         "reason": reason,
@@ -209,7 +209,7 @@ def _write_manifest(dest: Path, reason: str, archive_path: Path,
     )
 
 
-def snapshot_skills(reason: str = "manual") -> Optional[Path]:
+def snapshot_skills(reason: str = "manual") -> Path | None:
     """Create a tar.gz snapshot of ``~/.hermes/skills/`` and prune old ones.
 
     Returns the snapshot directory path, or ``None`` if the snapshot was
@@ -362,7 +362,7 @@ def list_backups() -> List[Dict[str, Any]]:
     return out
 
 
-def _resolve_backup(backup_id: Optional[str]) -> Optional[Path]:
+def _resolve_backup(backup_id: str | None) -> Path | None:
     """Return the path of the requested backup, or the newest one if
     *backup_id* is None. Returns None if no match."""
     backups = _backups_dir()
@@ -527,7 +527,7 @@ def _restore_cron_skill_links(snapshot_dir: Path) -> Dict[str, Any]:
 
 
 
-def rollback(backup_id: Optional[str] = None) -> Tuple[bool, str, Optional[Path]]:
+def rollback(backup_id: str | None = None) -> Tuple[bool, str, Path | None]:
     """Restore ``~/.hermes/skills/`` from a snapshot.
 
     Strategy:

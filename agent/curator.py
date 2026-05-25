@@ -37,7 +37,7 @@ from tools import skill_usage
 logger = logging.getLogger(__name__)
 
 
-def _strip_aux_credential(value: Any) -> Optional[str]:
+def _strip_aux_credential(value: Any) -> str | None:
     if value is None:
         return None
     text = str(value).strip()
@@ -49,8 +49,8 @@ class _ReviewRuntimeBinding(NamedTuple):
 
     provider: str
     model: str
-    explicit_api_key: Optional[str]
-    explicit_base_url: Optional[str]
+    explicit_api_key: str | None
+    explicit_base_url: str | None
 
 
 DEFAULT_INTERVAL_HOURS = 24 * 7  # 7 days
@@ -187,7 +187,7 @@ def get_archive_after_days() -> int:
 # Idle / interval check
 # ---------------------------------------------------------------------------
 
-def _parse_iso(ts: Optional[str]) -> Optional[datetime]:
+def _parse_iso(ts: str | None) -> datetime | None:
     if not ts:
         return None
     try:
@@ -196,7 +196,7 @@ def _parse_iso(ts: Optional[str]) -> Optional[datetime]:
         return None
 
 
-def should_run_now(now: Optional[datetime] = None) -> bool:
+def should_run_now(now: datetime | None = None) -> bool:
     """Return True if the curator should run immediately.
 
     Gates:
@@ -253,7 +253,7 @@ def should_run_now(now: Optional[datetime] = None) -> bool:
 # Automatic state transitions (pure function, no LLM)
 # ---------------------------------------------------------------------------
 
-def apply_automatic_transitions(now: Optional[datetime] = None) -> Dict[str, int]:
+def apply_automatic_transitions(now: datetime | None = None) -> Dict[str, int]:
     """Walk every agent-created skill and move active/stale/archived based on
     the latest real activity timestamp. Pinned skills are never touched.
     Returns a counter dict describing what changed."""
@@ -547,8 +547,8 @@ def _classify_removed_skills(
     for name in removed:
         if not name:
             continue
-        into: Optional[str] = None
-        evidence: Optional[str] = None
+        into: str | None = None
+        evidence: str | None = None
 
         # Normalise name variants we'll search for in path/content strings.
         needles = {name, name.replace("-", "_"), name.replace("_", "-")}
@@ -751,7 +751,7 @@ def _reconcile_classification(
     heuristic: Dict[str, List[Dict[str, Any]]],
     model_block: Dict[str, List[Dict[str, str]]],
     destinations: Set[str],
-    absorbed_declarations: Optional[Dict[str, Dict[str, Any]]] = None,
+    absorbed_declarations: Dict[str, Dict[str, Any]] | None = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Merge heuristic (tool-call evidence) with the model's structured block.
 
@@ -977,7 +977,7 @@ def _write_run_report(
     before_names: Set[str],
     after_report: List[Dict[str, Any]],
     llm_meta: Dict[str, Any],
-) -> Optional[Path]:
+) -> Path | None:
     """Write run.json + REPORT.md under logs/curator/{YYYYMMDD-HHMMSS}/.
 
     Returns the report directory path on success, None if the write
@@ -1367,7 +1367,7 @@ def _render_candidate_list() -> str:
 
 
 def run_curator_review(
-    on_summary: Optional[Callable[[str], None]] = None,
+    on_summary: Callable[[str], None] | None = None,
     synchronous: bool = False,
     dry_run: bool = False,
 ) -> Dict[str, Any]:
@@ -1762,9 +1762,9 @@ def _run_llm_review(prompt: str) -> Dict[str, Any]:
 
 def maybe_run_curator(
     *,
-    idle_for_seconds: Optional[float] = None,
-    on_summary: Optional[Callable[[str], None]] = None,
-) -> Optional[Dict[str, Any]]:
+    idle_for_seconds: float | None = None,
+    on_summary: Callable[[str], None] | None = None,
+) -> Dict[str, Any] | None:
     """Best-effort: run a curator pass if all gates pass. Returns the result
     dict if a pass was started, else None. Never raises."""
     try:

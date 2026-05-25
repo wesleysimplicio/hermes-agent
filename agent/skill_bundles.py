@@ -60,7 +60,7 @@ _BUNDLE_INVALID_CHARS = re.compile(r"[^a-z0-9-]")
 _BUNDLE_MULTI_HYPHEN = re.compile(r"-{2,}")
 
 _bundles_cache: Dict[str, Dict[str, Any]] = {}
-_bundles_cache_mtime: Optional[float] = None
+_bundles_cache_mtime: float | None = None
 
 
 def _bundles_dir() -> Path:
@@ -113,7 +113,7 @@ def _max_mtime(files: List[Path]) -> float:
     return max(mtimes) if mtimes else 0.0
 
 
-def _load_bundle_file(path: Path) -> Optional[Dict[str, Any]]:
+def _load_bundle_file(path: Path) -> Dict[str, Any] | None:
     """Parse a single bundle YAML file. Returns ``None`` on any error.
 
     Errors are logged at WARNING level. We don't raise — a broken bundle
@@ -205,7 +205,7 @@ def get_skill_bundles() -> Dict[str, Dict[str, Any]]:
     return _bundles_cache
 
 
-def resolve_bundle_command_key(command: str) -> Optional[str]:
+def resolve_bundle_command_key(command: str) -> str | None:
     """Resolve a user-typed command to its canonical bundle slash key.
 
     Hyphens and underscores are treated interchangeably to mirror the
@@ -254,7 +254,7 @@ def build_bundle_invocation_message(
     cmd_key: str,
     user_instruction: str = "",
     task_id: str | None = None,
-) -> Optional[Tuple[str, List[str], List[str]]]:
+) -> Tuple[str, List[str], List[str]] | None:
     """Build the user message content for a bundle slash command invocation.
 
     Returns ``(message, loaded_skill_names, missing_skill_names)`` or
@@ -404,7 +404,7 @@ def delete_bundle(name: str) -> Path:
     return path
 
 
-def get_bundle(name: str) -> Optional[Dict[str, Any]]:
+def get_bundle(name: str) -> Dict[str, Any] | None:
     """Look up a bundle by name (slug-normalized)."""
     slug = _slugify(name)
     return get_skill_bundles().get(f"/{slug}")

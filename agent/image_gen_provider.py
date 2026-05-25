@@ -120,7 +120,7 @@ class ImageGenProvider(abc.ABC):
             "env_vars": [],
         }
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         """Return the default model id, or None if not applicable."""
         models = self.list_models()
         if models:
@@ -148,7 +148,7 @@ class ImageGenProvider(abc.ABC):
 # ---------------------------------------------------------------------------
 
 
-def resolve_aspect_ratio(value: Optional[str]) -> str:
+def resolve_aspect_ratio(value: str | None) -> str:
     """Clamp an aspect_ratio value to the valid set, defaulting to landscape.
 
     Invalid values are coerced rather than rejected so the tool surface is
@@ -280,7 +280,7 @@ def success_response(
     prompt: str,
     aspect_ratio: str,
     provider: str,
-    extra: Optional[Dict[str, Any]] = None,
+    extra: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Build a uniform success response dict.
 

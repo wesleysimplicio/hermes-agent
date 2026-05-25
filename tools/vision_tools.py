@@ -105,7 +105,7 @@ def _validate_image_url(url: str) -> bool:
     return True
 
 
-def _detect_image_mime_type(image_path: Path) -> Optional[str]:
+def _detect_image_mime_type(image_path: Path) -> str | None:
     """Return a MIME type when the file looks like a supported image."""
     with image_path.open("rb") as f:
         header = f.read(64)
@@ -253,7 +253,7 @@ def _determine_mime_type(image_path: Path) -> str:
     return mime_types.get(extension, 'image/jpeg')
 
 
-def _image_to_base64_data_url(image_path: Path, mime_type: Optional[str] = None) -> str:
+def _image_to_base64_data_url(image_path: Path, mime_type: str | None = None) -> str:
     """
     Convert an image file to a base64-encoded data URL.
     
@@ -298,7 +298,7 @@ def _is_image_size_error(error: Exception) -> bool:
     ))
 
 
-def _resize_image_for_vision(image_path: Path, mime_type: Optional[str] = None,
+def _resize_image_for_vision(image_path: Path, mime_type: str | None = None,
                               max_base64_bytes: int = _RESIZE_TARGET_BYTES) -> str:
     """Convert an image to a base64 data URL, auto-resizing if too large.
 
@@ -550,7 +550,7 @@ async def _vision_analyze_native(
     if not isinstance(image_url, str) or not image_url.strip():
         return tool_error("image_url is required", success=False)
 
-    temp_image_path: Optional[Path] = None
+    temp_image_path: Path | None = None
     should_cleanup = False
     try:
         from tools.interrupt import is_interrupted
@@ -1092,13 +1092,13 @@ _MAX_VIDEO_BASE64_BYTES = 50 * 1024 * 1024  # 50 MB hard cap
 _VIDEO_SIZE_WARN_BYTES = 20 * 1024 * 1024
 
 
-def _detect_video_mime_type(video_path: Path) -> Optional[str]:
+def _detect_video_mime_type(video_path: Path) -> str | None:
     """Return a video MIME type based on file extension, or None if unsupported."""
     ext = video_path.suffix.lower()
     return _VIDEO_MIME_TYPES.get(ext)
 
 
-def _video_to_base64_data_url(video_path: Path, mime_type: Optional[str] = None) -> str:
+def _video_to_base64_data_url(video_path: Path, mime_type: str | None = None) -> str:
     """Convert a video file to a base64-encoded data URL."""
     data = video_path.read_bytes()
     encoded = base64.b64encode(data).decode("ascii")

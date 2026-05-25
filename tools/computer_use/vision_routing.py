@@ -49,7 +49,7 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
-def _explicit_aux_vision_override(cfg: Optional[Dict[str, Any]]) -> bool:
+def _explicit_aux_vision_override(cfg: Dict[str, Any] | None) -> bool:
     """True when ``auxiliary.vision`` carries a non-default user override.
 
     Mirrors ``agent.image_routing._explicit_aux_vision_override`` so the
@@ -76,7 +76,7 @@ def _explicit_aux_vision_override(cfg: Optional[Dict[str, Any]]) -> bool:
     return True
 
 
-def _lookup_supports_vision(provider: str, model: str) -> Optional[bool]:
+def _lookup_supports_vision(provider: str, model: str) -> bool | None:
     """Return models.dev ``supports_vision`` for *(provider, model)* or None."""
     if not provider or not model:
         return None
@@ -94,7 +94,7 @@ def _lookup_supports_vision(provider: str, model: str) -> Optional[bool]:
     return bool(getattr(caps, "supports_vision", False))
 
 
-def _provider_accepts_multimodal_tool_result(provider: str, model: str) -> Optional[bool]:
+def _provider_accepts_multimodal_tool_result(provider: str, model: str) -> bool | None:
     """Return whether *provider*+*model* carries images inside tool-result messages.
 
     Reuses ``tools.vision_tools._supports_media_in_tool_results`` so the
@@ -118,7 +118,7 @@ def _provider_accepts_multimodal_tool_result(provider: str, model: str) -> Optio
 def should_route_capture_to_aux_vision(
     provider: str,
     model: str,
-    cfg: Optional[Dict[str, Any]],
+    cfg: Dict[str, Any] | None,
 ) -> bool:
     """Return True iff the captured screenshot should be pre-analysed via aux vision.
 

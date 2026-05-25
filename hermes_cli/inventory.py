@@ -56,9 +56,9 @@ class ConfigContext:
     def with_overrides(
         self,
         *,
-        current_provider: Optional[str] = None,
-        current_model: Optional[str] = None,
-        current_base_url: Optional[str] = None,
+        current_provider: str | None = None,
+        current_model: str | None = None,
+        current_base_url: str | None = None,
     ) -> "ConfigContext":
         """Return a copy with truthy overrides applied.
 

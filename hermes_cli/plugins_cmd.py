@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 @functools.lru_cache(maxsize=1)
-def _resolve_git_executable() -> Optional[str]:
+def _resolve_git_executable() -> str | None:
     """Resolve a git binary for subprocess use when ``PATH`` may be minimal.
 
     Matches other Hermes subprocess resolution: :func:`shutil.which` first,
@@ -458,7 +458,7 @@ def _install_plugin_core(identifier: str, *, force: bool) -> tuple[Path, dict, s
 def cmd_install(
     identifier: str,
     force: bool = False,
-    enable: Optional[bool] = None,
+    enable: bool | None = None,
 ) -> None:
     """Install a plugin from a Git URL or owner/repo shorthand.
 
@@ -1407,7 +1407,7 @@ def dashboard_install_plugin(
     }
 
 
-def _get_plugin_toolset_key(name: str) -> Optional[str]:
+def _get_plugin_toolset_key(name: str) -> str | None:
     """Return the toolset key a plugin registers its tools under, or None.
 
     Queries the live tool registry — the plugin must already be loaded.
@@ -1524,7 +1524,7 @@ def dashboard_set_agent_plugin_enabled(name: str, *, enabled: bool) -> dict[str,
     return {"ok": True, "name": name, "unchanged": False}
 
 
-def _user_installed_plugin_dir(name: str) -> Optional[Path]:
+def _user_installed_plugin_dir(name: str) -> Path | None:
     """Resolved path under ``~/.hermes/plugins/<name>`` if it exists."""
     plugins_dir = _plugins_dir()
     try:

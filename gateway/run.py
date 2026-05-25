@@ -153,7 +153,7 @@ def _is_transient_network_error(exc: BaseException) -> bool:
     classified. The chain is bounded to avoid pathological cycles.
     """
     seen: set[int] = set()
-    cur: Optional[BaseException] = exc
+    cur: BaseException | None = exc
     depth = 0
     transient_class_names = {
         "TimedOut",
@@ -302,7 +302,7 @@ def _sanitize_gateway_final_response(platform: Any, text: str) -> str:
     return redacted
 
 
-def _prepare_gateway_status_message(platform: Any, event_type: str, message: str) -> Optional[str]:
+def _prepare_gateway_status_message(platform: Any, event_type: str, message: str) -> str | None:
     """Filter/sanitize agent status callbacks before platform delivery."""
     text = str(message or "").strip()
     if not text:
@@ -372,7 +372,7 @@ def _telegramize_command_mentions(text: str, platform: Any) -> str:
 _AUTO_CONTINUE_FRESHNESS_SECS_DEFAULT = 60 * 60
 
 
-def _coerce_gateway_timestamp(value: Any) -> Optional[float]:
+def _coerce_gateway_timestamp(value: Any) -> float | None:
     """Best-effort conversion of stored gateway timestamps to epoch seconds.
 
     Missing/unparseable timestamps return None so legacy transcripts keep the
@@ -443,8 +443,8 @@ def _float_env(name: str, default: float) -> float:
 def _is_fresh_gateway_interruption(
     value: Any,
     *,
-    now: Optional[float] = None,
-    window_secs: Optional[float] = None,
+    now: float | None = None,
+    window_secs: float | None = None,
 ) -> bool:
     """Return True when an interruption marker is fresh enough to auto-continue.
 
@@ -545,7 +545,7 @@ _OBSERVED_GROUP_CONTEXT_HEADER = "[Observed Telegram group context - context onl
 _CURRENT_ADDRESSED_MESSAGE_HEADER = "[Current addressed message - answer only this unless it explicitly asks you to use the observed context]"
 
 
-def _uses_telegram_observed_group_context(channel_prompt: Optional[str]) -> bool:
+def _uses_telegram_observed_group_context(channel_prompt: str | None) -> bool:
     """Return True for Telegram group turns that may include observed chatter.
 
     Telegram's observe-unmentioned mode persists skipped group chatter so a
@@ -562,8 +562,8 @@ def _uses_telegram_observed_group_context(channel_prompt: Optional[str]) -> bool
 def _build_gateway_agent_history(
     history: List[Dict[str, Any]],
     *,
-    channel_prompt: Optional[str] = None,
-) -> tuple[List[Dict[str, Any]], Optional[str]]:
+    channel_prompt: str | None = None,
+) -> tuple[List[Dict[str, Any]], str | None]:
     """Convert stored gateway transcript rows into agent replay messages.
 
     Observed Telegram group rows are returned as API-only context for the
@@ -617,7 +617,7 @@ def _build_gateway_agent_history(
     return agent_history, observed_context
 
 
-def _wrap_current_message_with_observed_context(message: Any, observed_context: Optional[str]) -> Any:
+def _wrap_current_message_with_observed_context(message: Any, observed_context: str | None) -> Any:
     """Prepend observed Telegram context to the API-only current user turn."""
 
     if not observed_context:
@@ -643,7 +643,7 @@ def _wrap_current_message_with_observed_context(message: Any, observed_context: 
     return message
 
 
-def _last_transcript_timestamp(history: Optional[List[Dict[str, Any]]]) -> Any:
+def _last_transcript_timestamp(history: List[Dict[str, Any]] | None) -> Any:
     """Return the ``timestamp`` of the last usable transcript row, if any.
 
     Skips metadata-only rows (``session_meta``, system injections) that are
@@ -1166,7 +1166,7 @@ def _format_duration(seconds: float) -> str:
     return f"{minutes}:{secs:02d}"
 
 
-async def _probe_audio_duration(path: str) -> Optional[str]:
+async def _probe_audio_duration(path: str) -> str | None:
     """Best-effort duration probe. Returns formatted MM:SS / HH:MM:SS, or None on failure."""
     ext = os.path.splitext(path)[1].lower()
 
@@ -1237,7 +1237,7 @@ _CONTROL_INTERRUPT_MESSAGES = frozenset(
 )
 
 
-def _is_control_interrupt_message(message: Optional[str]) -> bool:
+def _is_control_interrupt_message(message: str | None) -> bool:
     """Return True when an interrupt message is internal control flow."""
     if not message:
         return False
@@ -1438,7 +1438,7 @@ def _resolve_gateway_model(config: dict | None = None) -> str:
     return ""
 
 
-def _resolve_hermes_bin() -> Optional[list[str]]:
+def _resolve_hermes_bin() -> list[str] | None:
     """Resolve the Hermes update command as argv parts.
 
     Tries in order:
@@ -1637,17 +1637,17 @@ class GatewayRunner:
     _busy_input_mode: str = "interrupt"
     _busy_text_mode: str = "interrupt"
     _restart_drain_timeout: float = DEFAULT_GATEWAY_RESTART_DRAIN_TIMEOUT
-    _exit_code: Optional[int] = None
+    _exit_code: int | None = None
     _draining: bool = False
     _restart_requested: bool = False
     _restart_task_started: bool = False
     _restart_detached: bool = False
     _restart_via_service: bool = False
-    _stop_task: Optional[asyncio.Task] = None
+    _stop_task: asyncio.Task | None = None
     _session_model_overrides: Dict[str, Dict[str, str]] = {}
     _session_reasoning_overrides: Dict[str, Dict[str, Any]] = {}
 
-    def __init__(self, config: Optional[GatewayConfig] = None):
+    def __init__(self, config: GatewayConfig | None = None):
         global _gateway_runner_ref
         self.config = config or load_gateway_config()
         self.adapters: Dict[Platform, BasePlatformAdapter] = {}
@@ -1675,18 +1675,18 @@ class GatewayRunner:
         )
         self.delivery_router = DeliveryRouter(self.config)
         self._running = False
-        self._gateway_loop: Optional[asyncio.AbstractEventLoop] = None
+        self._gateway_loop: asyncio.AbstractEventLoop | None = None
         self._shutdown_event = asyncio.Event()
         self._exit_cleanly = False
         self._exit_with_failure = False
-        self._exit_reason: Optional[str] = None
-        self._exit_code: Optional[int] = None
+        self._exit_reason: str | None = None
+        self._exit_code: int | None = None
         self._draining = False
         self._restart_requested = False
         self._restart_task_started = False
         self._restart_detached = False
         self._restart_via_service = False
-        self._stop_task: Optional[asyncio.Task] = None
+        self._stop_task: asyncio.Task | None = None
         
         # Track running agents per session for interrupt support
         # Key: session_key, Value: AIAgent instance
@@ -1737,7 +1737,7 @@ class GatewayRunner:
         self._kanban_notifier_profile = self._active_profile_name()
         # Teams meeting pipeline runtime (bound later when msgraph_webhook adapter exists).
         self._teams_pipeline_runtime = None
-        self._teams_pipeline_runtime_error: Optional[str] = None
+        self._teams_pipeline_runtime_error: str | None = None
         # Track pending exec approvals per session
         # Key: session_key, Value: {"command": str, "pattern_key": str, ...}
         self._pending_approvals: Dict[str, Dict[str, Any]] = {}
@@ -2131,11 +2131,11 @@ class GatewayRunner:
         return self._exit_with_failure
 
     @property
-    def exit_reason(self) -> Optional[str]:
+    def exit_reason(self) -> str | None:
         return self._exit_reason
 
     @property
-    def exit_code(self) -> Optional[int]:
+    def exit_code(self) -> int | None:
         return self._exit_code
 
     def _session_key_for_source(self, source: SessionSource) -> str:
@@ -2239,7 +2239,7 @@ class GatewayRunner:
             "existing topic only if you want to replace that topic's current session."
         )
 
-    def _telegram_topic_new_header(self, source: SessionSource) -> Optional[str]:
+    def _telegram_topic_new_header(self, source: SessionSource) -> str | None:
         if not self._is_telegram_topic_lane(source):
             return None
         return (
@@ -2269,7 +2269,7 @@ class GatewayRunner:
     def _recover_telegram_topic_thread_id(
         self,
         source: SessionSource,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Pin DM-topic routing to the user's last-active topic.
 
         Telegram can omit ``message_thread_id`` or surface General (``1``)
@@ -2321,9 +2321,9 @@ class GatewayRunner:
     def _resolve_session_agent_runtime(
         self,
         *,
-        source: Optional[SessionSource] = None,
-        session_key: Optional[str] = None,
-        user_config: Optional[dict] = None,
+        source: SessionSource | None = None,
+        session_key: str | None = None,
+        user_config: dict | None = None,
     ) -> tuple[str, dict]:
         """Resolve model/runtime for a session, honoring session-scoped /model overrides.
 
@@ -2654,7 +2654,7 @@ class GatewayRunner:
             logger.debug("goal continuation: active-state recheck failed: %s", exc)
             return False
 
-    def _update_runtime_status(self, gateway_state: Optional[str] = None, exit_reason: Optional[str] = None) -> None:
+    def _update_runtime_status(self, gateway_state: str | None = None, exit_reason: str | None = None) -> None:
         try:
             from gateway.status import write_runtime_status
             write_runtime_status(
@@ -2670,9 +2670,9 @@ class GatewayRunner:
         self,
         platform: str,
         *,
-        platform_state: Optional[str] = None,
-        error_code: Optional[str] = None,
-        error_message: Optional[str] = None,
+        platform_state: str | None = None,
+        error_code: str | None = None,
+        error_message: str | None = None,
     ) -> None:
         try:
             from gateway.status import write_runtime_status
@@ -2841,8 +2841,8 @@ class GatewayRunner:
     def _resolve_session_reasoning_config(
         self,
         *,
-        source: Optional[SessionSource] = None,
-        session_key: Optional[str] = None,
+        source: SessionSource | None = None,
+        session_key: str | None = None,
     ) -> dict | None:
         """Resolve reasoning effort for a session, honoring session overrides."""
         resolved_session_key = session_key
@@ -2860,7 +2860,7 @@ class GatewayRunner:
     def _set_session_reasoning_override(
         self,
         session_key: str,
-        reasoning_config: Optional[dict],
+        reasoning_config: dict | None,
     ) -> None:
         """Set or clear the session-scoped reasoning override."""
         if not session_key:
@@ -3287,7 +3287,7 @@ class GatewayRunner:
         )
         msg = f"⚠️ Gateway {action} — {hint}"
 
-        notified: set[tuple[str, str, Optional[str]]] = set()
+        notified: set[tuple[str, str, str | None]] = set()
         for session_key in active:
             source = None
             try:
@@ -5026,7 +5026,7 @@ class GatewayRunner:
                 await asyncio.sleep(1)
 
     def _kanban_advance(
-        self, sub: dict, cursor: int, board: Optional[str] = None,
+        self, sub: dict, cursor: int, board: str | None = None,
     ) -> None:
         """Sync helper: advance a subscription's cursor. Runs in to_thread.
 
@@ -5047,7 +5047,7 @@ class GatewayRunner:
         finally:
             conn.close()
 
-    def _kanban_unsub(self, sub: dict, board: Optional[str] = None) -> None:
+    def _kanban_unsub(self, sub: dict, board: str | None = None) -> None:
         from hermes_cli import kanban_db as _kb
         conn = _kb.connect(board=board)
         try:
@@ -5066,7 +5066,7 @@ class GatewayRunner:
         sub: dict,
         claimed_cursor: int,
         old_cursor: int,
-        board: Optional[str] = None,
+        board: str | None = None,
     ) -> None:
         """Sync helper: undo a claimed notification cursor after send failure."""
         from hermes_cli import kanban_db as _kb
@@ -5090,7 +5090,7 @@ class GatewayRunner:
         adapter,
         chat_id: str,
         metadata: dict,
-        event_payload: Optional[dict],
+        event_payload: dict | None,
         task,
     ) -> None:
         """Upload artifact files referenced by a completed kanban task.
@@ -5340,7 +5340,7 @@ class GatewayRunner:
                 or "database disk image is malformed" in msg
             )
 
-        def _tick_once_for_board(slug: str) -> "Optional[object]":
+        def _tick_once_for_board(slug: str) -> "object | None":
             """Run one dispatch_once for a specific board.
 
             Runs in a worker thread via `asyncio.to_thread`. `board=slug`
@@ -5401,7 +5401,7 @@ class GatewayRunner:
                     except Exception:
                         pass
 
-        def _tick_once() -> "list[tuple[str, Optional[object]]]":
+        def _tick_once() -> "list[tuple[str, object | None]]":
             """Run one dispatch_once per board. Returns (slug, result) pairs.
 
             Enumerating boards on every tick keeps the dispatcher honest
@@ -5412,7 +5412,7 @@ class GatewayRunner:
                 boards = _kb.list_boards(include_archived=False)
             except Exception:
                 boards = [_kb.read_board_metadata(_kb.DEFAULT_BOARD)]
-            out: list[tuple[str, "Optional[object]"]] = []
+            out: list[tuple[str, "object | None"]] = []
             for b in boards:
                 slug = b.get("slug") or _kb.DEFAULT_BOARD
                 out.append((slug, _tick_once_for_board(slug)))
@@ -6076,7 +6076,7 @@ class GatewayRunner:
         self, 
         platform: Platform, 
         config: Any
-    ) -> Optional[BasePlatformAdapter]:
+    ) -> BasePlatformAdapter | None:
         """Create the appropriate adapter for a platform.
 
         Checks the platform_registry first (plugin adapters), then falls
@@ -6499,7 +6499,7 @@ class GatewayRunner:
 
         return bool(check_ids & allowed_ids)
 
-    def _get_unauthorized_dm_behavior(self, platform: Optional[Platform]) -> str:
+    def _get_unauthorized_dm_behavior(self, platform: Platform | None) -> str:
         """Return how unauthorized DMs should be handled for a platform.
 
         Resolution order:
@@ -6598,7 +6598,7 @@ class GatewayRunner:
 
         await adapter.send(source.chat_id, content, metadata=metadata)
 
-    async def _handle_message(self, event: MessageEvent) -> Optional[str]:
+    async def _handle_message(self, event: MessageEvent) -> str | None:
         """
         Handle an incoming message from any platform.
         
@@ -7730,7 +7730,7 @@ class GatewayRunner:
         event: MessageEvent,
         source: SessionSource,
         history: List[Dict[str, Any]],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Prepare inbound event text for the agent.
 
         Keep the normal inbound path and the queued follow-up path on the same
@@ -9332,7 +9332,7 @@ class GatewayRunner:
 
     def _check_slash_access(
         self, source: SessionSource, canonical_cmd: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return a denial message if ``source`` cannot run ``canonical_cmd``,
         else None. Used by both the cold and running-agent dispatch paths
         in ``_handle_message`` so admin/user gating can't be bypassed by
@@ -10038,7 +10038,7 @@ class GatewayRunner:
             getattr(getattr(event, "source", None), "platform", None),
         )
 
-    async def _handle_model_command(self, event: MessageEvent) -> Optional[str]:
+    async def _handle_model_command(self, event: MessageEvent) -> str | None:
         """Handle /model command — switch model for this session.
 
         Supports:
@@ -10916,7 +10916,7 @@ class GatewayRunner:
         return t("gateway.set_home.success", name=chat_name, chat_id=chat_id)
 
     @staticmethod
-    def _get_guild_id(event: MessageEvent) -> Optional[int]:
+    def _get_guild_id(event: MessageEvent) -> int | None:
         """Extract Discord guild_id from the raw message object."""
         raw = getattr(event, "raw_message", None)
         if raw is None:
@@ -11536,9 +11536,9 @@ class GatewayRunner:
         prompt: str,
         source: "SessionSource",
         task_id: str,
-        event_message_id: Optional[str] = None,
-        media_urls: Optional[List[str]] = None,
-        media_types: Optional[List[str]] = None,
+        event_message_id: str | None = None,
+        media_urls: List[str] | None = None,
+        media_types: List[str] | None = None,
     ) -> None:
         """Execute a background agent task and deliver the result to the chat."""
         from run_agent import AIAgent
@@ -13101,7 +13101,7 @@ class GatewayRunner:
             logger.error("Insights command error: %s", e, exc_info=True)
             return t("gateway.insights.error", error=e)
 
-    async def _handle_reload_mcp_command(self, event: MessageEvent) -> Optional[str]:
+    async def _handle_reload_mcp_command(self, event: MessageEvent) -> str | None:
         """Handle /reload-mcp — reconnect MCP servers and rebuild the cached agent.
 
         Reloading MCP tools invalidates the provider prompt cache for the
@@ -13135,7 +13135,7 @@ class GatewayRunner:
         # stores the resume handler; the button/text response triggers
         # ``_resolve_slash_confirm`` which invokes the handler with the
         # chosen outcome.
-        async def _on_confirm(choice: str) -> Optional[str]:
+        async def _on_confirm(choice: str) -> str | None:
             if choice == "cancel":
                 return t("gateway.reload_mcp.cancelled")
             if choice == "always":
@@ -13482,7 +13482,7 @@ class GatewayRunner:
         title: str,
         message: str,
         handler,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Ask the user to confirm an expensive slash command.
 
         ``handler`` is an async callable ``handler(choice: str) -> str``
@@ -13558,8 +13558,8 @@ class GatewayRunner:
     def _thread_metadata_for_source(
         self,
         source,
-        reply_to_message_id: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+        reply_to_message_id: str | None = None,
+    ) -> Dict[str, Any] | None:
         """Build the metadata dict platforms need for thread-aware replies."""
         thread_id = getattr(source, "thread_id", None)
         if thread_id is None:
@@ -13582,7 +13582,7 @@ class GatewayRunner:
         return metadata
 
     @staticmethod
-    def _reply_anchor_for_event(event: MessageEvent) -> Optional[str]:
+    def _reply_anchor_for_event(event: MessageEvent) -> str | None:
         """Return the platform-specific reply anchor for GatewayRunner sends."""
         return _reply_anchor_for_event(event)
 
@@ -13593,7 +13593,7 @@ class GatewayRunner:
 
     _APPROVAL_TIMEOUT_SECONDS = 300  # 5 minutes
 
-    async def _handle_approve_command(self, event: MessageEvent) -> Optional[str]:
+    async def _handle_approve_command(self, event: MessageEvent) -> str | None:
         """Handle /approve command — unblock waiting agent thread(s).
 
         The agent thread(s) are blocked inside tools/approval.py waiting for
@@ -14202,7 +14202,7 @@ class GatewayRunner:
 
         return True
 
-    async def _send_restart_notification(self) -> Optional[tuple[str, str, Optional[str]]]:
+    async def _send_restart_notification(self) -> tuple[str, str, str | None] | None:
         """Notify the chat that initiated /restart that the gateway is back."""
         notify_path = _hermes_home / ".restart_notify.json"
         if not notify_path.exists():
@@ -14268,15 +14268,15 @@ class GatewayRunner:
     async def _send_home_channel_startup_notifications(
         self,
         *,
-        skip_targets: Optional[set[tuple[str, str, Optional[str]]]] = None,
-    ) -> set[tuple[str, str, Optional[str]]]:
+        skip_targets: set[tuple[str, str, str | None]] | None = None,
+    ) -> set[tuple[str, str, str | None]]:
         """Notify configured home channels that the gateway is back online.
 
         The notification is best-effort and sent once per connected platform
         home channel. ``skip_targets`` lets startup avoid duplicate messages
         when a more specific restart notification is queued for the same chat.
         """
-        delivered: set[tuple[str, str, Optional[str]]] = set()
+        delivered: set[tuple[str, str, str | None]] = set()
         skipped = skip_targets or set()
         message = "♻️ Gateway online — Hermes is back and ready."
 
@@ -14953,7 +14953,7 @@ class GatewayRunner:
         self,
         session_key: str,
         *,
-        run_generation: Optional[int] = None,
+        run_generation: int | None = None,
     ) -> bool:
         """Pop ALL per-running-agent state entries for ``session_key``.
 
@@ -15292,7 +15292,7 @@ class GatewayRunner:
     # Proxy mode: forward messages to a remote Hermes API server
     # ------------------------------------------------------------------
 
-    def _get_proxy_url(self) -> Optional[str]:
+    def _get_proxy_url(self) -> str | None:
         """Return the proxy URL if proxy mode is configured, else None.
 
         Checks GATEWAY_PROXY_URL env var first (convenient for Docker),
@@ -15315,8 +15315,8 @@ class GatewayRunner:
         source: "SessionSource",
         session_id: str,
         session_key: str = None,
-        run_generation: Optional[int] = None,
-        event_message_id: Optional[str] = None,
+        run_generation: int | None = None,
+        event_message_id: str | None = None,
     ) -> Dict[str, Any]:
         """Forward the message to a remote Hermes API server instead of
         running a local AIAgent.
@@ -15412,7 +15412,7 @@ class GatewayRunner:
             else bool(_plat_streaming)
         )
 
-        _thread_metadata: Optional[Dict[str, Any]] = self._thread_metadata_for_source(source, event_message_id)
+        _thread_metadata: Dict[str, Any] | None = self._thread_metadata_for_source(source, event_message_id)
 
         if _streaming_enabled:
             try:
@@ -15601,10 +15601,10 @@ class GatewayRunner:
         source: SessionSource,
         session_id: str,
         session_key: str = None,
-        run_generation: Optional[int] = None,
+        run_generation: int | None = None,
         _interrupt_depth: int = 0,
-        event_message_id: Optional[str] = None,
-        channel_prompt: Optional[str] = None,
+        event_message_id: str | None = None,
+        channel_prompt: str | None = None,
     ) -> Dict[str, Any]:
         """
         Run the agent with the given message and context.
@@ -16238,7 +16238,7 @@ class GatewayRunner:
             # sent via the reply API with reply_in_thread=true. Status/interim,
             # approval, and stream-consumer paths usually only receive metadata,
             # so carry the triggering message id as a Feishu-specific fallback.
-            _status_thread_metadata: Optional[Dict[str, Any]] = {
+            _status_thread_metadata: Dict[str, Any] | None = {
                 "thread_id": _progress_thread_id,
                 "reply_to_message_id": event_message_id,
             }
@@ -17949,7 +17949,7 @@ def _start_cron_ticker(stop_event: threading.Event, adapters=None, loop=None, in
     logger.info("Cron ticker stopped")
 
 
-async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = False, verbosity: Optional[int] = 0) -> bool:
+async def start_gateway(config: GatewayConfig | None = None, replace: bool = False, verbosity: int | None = 0) -> bool:
     """
     Start the gateway and run until interrupted.
     

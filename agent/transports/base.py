@@ -44,7 +44,7 @@ class ProviderTransport(ABC):
         self,
         model: str,
         messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: List[Dict[str, Any]] | None = None,
         **params,
     ) -> Dict[str, Any]:
         """Build the complete API call kwargs dict.
@@ -72,7 +72,7 @@ class ProviderTransport(ABC):
         """
         return True
 
-    def extract_cache_stats(self, response: Any) -> Optional[Dict[str, int]]:
+    def extract_cache_stats(self, response: Any) -> Dict[str, int] | None:
         """Optional: extract provider-specific cache hit/creation stats.
 
         Returns dict with 'cached_tokens' and 'creation_tokens', or None.

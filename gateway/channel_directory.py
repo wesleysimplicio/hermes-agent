@@ -33,7 +33,7 @@ def _channel_target_name(platform_name: str, channel: Dict[str, Any]) -> str:
     return name
 
 
-def _session_entry_id(origin: Dict[str, Any]) -> Optional[str]:
+def _session_entry_id(origin: Dict[str, Any]) -> str | None:
     chat_id = origin.get("chat_id")
     if not chat_id:
         return None
@@ -163,7 +163,7 @@ async def _build_slack(adapter) -> List[Dict[str, Any]]:
 
     for team_id, client in team_clients.items():
         try:
-            cursor: Optional[str] = None
+            cursor: str | None = None
             for _page in range(20):  # safety cap on pagination
                 response = await client.users_conversations(
                     types="public_channel,private_channel",
@@ -255,7 +255,7 @@ def load_directory() -> Dict[str, Any]:
         return {"updated_at": None, "platforms": {}}
 
 
-def lookup_channel_type(platform_name: str, chat_id: str) -> Optional[str]:
+def lookup_channel_type(platform_name: str, chat_id: str) -> str | None:
     """Return the channel ``type`` string (e.g. ``"channel"``, ``"forum"``) for *chat_id*, or *None* if unknown."""
     directory = load_directory()
     for ch in directory.get("platforms", {}).get(platform_name, []):
@@ -264,7 +264,7 @@ def lookup_channel_type(platform_name: str, chat_id: str) -> Optional[str]:
     return None
 
 
-def resolve_channel_name(platform_name: str, name: str) -> Optional[str]:
+def resolve_channel_name(platform_name: str, name: str) -> str | None:
     """
     Resolve a human-friendly channel name to a numeric ID.
 

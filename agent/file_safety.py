@@ -82,7 +82,7 @@ def build_write_denied_prefixes(home: str) -> list[str]:
     ]
 
 
-def get_safe_write_root() -> Optional[str]:
+def get_safe_write_root() -> str | None:
     """Return the resolved HERMES_WRITE_SAFE_ROOT path, or None if unset."""
     root = os.getenv("HERMES_WRITE_SAFE_ROOT", "")
     if not root:
@@ -148,7 +148,7 @@ def is_write_denied(path: str) -> bool:
     return False
 
 
-def get_read_block_error(path: str) -> Optional[str]:
+def get_read_block_error(path: str) -> str | None:
     """Return an error message when a read targets a denied Hermes path.
 
     Two categories are blocked:
@@ -323,7 +323,7 @@ def _resolve_active_profile_name() -> str:
     return "default"
 
 
-def classify_cross_profile_target(path: str) -> Optional[dict]:
+def classify_cross_profile_target(path: str) -> dict | None:
     """Classify a write target as cross-profile if it lands in another
     profile's scoped area (skills/plugins/cron/memories).
 
@@ -346,8 +346,8 @@ def classify_cross_profile_target(path: str) -> Optional[dict]:
     except (OSError, RuntimeError):
         return None
 
-    target_profile: Optional[str] = None
-    area: Optional[str] = None
+    target_profile: str | None = None
+    area: str | None = None
 
     try:
         rel = target.relative_to(root_real)
@@ -386,7 +386,7 @@ def classify_cross_profile_target(path: str) -> Optional[dict]:
     }
 
 
-def get_cross_profile_warning(path: str) -> Optional[str]:
+def get_cross_profile_warning(path: str) -> str | None:
     """Return a model-facing warning string when ``path`` is cross-profile.
 
     Returns ``None`` when the write is in-scope (same profile) or outside

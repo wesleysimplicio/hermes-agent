@@ -757,8 +757,8 @@ async def get_action_status(name: str, lines: int = 200):
     proc = _ACTION_PROCS.get(name)
     if proc is None:
         running = False
-        exit_code: Optional[int] = None
-        pid: Optional[int] = None
+        exit_code: int | None = None
+        pid: int | None = None
     else:
         exit_code = proc.poll()
         running = exit_code is None
@@ -1284,7 +1284,7 @@ async def reveal_env_var(body: EnvVarReveal, request: Request):
 # can surface a one-click copy.
 
 
-def _truncate_token(value: Optional[str], visible: int = 6) -> str:
+def _truncate_token(value: str | None, visible: int = 6) -> str:
     """Return ``...XXXXXX`` (last N chars) for safe display in the UI.
 
     We never expose more than the trailing ``visible`` characters of an
@@ -2516,9 +2516,9 @@ async def delete_session_endpoint(session_id: str):
 async def get_logs(
     file: str = "agent",
     lines: int = 100,
-    level: Optional[str] = None,
-    component: Optional[str] = None,
-    search: Optional[str] = None,
+    level: str | None = None,
+    component: str | None = None,
+    search: str | None = None,
 ):
     from hermes_cli.logs import _read_tail, LOG_FILES
 
@@ -2594,7 +2594,7 @@ def _cron_profile_dicts() -> List[Dict[str, Any]]:
         return _fallback_profile_dicts(profiles_mod)
 
 
-def _cron_profile_home(profile: Optional[str]) -> Tuple[str, Path]:
+def _cron_profile_home(profile: str | None) -> Tuple[str, Path]:
     """Resolve a profile query value to (profile_name, HERMES_HOME)."""
     from hermes_cli import profiles as profiles_mod
 
@@ -2618,7 +2618,7 @@ def _annotate_cron_job(job: Dict[str, Any], profile: str, home: Path) -> Dict[st
     return annotated
 
 
-def _call_cron_for_profile(profile: Optional[str], func_name: str, *args, **kwargs):
+def _call_cron_for_profile(profile: str | None, func_name: str, *args, **kwargs):
     """Run cron.jobs helpers against the selected profile's cron directory.
 
     cron.jobs keeps CRON_DIR/JOBS_FILE/OUTPUT_DIR as module globals resolved
@@ -2650,7 +2650,7 @@ def _call_cron_for_profile(profile: Optional[str], func_name: str, *args, **kwar
     return result
 
 
-def _find_cron_job_profile(job_id: str) -> Optional[str]:
+def _find_cron_job_profile(job_id: str) -> str | None:
     for profile in _cron_profile_dicts():
         name = str(profile.get("name") or "")
         if not name:
@@ -2680,7 +2680,7 @@ async def list_cron_jobs(profile: str = "all"):
 
 
 @app.get("/api/cron/jobs/{job_id}")
-async def get_cron_job(job_id: str, profile: Optional[str] = None):
+async def get_cron_job(job_id: str, profile: str | None = None):
     selected = profile or _find_cron_job_profile(job_id)
     if not selected:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -2707,7 +2707,7 @@ async def create_cron_job(body: CronJobCreate, profile: str = "default"):
 
 
 @app.put("/api/cron/jobs/{job_id}")
-async def update_cron_job(job_id: str, body: CronJobUpdate, profile: Optional[str] = None):
+async def update_cron_job(job_id: str, body: CronJobUpdate, profile: str | None = None):
     selected = profile or _find_cron_job_profile(job_id)
     if not selected:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -2718,7 +2718,7 @@ async def update_cron_job(job_id: str, body: CronJobUpdate, profile: Optional[st
 
 
 @app.post("/api/cron/jobs/{job_id}/pause")
-async def pause_cron_job(job_id: str, profile: Optional[str] = None):
+async def pause_cron_job(job_id: str, profile: str | None = None):
     selected = profile or _find_cron_job_profile(job_id)
     if not selected:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -2729,7 +2729,7 @@ async def pause_cron_job(job_id: str, profile: Optional[str] = None):
 
 
 @app.post("/api/cron/jobs/{job_id}/resume")
-async def resume_cron_job(job_id: str, profile: Optional[str] = None):
+async def resume_cron_job(job_id: str, profile: str | None = None):
     selected = profile or _find_cron_job_profile(job_id)
     if not selected:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -2740,7 +2740,7 @@ async def resume_cron_job(job_id: str, profile: Optional[str] = None):
 
 
 @app.post("/api/cron/jobs/{job_id}/trigger")
-async def trigger_cron_job(job_id: str, profile: Optional[str] = None):
+async def trigger_cron_job(job_id: str, profile: str | None = None):
     selected = profile or _find_cron_job_profile(job_id)
     if not selected:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -2751,7 +2751,7 @@ async def trigger_cron_job(job_id: str, profile: Optional[str] = None):
 
 
 @app.delete("/api/cron/jobs/{job_id}")
-async def delete_cron_job(job_id: str, profile: Optional[str] = None):
+async def delete_cron_job(job_id: str, profile: str | None = None):
     selected = profile or _find_cron_job_profile(job_id)
     if not selected:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -3366,9 +3366,9 @@ _event_lock = asyncio.Lock()
 
 
 def _resolve_chat_argv(
-    resume: Optional[str] = None,
-    sidecar_url: Optional[str] = None,
-) -> tuple[list[str], Optional[str], Optional[dict]]:
+    resume: str | None = None,
+    sidecar_url: str | None = None,
+) -> tuple[list[str], str | None, dict | None]:
     """Resolve the argv + cwd + env for the chat PTY.
 
     Default: whatever ``hermes --tui`` would run.  Tests monkeypatch this
@@ -3410,7 +3410,7 @@ def _resolve_chat_argv(
     return list(argv), str(cwd) if cwd else None, env
 
 
-def _build_sidecar_url(channel: str) -> Optional[str]:
+def _build_sidecar_url(channel: str) -> str | None:
     """ws:// URL the PTY child should publish events to, or None when unbound."""
     host = getattr(app.state, "bound_host", None)
     port = getattr(app.state, "bound_port", None)
@@ -3438,7 +3438,7 @@ async def _broadcast_event(channel: str, payload: str) -> None:
             _log.warning("broadcast send failed for subscriber on %s", channel, exc_info=True)
 
 
-def _channel_or_close_code(ws: WebSocket) -> Optional[str]:
+def _channel_or_close_code(ws: WebSocket) -> str | None:
     """Return the channel id from the query string or None if invalid."""
     channel = ws.query_params.get("channel", "")
 
@@ -3671,7 +3671,7 @@ async def events_ws(ws: WebSocket) -> None:
                     _event_channels.pop(channel, None)
 
 
-def _normalise_prefix(raw: Optional[str]) -> str:
+def _normalise_prefix(raw: str | None) -> str:
     """Normalise an X-Forwarded-Prefix header value.
 
     Returns a string like ``"/hermes"`` (no trailing slash) or ``""`` when
@@ -3804,7 +3804,7 @@ _BUILTIN_DASHBOARD_THEMES = [
 ]
 
 
-def _parse_theme_layer(value: Any, default_hex: str, default_alpha: float = 1.0) -> Optional[Dict[str, Any]]:
+def _parse_theme_layer(value: Any, default_hex: str, default_alpha: float = 1.0) -> Dict[str, Any] | None:
     """Normalise a theme layer spec from YAML into `{hex, alpha}` form.
 
     Accepts shorthand (a bare hex string) or full dict form.  Returns
@@ -3873,7 +3873,7 @@ _THEME_LAYOUT_VARIANTS = {"standard", "cockpit", "tiled"}
 _THEME_CUSTOM_CSS_MAX = 32 * 1024
 
 
-def _normalise_theme_definition(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _normalise_theme_definition(data: Dict[str, Any]) -> Dict[str, Any] | None:
     """Normalise a user theme YAML into the wire format `ThemeProvider`
     expects.  Returns ``None`` if the theme is unusable.
 
@@ -3966,7 +3966,7 @@ def _normalise_theme_definition(data: Dict[str, Any]) -> Optional[Dict[str, Any]
     # here — the dashboard is localhost-only and themes are user-authored
     # YAML in ~/.hermes/, same trust level as the config file itself.
     custom_css_val = data.get("customCSS")
-    custom_css: Optional[str] = None
+    custom_css: str | None = None
     if isinstance(custom_css_val, str) and custom_css_val.strip():
         custom_css = custom_css_val[:_THEME_CUSTOM_CSS_MAX]
 
@@ -4090,7 +4090,7 @@ async def set_dashboard_theme(body: ThemeSetBody):
 # Dashboard plugin system
 # ---------------------------------------------------------------------------
 
-def _safe_plugin_api_relpath(api_field: Any, *, dashboard_dir: Path) -> Optional[str]:
+def _safe_plugin_api_relpath(api_field: Any, *, dashboard_dir: Path) -> str | None:
     """Validate the manifest's ``api`` field for the plugin loader.
 
     The web server later imports this file as a Python module via
@@ -4232,7 +4232,7 @@ def _discover_dashboard_plugins() -> list:
 
 
 # Cache discovered plugins per-process (refresh on explicit re-scan).
-_dashboard_plugins_cache: Optional[list] = None
+_dashboard_plugins_cache: list | None = None
 
 
 def _get_dashboard_plugins(force_rescan: bool = False) -> list:
@@ -4483,8 +4483,8 @@ async def delete_agent_plugin(request: Request, name: str):
 
 
 class _PluginProvidersPutBody(BaseModel):
-    memory_provider: Optional[str] = None
-    context_engine: Optional[str] = None
+    memory_provider: str | None = None
+    context_engine: str | None = None
 
 
 @app.put("/api/dashboard/plugin-providers")

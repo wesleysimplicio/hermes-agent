@@ -192,7 +192,7 @@ SNAPSHOT_SUMMARIZE_THRESHOLD = 8000
 # Commands that legitimately return empty stdout (e.g. close, record).
 _EMPTY_OK_COMMANDS: frozenset = frozenset({"close", "record"})
 
-_cached_command_timeout: Optional[int] = None
+_cached_command_timeout: int | None = None
 _command_timeout_resolved = False
 
 
@@ -221,12 +221,12 @@ def _get_command_timeout() -> int:
     return result
 
 
-def _get_vision_model() -> Optional[str]:
+def _get_vision_model() -> str | None:
     """Model for browser_vision (screenshot analysis — multimodal)."""
     return os.getenv("AUXILIARY_VISION_MODEL", "").strip() or None
 
 
-def _get_extraction_model() -> Optional[str]:
+def _get_extraction_model() -> str | None:
     """Model for page snapshot text summarization — same as web_extract."""
     return os.getenv("AUXILIARY_WEB_EXTRACT_MODEL", "").strip() or None
 
@@ -429,16 +429,16 @@ _PROVIDER_REGISTRY: Dict[str, type] = {
 # monkeypatching. NEVER mutate this dict.
 _DEFAULT_PROVIDER_REGISTRY: Dict[str, type] = dict(_PROVIDER_REGISTRY)
 
-_cached_cloud_provider: Optional[CloudBrowserProvider] = None
+_cached_cloud_provider: CloudBrowserProvider | None = None
 _cloud_provider_resolved = False
 _allow_private_urls_resolved = False
-_cached_allow_private_urls: Optional[bool] = None
-_cached_agent_browser: Optional[str] = None
+_cached_allow_private_urls: bool | None = None
+_cached_agent_browser: str | None = None
 _agent_browser_resolved = False
 
 # Lightpanda engine support — cached like _get_cloud_provider().
 # agent-browser v0.25.3+ supports ``--engine lightpanda`` natively.
-_cached_browser_engine: Optional[str] = None
+_cached_browser_engine: str | None = None
 _browser_engine_resolved = False
 
 
@@ -485,7 +485,7 @@ def _ensure_browser_plugins_loaded() -> None:
         logger.debug("Browser plugin discovery failed (non-fatal): %s", exc)
 
 
-def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
+def _get_cloud_provider() -> CloudBrowserProvider | None:
     """Return the configured cloud browser provider, or None for local mode.
 
     Reads ``config["browser"]["cloud_provider"]`` once and caches the result
@@ -506,7 +506,7 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
     if _cloud_provider_resolved:
         return _cached_cloud_provider
 
-    resolved: Optional[CloudBrowserProvider] = None
+    resolved: CloudBrowserProvider | None = None
     try:
         from hermes_cli.config import read_raw_config
         cfg = read_raw_config()
@@ -700,7 +700,7 @@ def _using_lightpanda_engine() -> bool:
     return _get_browser_engine() == "lightpanda"
 
 
-def _lightpanda_fallback_reason(engine: str, command: str, result: Dict[str, Any]) -> Optional[str]:
+def _lightpanda_fallback_reason(engine: str, command: str, result: Dict[str, Any]) -> str | None:
     """Return the user-visible reason a Lightpanda result needs Chrome fallback.
 
     ``None`` means no fallback should run.  The returned string is copied into
@@ -1343,7 +1343,7 @@ def _reap_orphaned_browser_sessions():
 
         # Ownership check: prefer owner_pid file (cross-process safe).
         owner_pid_file = os.path.join(socket_dir, f"{session_name}.owner_pid")
-        owner_alive: Optional[bool] = None  # None = owner_pid missing/unreadable
+        owner_alive: bool | None = None  # None = owner_pid missing/unreadable
         if os.path.isfile(owner_pid_file):
             try:
                 owner_pid = int(Path(owner_pid_file).read_text(encoding="utf-8").strip())
@@ -1649,7 +1649,7 @@ def _create_cdp_session(task_id: str, cdp_url: str) -> Dict[str, str]:
     }
 
 
-def _get_session_info(task_id: Optional[str] = None) -> Dict[str, str]:
+def _get_session_info(task_id: str | None = None) -> Dict[str, str]:
     """
     Get or create session info for the given session key.
 
@@ -1852,7 +1852,7 @@ def _find_agent_browser() -> str:
     )
 
 
-def _extract_screenshot_path_from_text(text: str) -> Optional[str]:
+def _extract_screenshot_path_from_text(text: str) -> str | None:
     """Extract a screenshot file path from agent-browser human-readable output."""
     if not text:
         return None
@@ -1877,8 +1877,8 @@ def _run_browser_command(
     task_id: str,
     command: str,
     args: List[str] = None,
-    timeout: Optional[int] = None,
-    _engine_override: Optional[str] = None,
+    timeout: int | None = None,
+    _engine_override: str | None = None,
 ) -> Dict[str, Any]:
     """
     Run an agent-browser CLI command using our pre-created Browserbase session.
@@ -2198,7 +2198,7 @@ def _run_browser_command(
 
 def _extract_relevant_content(
     snapshot_text: str,
-    user_task: Optional[str] = None
+    user_task: str | None = None
 ) -> str:
     """Use LLM to extract relevant content from a snapshot based on the user's task.
 
@@ -2287,7 +2287,7 @@ def _truncate_snapshot(snapshot_text: str, max_chars: int = 8000) -> str:
 # Browser Tool Functions
 # ============================================================================
 
-def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
+def browser_navigate(url: str, task_id: str | None = None) -> str:
     """
     Navigate to a URL in the browser.
 
@@ -2489,8 +2489,8 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
 
 def browser_snapshot(
     full: bool = False,
-    task_id: Optional[str] = None,
-    user_task: Optional[str] = None
+    task_id: str | None = None,
+    user_task: str | None = None
 ) -> str:
     """
     Get a text-based snapshot of the current page's accessibility tree.
@@ -2556,7 +2556,7 @@ def browser_snapshot(
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
-def browser_click(ref: str, task_id: Optional[str] = None) -> str:
+def browser_click(ref: str, task_id: str | None = None) -> str:
     """
     Click on an element.
 
@@ -2593,7 +2593,7 @@ def browser_click(ref: str, task_id: Optional[str] = None) -> str:
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
-def browser_type(ref: str, text: str, task_id: Optional[str] = None) -> str:
+def browser_type(ref: str, text: str, task_id: str | None = None) -> str:
     """
     Type text into an input field.
 
@@ -2633,7 +2633,7 @@ def browser_type(ref: str, text: str, task_id: Optional[str] = None) -> str:
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
-def browser_scroll(direction: str, task_id: Optional[str] = None) -> str:
+def browser_scroll(direction: str, task_id: str | None = None) -> str:
     """
     Scroll the page.
 
@@ -2682,7 +2682,7 @@ def browser_scroll(direction: str, task_id: Optional[str] = None) -> str:
     return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
-def browser_back(task_id: Optional[str] = None) -> str:
+def browser_back(task_id: str | None = None) -> str:
     """
     Navigate back in browser history.
 
@@ -2714,7 +2714,7 @@ def browser_back(task_id: Optional[str] = None) -> str:
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
-def browser_press(key: str, task_id: Optional[str] = None) -> str:
+def browser_press(key: str, task_id: str | None = None) -> str:
     """
     Press a keyboard key.
 
@@ -2749,7 +2749,7 @@ def browser_press(key: str, task_id: Optional[str] = None) -> str:
 
 
 
-def browser_console(clear: bool = False, expression: Optional[str] = None, task_id: Optional[str] = None) -> str:
+def browser_console(clear: bool = False, expression: str | None = None, task_id: str | None = None) -> str:
     """Get browser console messages and JavaScript errors, or evaluate JS in the page.
 
     When ``expression`` is provided, evaluates JavaScript in the page context
@@ -2811,7 +2811,7 @@ def browser_console(clear: bool = False, expression: Optional[str] = None, task_
     return json.dumps(response, ensure_ascii=False)
 
 
-def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
+def _browser_eval(expression: str, task_id: str | None = None) -> str:
     """Evaluate a JavaScript expression in the page context and return the result."""
     if _is_camofox_mode():
         return _camofox_eval(expression, task_id)
@@ -2901,7 +2901,7 @@ def _browser_eval(expression: str, task_id: Optional[str] = None) -> str:
     return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False, default=str)
 
 
-def _camofox_eval(expression: str, task_id: Optional[str] = None) -> str:
+def _camofox_eval(expression: str, task_id: str | None = None) -> str:
     """Evaluate JS via Camofox's /tabs/{tab_id}/eval endpoint (if available)."""
     from tools.browser_camofox import _ensure_tab, _post
     try:
@@ -2984,7 +2984,7 @@ def _maybe_stop_recording(task_id: str):
             _recording_sessions.discard(task_id)
 
 
-def browser_get_images(task_id: Optional[str] = None) -> str:
+def browser_get_images(task_id: str | None = None) -> str:
     """
     Get all images on the current page.
 
@@ -3045,7 +3045,7 @@ def browser_get_images(task_id: Optional[str] = None) -> str:
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
-def browser_vision(question: str, annotate: bool = False, task_id: Optional[str] = None) -> str:
+def browser_vision(question: str, annotate: bool = False, task_id: str | None = None) -> str:
     """
     Take a screenshot of the current page and analyze it with vision AI.
 
@@ -3334,7 +3334,7 @@ def _cleanup_old_recordings(max_age_hours=72):
 # Cleanup and Management Functions
 # ============================================================================
 
-def cleanup_browser(task_id: Optional[str] = None) -> None:
+def cleanup_browser(task_id: str | None = None) -> None:
     """
     Clean up browser session(s) for a task.
 
@@ -3490,7 +3490,7 @@ def cleanup_all_browsers() -> None:
 
 
 # Cache for Chromium discovery. Invalidated by _reset_browser_caches.
-_cached_chromium_installed: Optional[bool] = None
+_cached_chromium_installed: bool | None = None
 
 
 def _chromium_search_roots() -> List[str]:

@@ -22,8 +22,8 @@ MAX_CHOICES = 4
 
 def clarify_tool(
     question: str,
-    choices: Optional[List[str]] = None,
-    callback: Optional[Callable] = None,
+    choices: List[str] | None = None,
+    callback: Callable | None = None,
 ) -> str:
     """
     Ask the user a question, optionally with multiple-choice options.

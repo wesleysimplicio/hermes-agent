@@ -137,9 +137,9 @@ class IRCAdapter(BasePlatformAdapter):
         self.max_message_length = int(max_msg or 450)
 
         # Runtime state
-        self._reader: Optional[asyncio.StreamReader] = None
-        self._writer: Optional[asyncio.StreamWriter] = None
-        self._recv_task: Optional[asyncio.Task] = None
+        self._reader: asyncio.StreamReader | None = None
+        self._writer: asyncio.StreamWriter | None = None
+        self._recv_task: asyncio.Task | None = None
         self._current_nick = self.nickname
         self._registered = False  # IRC registration complete
         self._registration_event = asyncio.Event()
@@ -257,8 +257,8 @@ class IRCAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ):
         if not self._writer or self._writer.is_closing():
             return SendResult(success=False, error="Not connected")
@@ -719,8 +719,8 @@ async def _standalone_send(
     chat_id: str,
     message: str,
     *,
-    thread_id: Optional[str] = None,
-    media_files: Optional[List[str]] = None,
+    thread_id: str | None = None,
+    media_files: List[str] | None = None,
     force_document: bool = False,
 ) -> Dict[str, Any]:
     """Open an ephemeral IRC connection, send a PRIVMSG, and quit.

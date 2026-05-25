@@ -72,7 +72,7 @@ _MEMORY_WRITE_TARGET_SUBDIR_MAP = {
 # even if shutdown_memory_provider is never called (e.g. gateway crash,
 # SIGKILL, or exception in the session expiry watcher preventing shutdown).
 # ---------------------------------------------------------------------------
-_last_active_provider: Optional["OpenVikingMemoryProvider"] = None
+_last_active_provider: "OpenVikingMemoryProvider" | None = None
 
 
 def _atexit_commit_sessions():
@@ -413,15 +413,15 @@ class OpenVikingMemoryProvider(MemoryProvider):
     """Full bidirectional memory via OpenViking context database."""
 
     def __init__(self):
-        self._client: Optional[_VikingClient] = None
+        self._client: _VikingClient | None = None
         self._endpoint = ""
         self._api_key = ""
         self._session_id = ""
         self._turn_count = 0
-        self._sync_thread: Optional[threading.Thread] = None
+        self._sync_thread: threading.Thread | None = None
         self._prefetch_result = ""
         self._prefetch_lock = threading.Lock()
-        self._prefetch_thread: Optional[threading.Thread] = None
+        self._prefetch_thread: threading.Thread | None = None
 
     @property
     def name(self) -> str:
@@ -636,7 +636,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         action: str,
         target: str,
         content: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> None:
         """Mirror built-in memory writes to OpenViking via content/write."""
         if not self._client or action != "add" or not content:
@@ -935,7 +935,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         else:
             source_path = Path(url).expanduser()
 
-        cleanup_path: Optional[Path] = None
+        cleanup_path: Path | None = None
         try:
             if source_path is not None:
                 if source_path.exists():

@@ -79,18 +79,18 @@ class SessionSource:
     """
     platform: Platform
     chat_id: str
-    chat_name: Optional[str] = None
+    chat_name: str | None = None
     chat_type: str = "dm"  # "dm", "group", "channel", "thread"
-    user_id: Optional[str] = None
-    user_name: Optional[str] = None
-    thread_id: Optional[str] = None  # For forum topics, Discord threads, etc.
-    chat_topic: Optional[str] = None  # Channel topic/description (Discord, Slack)
-    user_id_alt: Optional[str] = None  # Platform-specific stable alt ID (Signal UUID, Feishu union_id)
-    chat_id_alt: Optional[str] = None  # Signal group internal ID
+    user_id: str | None = None
+    user_name: str | None = None
+    thread_id: str | None = None  # For forum topics, Discord threads, etc.
+    chat_topic: str | None = None  # Channel topic/description (Discord, Slack)
+    user_id_alt: str | None = None  # Platform-specific stable alt ID (Signal UUID, Feishu union_id)
+    chat_id_alt: str | None = None  # Signal group internal ID
     is_bot: bool = False  # True when the message author is a bot/webhook (Discord)
-    guild_id: Optional[str] = None  # Discord guild / Slack workspace / Matrix server scope
-    parent_chat_id: Optional[str] = None  # Parent channel when chat_id refers to a thread
-    message_id: Optional[str] = None  # ID of the triggering message (for pin/reply/react)
+    guild_id: str | None = None  # Discord guild / Slack workspace / Matrix server scope
+    parent_chat_id: str | None = None  # Parent channel when chat_id refers to a thread
+    message_id: str | None = None  # ID of the triggering message (for pin/reply/react)
     
     @property
     def description(self) -> str:
@@ -174,8 +174,8 @@ class SessionContext:
     # Session metadata
     session_key: str = ""
     session_id: str = ""
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -434,11 +434,11 @@ class SessionEntry:
     updated_at: datetime
     
     # Origin metadata for delivery routing
-    origin: Optional[SessionSource] = None
+    origin: SessionSource | None = None
     
     # Display metadata
-    display_name: Optional[str] = None
-    platform: Optional[Platform] = None
+    display_name: str | None = None
+    platform: Platform | None = None
     chat_type: str = "dm"
     
     # Token tracking
@@ -456,7 +456,7 @@ class SessionEntry:
     # Set when a session was created because the previous one expired;
     # consumed once by the message handler to inject a notice into context
     was_auto_reset: bool = False
-    auto_reset_reason: Optional[str] = None  # "idle" or "daily"
+    auto_reset_reason: str | None = None  # "idle" or "daily"
     reset_had_activity: bool = False  # whether the expired session had any messages
 
     # Set by reset_session() when the user explicitly sends /new or /reset.
@@ -488,8 +488,8 @@ class SessionEntry:
     # ``.restart_failure_counts`` stuck-loop counter (#7536), not by a
     # parallel counter on this entry.
     resume_pending: bool = False
-    resume_reason: Optional[str] = None  # e.g. "restart_timeout"
-    last_resume_marked_at: Optional[datetime] = None
+    resume_reason: str | None = None  # e.g. "restart_timeout"
+    last_resume_marked_at: datetime | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         result = {
@@ -787,7 +787,7 @@ class SessionStore:
 
         return False
 
-    def _should_reset(self, entry: SessionEntry, source: SessionSource) -> Optional[str]:
+    def _should_reset(self, entry: SessionEntry, source: SessionSource) -> str | None:
         """
         Check if a session should be reset based on policy.
         
@@ -1127,7 +1127,7 @@ class SessionStore:
                 self._save()
         return count
 
-    def reset_session(self, session_key: str, display_name: Optional[str] = None) -> Optional[SessionEntry]:
+    def reset_session(self, session_key: str, display_name: str | None = None) -> SessionEntry | None:
         """Force reset a session, creating a new session ID."""
         db_end_session_id = None
         db_create_kwargs = None
@@ -1179,7 +1179,7 @@ class SessionStore:
 
         return new_entry
 
-    def switch_session(self, session_key: str, target_session_id: str) -> Optional[SessionEntry]:
+    def switch_session(self, session_key: str, target_session_id: str) -> SessionEntry | None:
         """Switch a session key to point at an existing session ID.
 
         Used by ``/resume`` to restore a previously-named session.
@@ -1234,7 +1234,7 @@ class SessionStore:
 
         return new_entry
 
-    def list_sessions(self, active_minutes: Optional[int] = None) -> List[SessionEntry]:
+    def list_sessions(self, active_minutes: int | None = None) -> List[SessionEntry]:
         """List all sessions, optionally filtered by activity."""
         with self._lock:
             self._ensure_loaded_locked()
@@ -1313,7 +1313,7 @@ class SessionStore:
 def build_session_context(
     source: SessionSource,
     config: GatewayConfig,
-    session_entry: Optional[SessionEntry] = None
+    session_entry: SessionEntry | None = None
 ) -> SessionContext:
     """
     Build a full session context from a source and config.

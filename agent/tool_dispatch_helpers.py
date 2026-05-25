@@ -146,7 +146,7 @@ def _should_parallelize_tool_batch(tool_calls) -> bool:
     return True
 
 
-def _extract_parallel_scope_path(tool_name: str, function_args: dict) -> Optional[Path]:
+def _extract_parallel_scope_path(tool_name: str, function_args: dict) -> Path | None:
     """Return the normalized file target for path-scoped tools."""
     if tool_name not in _PATH_SCOPED_TOOLS:
         return None

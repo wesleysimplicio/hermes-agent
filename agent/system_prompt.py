@@ -57,7 +57,7 @@ def _ra():
     return run_agent
 
 
-def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) -> Dict[str, str]:
+def build_system_prompt_parts(agent: Any, system_message: str | None = None) -> Dict[str, str]:
     """Assemble the system prompt as three ordered parts.
 
     Returns a dict with three keys:
@@ -318,7 +318,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     }
 
 
-def build_system_prompt(agent: Any, system_message: Optional[str] = None) -> str:
+def build_system_prompt(agent: Any, system_message: str | None = None) -> str:
     """Assemble the full system prompt from all layers.
 
     Called once per session (cached on ``agent._cached_system_prompt``) and

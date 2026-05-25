@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 
-def _fmt_ts(ts: Optional[str]) -> str:
+def _fmt_ts(ts: str | None) -> str:
     if not ts:
         return "never"
     try:
@@ -282,7 +282,7 @@ def _cmd_archive(args) -> int:
     return 0 if ok else 1
 
 
-def _idle_days(record: dict) -> Optional[int]:
+def _idle_days(record: dict) -> int | None:
     """Days since the skill's last activity (view / use / patch).
 
     Falls back to ``created_at`` so a skill that was authored but never used

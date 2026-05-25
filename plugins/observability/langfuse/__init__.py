@@ -117,7 +117,7 @@ def _redact_key_preview(value: str) -> str:
     return repr(value[:6] + "...")
 
 
-def _validate_langfuse_key(env_name: str, value: str) -> Optional[str]:
+def _validate_langfuse_key(env_name: str, value: str) -> str | None:
     """Return an error message if ``value`` is not a real Langfuse key.
 
     Returns ``None`` when the value matches the documented Langfuse
@@ -137,7 +137,7 @@ def _validate_langfuse_key(env_name: str, value: str) -> Optional[str]:
     )
 
 
-def _get_langfuse() -> Optional[Langfuse]:
+def _get_langfuse() -> Langfuse | None:
     """Return a cached Langfuse client, or ``None`` if unavailable.
 
     Activation of this plugin is controlled by the Hermes plugin system —
@@ -361,7 +361,7 @@ def _normalize_payload(value: Any, *, tool_name: str = "", args: Any = None) -> 
     return value
 
 
-def _safe_value(value: Any, *, max_chars: Optional[int] = None, depth: int = 0,
+def _safe_value(value: Any, *, max_chars: int | None = None, depth: int = 0,
                 parse_json_strings: bool = False) -> Any:
     max_chars = max_chars if max_chars is not None else int(_env("HERMES_LANGFUSE_MAX_CHARS", "12000") or "12000")
     if depth > 4:
@@ -604,8 +604,8 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
 
 
 def _start_child_observation(state: TraceState, *, client: Langfuse, name: str, as_type: str,
-                             input_value: Any, metadata: Optional[dict] = None,
-                             model: Optional[str] = None, model_parameters: Optional[dict] = None) -> Any:
+                             input_value: Any, metadata: dict | None = None,
+                             model: str | None = None, model_parameters: dict | None = None) -> Any:
     return state.root_span.start_observation(
         name=name,
         as_type=as_type,
@@ -616,8 +616,8 @@ def _start_child_observation(state: TraceState, *, client: Langfuse, name: str, 
     )
 
 
-def _end_observation(observation: Any, *, output: Any = None, metadata: Optional[dict] = None,
-                     usage_details: Optional[dict] = None, cost_details: Optional[dict] = None) -> None:
+def _end_observation(observation: Any, *, output: Any = None, metadata: dict | None = None,
+                     usage_details: dict | None = None, cost_details: dict | None = None) -> None:
     if observation is None:
         return
     try:

@@ -74,8 +74,8 @@ class _BackgroundLoop:
     """
 
     def __init__(self) -> None:
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self._thread: Optional[threading.Thread] = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._thread: threading.Thread | None = None
         self._ready = threading.Event()
 
     def start(self) -> None:
@@ -102,7 +102,7 @@ class _BackgroundLoop:
             except Exception:  # noqa: BLE001
                 pass
 
-    def run(self, coro, *, timeout: Optional[float] = None) -> Any:
+    def run(self, coro, *, timeout: float | None = None) -> Any:
         """Submit a coroutine to the loop and block until done.
 
         Returns the coroutine's result, or raises its exception.
@@ -155,10 +155,10 @@ class LSPService:
         wait_mode: str,
         wait_timeout: float,
         install_strategy: str,
-        binary_overrides: Optional[Dict[str, List[str]]] = None,
-        env_overrides: Optional[Dict[str, Dict[str, str]]] = None,
-        init_overrides: Optional[Dict[str, Dict[str, Any]]] = None,
-        disabled_servers: Optional[List[str]] = None,
+        binary_overrides: Dict[str, List[str]] | None = None,
+        env_overrides: Dict[str, Dict[str, str]] | None = None,
+        init_overrides: Dict[str, Dict[str, Any]] | None = None,
+        disabled_servers: List[str] | None = None,
         idle_timeout: float = DEFAULT_IDLE_TIMEOUT,
     ) -> None:
         self._enabled = enabled
@@ -189,7 +189,7 @@ class LSPService:
         self._delta_baseline: Dict[str, List[Dict[str, Any]]] = {}
 
     @classmethod
-    def create_from_config(cls) -> Optional["LSPService"]:
+    def create_from_config(cls) -> "LSPService" | None:
         """Build a service from ``hermes_cli.config`` settings.
 
         Returns ``None`` if the config can't be loaded.  The service
@@ -309,8 +309,8 @@ class LSPService:
         file_path: str,
         *,
         delta: bool = True,
-        timeout: Optional[float] = None,
-        line_shift: Optional[Callable[[int], Optional[int]]] = None,
+        timeout: float | None = None,
+        line_shift: Callable[[int], int | None] | None = None,
     ) -> List[Dict[str, Any]]:
         """Synchronously open ``file_path`` in the right server, wait for
         diagnostics, return them.
@@ -489,7 +489,7 @@ class LSPService:
             return []
         return list(client.diagnostics_for(file_path))
 
-    async def _get_or_spawn(self, file_path: str) -> Optional[LSPClient]:
+    async def _get_or_spawn(self, file_path: str) -> LSPClient | None:
         srv = find_server_for_file(file_path)
         if srv is None:
             return None

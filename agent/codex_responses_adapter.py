@@ -152,7 +152,7 @@ def _deterministic_call_id(fn_name: str, arguments: str, index: int = 0) -> str:
     return f"call_{digest}"
 
 
-def _split_responses_tool_id(raw_id: Any) -> tuple[Optional[str], Optional[str]]:
+def _split_responses_tool_id(raw_id: Any) -> tuple[str | None, str | None]:
     """Split a stored tool id into (call_id, response_item_id)."""
     if not isinstance(raw_id, str):
         return None, None
@@ -171,7 +171,7 @@ def _split_responses_tool_id(raw_id: Any) -> tuple[Optional[str], Optional[str]]
 
 def _derive_responses_function_call_id(
     call_id: str,
-    response_item_id: Optional[str] = None,
+    response_item_id: str | None = None,
 ) -> str:
     """Build a valid Responses `function_call.id` (must start with `fc_`)."""
     if isinstance(response_item_id, str):
@@ -202,7 +202,7 @@ def _derive_responses_function_call_id(
 # Schema conversion
 # ---------------------------------------------------------------------------
 
-def _responses_tools(tools: Optional[List[Dict[str, Any]]] = None) -> Optional[List[Dict[str, Any]]]:
+def _responses_tools(tools: List[Dict[str, Any]] | None = None) -> List[Dict[str, Any]] | None:
     """Convert chat-completions tool schemas to Responses function-tool schemas."""
     if not tools:
         return None

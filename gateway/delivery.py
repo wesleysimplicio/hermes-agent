@@ -37,13 +37,13 @@ class DeliveryTarget:
     - "telegram:123456" → specific Telegram chat
     """
     platform: Platform
-    chat_id: Optional[str] = None  # None means use home channel
-    thread_id: Optional[str] = None
+    chat_id: str | None = None  # None means use home channel
+    thread_id: str | None = None
     is_origin: bool = False
     is_explicit: bool = False  # True if chat_id was explicitly specified
     
     @classmethod
-    def parse(cls, target: str, origin: Optional[SessionSource] = None) -> "DeliveryTarget":
+    def parse(cls, target: str, origin: SessionSource | None = None) -> "DeliveryTarget":
         """
         Parse a delivery target string.
         
@@ -130,9 +130,9 @@ class DeliveryRouter:
         self,
         content: str,
         targets: List[DeliveryTarget],
-        job_id: Optional[str] = None,
-        job_name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        job_id: str | None = None,
+        job_name: str | None = None,
+        metadata: Dict[str, Any] | None = None
     ) -> Dict[str, Any]:
         """
         Deliver content to all specified targets.
@@ -171,9 +171,9 @@ class DeliveryRouter:
     def _deliver_local(
         self,
         content: str,
-        job_id: Optional[str],
-        job_name: Optional[str],
-        metadata: Optional[Dict[str, Any]]
+        job_id: str | None,
+        job_name: str | None,
+        metadata: Dict[str, Any] | None
     ) -> Dict[str, Any]:
         """Save content to local files."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -227,7 +227,7 @@ class DeliveryRouter:
         self,
         target: DeliveryTarget,
         content: str,
-        metadata: Optional[Dict[str, Any]]
+        metadata: Dict[str, Any] | None
     ) -> Dict[str, Any]:
         """Deliver content to a messaging platform."""
         adapter = self.adapters.get(target.platform)

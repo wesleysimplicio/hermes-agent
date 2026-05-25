@@ -964,7 +964,7 @@ def clear_task_env_overrides(task_id: str):
     _task_env_overrides.pop(task_id, None)
 
 
-def _resolve_container_task_id(task_id: Optional[str]) -> str:
+def _resolve_container_task_id(task_id: str | None) -> str:
     """
     Map a tool-call ``task_id`` to the container/sandbox key used by
     ``_active_environments``.
@@ -1659,13 +1659,13 @@ def _resolve_notification_flag_conflict(
 def terminal_tool(
     command: str,
     background: bool = False,
-    timeout: Optional[int] = None,
-    task_id: Optional[str] = None,
+    timeout: int | None = None,
+    task_id: str | None = None,
     force: bool = False,
-    workdir: Optional[str] = None,
+    workdir: str | None = None,
     pty: bool = False,
     notify_on_complete: bool = False,
-    watch_patterns: Optional[List[str]] = None,
+    watch_patterns: List[str] | None = None,
 ) -> str:
     """
     Execute a command in the configured terminal environment.

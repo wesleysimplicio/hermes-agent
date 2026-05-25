@@ -33,7 +33,7 @@ router = APIRouter()
 
 SNAPSHOT_TTL_SECONDS = 120
 _SCAN_LOCK = threading.Lock()
-_SNAPSHOT_CACHE: Optional[Dict[str, Any]] = None
+_SNAPSHOT_CACHE: Dict[str, Any] | None = None
 _SNAPSHOT_CACHE_AT = 0
 _SCAN_STATUS: Dict[str, Any] = {
     "state": "idle",
@@ -180,7 +180,7 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
-def load_snapshot() -> Optional[Dict[str, Any]]:
+def load_snapshot() -> Dict[str, Any] | None:
     path = snapshot_path()
     if not path.exists():
         return None
@@ -235,7 +235,7 @@ def _cache_is_fresh(now: int) -> bool:
     return _SNAPSHOT_CACHE is not None and (now - _SNAPSHOT_CACHE_AT) <= SNAPSHOT_TTL_SECONDS
 
 
-def _is_snapshot_stale(snapshot: Optional[Dict[str, Any]], now: Optional[int] = None) -> bool:
+def _is_snapshot_stale(snapshot: Dict[str, Any] | None, now: int | None = None) -> bool:
     if not isinstance(snapshot, dict):
         return True
     ts = int(snapshot.get("generated_at") or 0)
@@ -245,7 +245,7 @@ def _is_snapshot_stale(snapshot: Optional[Dict[str, Any]], now: Optional[int] = 
     return (current - ts) > SNAPSHOT_TTL_SECONDS
 
 
-def _scan_status_payload(now: Optional[int] = None) -> Dict[str, Any]:
+def _scan_status_payload(now: int | None = None) -> Dict[str, Any]:
     current = int(now or time.time())
     snap = _SNAPSHOT_CACHE if isinstance(_SNAPSHOT_CACHE, dict) else None
     generated_at = int((snap or {}).get("generated_at") or 0) if snap else 0
@@ -263,7 +263,7 @@ def _scan_status_payload(now: Optional[int] = None) -> Dict[str, Any]:
     }
 
 
-def _tool_name_from_call(call: Any) -> Optional[str]:
+def _tool_name_from_call(call: Any) -> str | None:
     if not isinstance(call, dict):
         return None
     fn = call.get("function") or {}
@@ -287,7 +287,7 @@ def _count_tool(tool_names: List[str], *needles: str) -> int:
     return sum(1 for name in lowered if any(needle in name for needle in needles))
 
 
-def model_provider(model_name: str) -> Optional[str]:
+def model_provider(model_name: str) -> str | None:
     name = (model_name or "").strip().lower()
     if not name or name == "none":
         return None
@@ -558,8 +558,8 @@ def display_achievement(item: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def scan_sessions(
-    limit: Optional[int] = None,
-    progress_callback: Optional[Any] = None,
+    limit: int | None = None,
+    progress_callback: Any | None = None,
     progress_every: int = 250,
 ) -> Dict[str, Any]:
     """Scan Hermes sessions and build per-session achievement stats.
@@ -763,7 +763,7 @@ def evaluate_definition(definition: Dict[str, Any], aggregate: Dict[str, Any]) -
     return evaluate_boolean(definition, aggregate)
 
 
-def evidence_for(definition: Dict[str, Any], sessions: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def evidence_for(definition: Dict[str, Any], sessions: List[Dict[str, Any]]) -> Dict[str, Any] | None:
     if not sessions:
         return None
     metric = definition.get("threshold_metric")
@@ -826,12 +826,12 @@ def _compute_from_scan(scan: Dict[str, Any], *, is_partial: bool = False) -> Dic
     }
 
 
-def compute_all(progress_callback: Optional[Any] = None, progress_every: int = 250) -> Dict[str, Any]:
+def compute_all(progress_callback: Any | None = None, progress_every: int = 250) -> Dict[str, Any]:
     scan = scan_sessions(progress_callback=progress_callback, progress_every=progress_every)
     return _compute_from_scan(scan, is_partial=False)
 
 
-_BACKGROUND_SCAN_THREAD: Optional[threading.Thread] = None
+_BACKGROUND_SCAN_THREAD: threading.Thread | None = None
 _BACKGROUND_SCAN_LOCK = threading.Lock()
 
 

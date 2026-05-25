@@ -503,7 +503,7 @@ ERC20_SELECTORS: Dict[str, str] = {
     "balanceOf(address)":      "0x70a08231",
 }
 
-def eth_call_erc20(chain: str, contract: str, fn: str, arg_addr: Optional[str] = None) -> str:
+def eth_call_erc20(chain: str, contract: str, fn: str, arg_addr: str | None = None) -> str:
     selector = ERC20_SELECTORS[fn]
     data = selector
     if arg_addr:
@@ -544,7 +544,7 @@ def decode_uint8(hex_data: str) -> int:
 
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 
-def cg_price_by_id(cg_id: str) -> Optional[float]:
+def cg_price_by_id(cg_id: str) -> float | None:
     try:
         url = f"{COINGECKO_BASE}/simple/price?ids={cg_id}&vs_currencies=usd"
         data = _http_get(url)
@@ -564,7 +564,7 @@ def cg_price_by_ids(cg_ids: List[str]) -> Dict[str, float]:
     except Exception:
         return {}
 
-def cg_price_by_contract(chain: str, contract: str) -> Optional[float]:
+def cg_price_by_contract(chain: str, contract: str) -> float | None:
     cg_platform_map = {
         "ethereum": "ethereum",
         "bsc":      "binance-smart-chain",
@@ -592,7 +592,7 @@ def cg_price_by_contract(chain: str, contract: str) -> Optional[float]:
     except Exception:
         return None
 
-def get_native_price(chain: str) -> Optional[float]:
+def get_native_price(chain: str) -> float | None:
     cg_id = CHAINS[chain]["coingecko"]
     return cg_price_by_id(cg_id)
 
@@ -613,7 +613,7 @@ def cmd_stats(args: argparse.Namespace) -> None:
     gas_price_wei = hex_to_int(results[1] or "0x0")
 
     # TPS estimate: compare latest block timestamp with parent
-    tps: Optional[float] = None
+    tps: float | None = None
     try:
         latest_block = rpc_call(chain, "eth_getBlockByNumber", ["latest", False])
         if latest_block:
@@ -654,8 +654,8 @@ def cmd_wallet(args: argparse.Namespace) -> None:
     native_wei  = hex_to_int(balance_hex or "0x0")
     native_val  = wei_to_native(native_wei, cfg["decimals"])
 
-    native_usd_price: Optional[float] = None
-    native_usd: Optional[float] = None
+    native_usd_price: float | None = None
+    native_usd: float | None = None
     if not no_prices:
         native_usd_price = get_native_price(chain)
         if native_usd_price is not None:
@@ -684,8 +684,8 @@ def cmd_wallet(args: argparse.Namespace) -> None:
             decimals = decode_uint8(dec_hex) if dec_hex and dec_hex != "0x" else 18
             bal_human = wei_to_native(raw_bal, decimals)
 
-            token_price: Optional[float] = None
-            token_usd: Optional[float] = None
+            token_price: float | None = None
+            token_usd: float | None = None
             if not no_prices:
                 try:
                     cg_id = COINGECKO_IDS.get(symbol)
@@ -736,7 +736,7 @@ def cmd_tx(args: argparse.Namespace) -> None:
         return
 
     block_num = hex_to_int(tx.get("blockNumber") or "0x0")
-    timestamp: Optional[int] = None
+    timestamp: int | None = None
     try:
         blk = rpc_call(chain, "eth_getBlockByNumber", [hex(block_num), False])
         if blk:
@@ -759,8 +759,8 @@ def cmd_tx(args: argparse.Namespace) -> None:
     native_price = get_native_price(chain)
     value_usd = round(value_eth * native_price, 4) if native_price else None
 
-    fee_eth: Optional[float] = None
-    fee_usd: Optional[float] = None
+    fee_eth: float | None = None
+    fee_usd: float | None = None
     if gas_used is not None:
         fee_eth = wei_to_native(gas_used * gas_price, cfg["decimals"])
         if native_price:
@@ -806,8 +806,8 @@ def cmd_token(args: argparse.Namespace) -> None:
     supply_raw = decode_uint256(results[3] or "0x0")
     supply   = wei_to_native(supply_raw, decimals)
 
-    price: Optional[float] = None
-    market_cap: Optional[float] = None
+    price: float | None = None
+    market_cap: float | None = None
     cg_id = COINGECKO_IDS.get(symbol.upper())
     if cg_id:
         price = cg_price_by_id(cg_id)
@@ -921,7 +921,7 @@ def cmd_price(args: argparse.Namespace) -> None:
     token = args.token
     chain = args.chain
 
-    price: Optional[float] = None
+    price: float | None = None
     source = "unknown"
 
     # Check if it's a contract address
@@ -967,7 +967,7 @@ def _fetch_chain_stats(chain: str) -> Dict[str, Any]:
     cg_id = CHAINS[chain]["coingecko"]
     native_price = cg_price_by_id(cg_id)
 
-    transfer_usd: Optional[float] = None
+    transfer_usd: float | None = None
     if gas_gwei is not None and native_price is not None:
         gas_wei_val = int(gas_gwei * 1e9)
         cost_wei    = gas_wei_val * GAS_ESTIMATES["transfer"]
@@ -1244,7 +1244,7 @@ def cmd_decode(args: argparse.Namespace) -> None:
         signatures = [r["text_signature"] for r in data["results"]]
 
     # Decode known transfer(address,uint256) manually as fallback
-    decoded_args: Optional[Dict] = None
+    decoded_args: Dict | None = None
     if signatures and len(input_data) >= 74:
         sig = signatures[0]
         if sig == "transfer(address,uint256)" and len(input_data) == 138:

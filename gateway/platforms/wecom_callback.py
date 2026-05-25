@@ -60,12 +60,12 @@ class WecomCallbackAdapter(BasePlatformAdapter):
         self._port = int(extra.get("port") or DEFAULT_PORT)
         self._path = str(extra.get("path") or DEFAULT_PATH)
         self._apps: List[Dict[str, Any]] = self._normalize_apps(extra)
-        self._runner: Optional[web.AppRunner] = None
-        self._site: Optional[web.TCPSite] = None
-        self._app: Optional[web.Application] = None
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._runner: web.AppRunner | None = None
+        self._site: web.TCPSite | None = None
+        self._app: web.Application | None = None
+        self._http_client: httpx.AsyncClient | None = None
         self._message_queue: asyncio.Queue[MessageEvent] = asyncio.Queue()
-        self._poll_task: Optional[asyncio.Task] = None
+        self._poll_task: asyncio.Task | None = None
         self._seen_messages: Dict[str, float] = {}
         self._user_app_map: Dict[str, str] = {}
         self._access_tokens: Dict[str, Dict[str, Any]] = {}
@@ -181,8 +181,8 @@ class WecomCallbackAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         app = self._resolve_app_for_chat(chat_id)
         touser = chat_id.split(":", 1)[1] if ":" in chat_id else chat_id
@@ -327,7 +327,7 @@ class WecomCallbackAdapter(BasePlatformAdapter):
         crypt = self._crypt_for_app(app)
         return crypt.decrypt(msg_signature, timestamp, nonce, encrypt).decode("utf-8")
 
-    def _build_event(self, app: Dict[str, Any], xml_text: str) -> Optional[MessageEvent]:
+    def _build_event(self, app: Dict[str, Any], xml_text: str) -> MessageEvent | None:
         root = ET.fromstring(xml_text)
         msg_type = (root.findtext("MsgType") or "").lower()
         # Silently acknowledge lifecycle events.
@@ -370,7 +370,7 @@ class WecomCallbackAdapter(BasePlatformAdapter):
             receive_id=str(app.get("corp_id") or ""),
         )
 
-    def _get_app_by_name(self, name: Optional[str]) -> Optional[Dict[str, Any]]:
+    def _get_app_by_name(self, name: str | None) -> Dict[str, Any] | None:
         if not name:
             return None
         for app in self._apps:

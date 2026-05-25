@@ -74,7 +74,7 @@ class Transport(Protocol):
         """Release any resources owned by this transport."""
 
 
-_current_transport: contextvars.ContextVar[Optional[Transport]] = (
+_current_transport: contextvars.ContextVar[Transport | None] = (
     contextvars.ContextVar(
         "hermes_gateway_transport",
         default=None,
@@ -82,12 +82,12 @@ _current_transport: contextvars.ContextVar[Optional[Transport]] = (
 )
 
 
-def current_transport() -> Optional[Transport]:
+def current_transport() -> Transport | None:
     """Return the transport bound for the current request, if any."""
     return _current_transport.get()
 
 
-def bind_transport(transport: Optional[Transport]):
+def bind_transport(transport: Transport | None):
     """Bind *transport* for the current context. Returns a token for :func:`reset_transport`."""
     return _current_transport.set(transport)
 

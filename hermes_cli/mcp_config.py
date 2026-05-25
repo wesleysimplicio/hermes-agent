@@ -74,7 +74,7 @@ def _prompt(question: str, *, password: bool = False, default: str = "") -> str:
 
 # ─── Config Helpers ───────────────────────────────────────────────────────────
 
-def _get_mcp_servers(config: Optional[dict] = None) -> Dict[str, dict]:
+def _get_mcp_servers(config: dict | None = None) -> Dict[str, dict]:
     """Return the ``mcp_servers`` dict from config, or empty dict."""
     if config is None:
         config = load_config()
@@ -109,7 +109,7 @@ def _env_key_for_server(name: str) -> str:
     return f"MCP_{name.upper().replace('-', '_')}_API_KEY"
 
 
-def _parse_env_assignments(raw_env: Optional[List[str]]) -> Dict[str, str]:
+def _parse_env_assignments(raw_env: List[str] | None) -> Dict[str, str]:
     """Parse ``KEY=VALUE`` strings from CLI args into an env dict."""
     parsed: Dict[str, str] = {}
     for item in raw_env or []:
@@ -131,12 +131,12 @@ def _parse_env_assignments(raw_env: Optional[List[str]]) -> Dict[str, str]:
 def _apply_mcp_preset(
     name: str,
     *,
-    preset_name: Optional[str],
-    url: Optional[str],
-    command: Optional[str],
+    preset_name: str | None,
+    url: str | None,
+    command: str | None,
     cmd_args: List[str],
     server_config: Dict[str, Any],
-) -> tuple[Optional[str], Optional[str], List[str], bool]:
+) -> tuple[str | None, str | None, List[str], bool]:
     """Apply a known MCP preset when transport details were omitted."""
     if not preset_name:
         return url, command, cmd_args, False

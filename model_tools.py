@@ -114,7 +114,7 @@ def _run_async(coro):
         # worker, which previously leaked the thread on every 300 s timeout).
         import concurrent.futures
 
-        worker_loop: Optional[asyncio.AbstractEventLoop] = None
+        worker_loop: asyncio.AbstractEventLoop | None = None
         loop_ready = threading.Event()
 
         def _run_in_worker():
@@ -741,11 +741,11 @@ def _coerce_boolean(value: str):
 def handle_function_call(
     function_name: str,
     function_args: Dict[str, Any],
-    task_id: Optional[str] = None,
-    tool_call_id: Optional[str] = None,
-    session_id: Optional[str] = None,
-    user_task: Optional[str] = None,
-    enabled_tools: Optional[List[str]] = None,
+    task_id: str | None = None,
+    tool_call_id: str | None = None,
+    session_id: str | None = None,
+    user_task: str | None = None,
+    enabled_tools: List[str] | None = None,
     skip_pre_tool_call_hook: bool = False,
 ) -> str:
     """
@@ -782,7 +782,7 @@ def handle_function_call(
         # pass. When skip=True, the caller already fired it — do nothing
         # here.
         if not skip_pre_tool_call_hook:
-            block_message: Optional[str] = None
+            block_message: str | None = None
             try:
                 from hermes_cli.plugins import get_pre_tool_call_block_message
                 block_message = get_pre_tool_call_block_message(
@@ -903,7 +903,7 @@ def get_all_tool_names() -> List[str]:
     return registry.get_all_tool_names()
 
 
-def get_toolset_for_tool(tool_name: str) -> Optional[str]:
+def get_toolset_for_tool(tool_name: str) -> str | None:
     """Return the toolset a tool belongs to."""
     return registry.get_toolset_for_tool(tool_name)
 

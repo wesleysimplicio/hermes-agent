@@ -108,7 +108,7 @@ def _resolve_model() -> Tuple[str, Dict[str, Any]]:
 
     cfg = _load_image_gen_config()
     sub = cfg.get("openai-codex") if isinstance(cfg.get("openai-codex"), dict) else {}
-    candidate: Optional[str] = None
+    candidate: str | None = None
     if isinstance(sub, dict):
         value = sub.get("model")
         if isinstance(value, str) and value in _MODELS:
@@ -124,7 +124,7 @@ def _resolve_model() -> Tuple[str, Dict[str, Any]]:
     return DEFAULT_MODEL, _MODELS[DEFAULT_MODEL]
 
 
-def _read_codex_access_token() -> Optional[str]:
+def _read_codex_access_token() -> str | None:
     """Return a usable Codex OAuth token, or None.
 
     Delegates to the canonical reader in ``agent.auxiliary_client`` so token
@@ -161,9 +161,9 @@ def _build_codex_client():
         return None
 
 
-def _collect_image_b64(client: Any, *, prompt: str, size: str, quality: str) -> Optional[str]:
+def _collect_image_b64(client: Any, *, prompt: str, size: str, quality: str) -> str | None:
     """Stream a Codex Responses image_generation call and return the b64 image."""
-    image_b64: Optional[str] = None
+    image_b64: str | None = None
 
     with client.responses.stream(
         model=_CODEX_CHAT_MODEL,
@@ -251,7 +251,7 @@ class OpenAICodexImageGenProvider(ImageGenProvider):
             for model_id, meta in _MODELS.items()
         ]
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         return DEFAULT_MODEL
 
     def get_setup_schema(self) -> Dict[str, Any]:

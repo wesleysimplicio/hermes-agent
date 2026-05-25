@@ -137,11 +137,11 @@ class PendingDialog:
     default_prompt: str
     opened_at: float
     cdp_session_id: str  # which attached CDP session the dialog fired in
-    frame_id: Optional[str] = None
+    frame_id: str | None = None
     # When set, the dialog was captured via the bridge XHR path (Fetch domain).
     # Response must be delivered via Fetch.fulfillRequest, NOT
     # Page.handleJavaScriptDialog — the native dialog never fired.
-    bridge_request_id: Optional[str] = None
+    bridge_request_id: str | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -169,7 +169,7 @@ class DialogRecord:
     opened_at: float
     closed_at: float
     closed_by: str  # "agent" | "auto_policy" | "remote" | "watchdog"
-    frame_id: Optional[str] = None
+    frame_id: str | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -195,9 +195,9 @@ class FrameInfo:
     frame_id: str
     url: str
     origin: str
-    parent_frame_id: Optional[str]
+    parent_frame_id: str | None
     is_oopif: bool
-    cdp_session_id: Optional[str] = None
+    cdp_session_id: str | None = None
     name: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
@@ -223,7 +223,7 @@ class ConsoleEvent:
     ts: float
     level: str  # "log" | "error" | "warning" | "exception"
     text: str
-    url: Optional[str] = None
+    url: str | None = None
 
 
 @dataclass(frozen=True)
@@ -300,17 +300,17 @@ class CDPSupervisor:
         self._active = False
 
         # Supervisor loop machinery — populated in start().
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self._thread: Optional[threading.Thread] = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._thread: threading.Thread | None = None
         self._ready_event = threading.Event()
-        self._start_error: Optional[BaseException] = None
+        self._start_error: BaseException | None = None
         self._stop_requested = False
 
         # CDP call tracking (runs on supervisor loop only).
         self._next_call_id = 1
         self._pending_calls: Dict[int, asyncio.Future] = {}
-        self._ws: Optional[ClientConnection] = None
-        self._page_session_id: Optional[str] = None
+        self._ws: ClientConnection | None = None
+        self._page_session_id: str | None = None
         self._child_sessions: Dict[str, Dict[str, Any]] = {}  # session_id -> info
 
         # Dialog auto-dismiss watchdog handles (per dialog id).
@@ -404,8 +404,8 @@ class CDPSupervisor:
         self,
         action: str,
         *,
-        prompt_text: Optional[str] = None,
-        dialog_id: Optional[str] = None,
+        prompt_text: str | None = None,
+        dialog_id: str | None = None,
         timeout: float = 10.0,
     ) -> Dict[str, Any]:
         """Accept/dismiss a pending dialog. Sync bridge onto the supervisor loop.
@@ -767,9 +767,9 @@ class CDPSupervisor:
     async def _cdp(
         self,
         method: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: Dict[str, Any] | None = None,
         *,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         timeout: float = 10.0,
     ) -> Dict[str, Any]:
         """Send a CDP command and await its response."""
@@ -819,7 +819,7 @@ class CDPSupervisor:
     # ── Event dispatch ──────────────────────────────────────────────────────
 
     async def _on_event(
-        self, method: str, params: Dict[str, Any], session_id: Optional[str]
+        self, method: str, params: Dict[str, Any], session_id: str | None
     ) -> None:
         if method == "Page.javascriptDialogOpening":
             await self._on_dialog_opening(params, session_id)
@@ -843,7 +843,7 @@ class CDPSupervisor:
             self._on_console(params, level_from="exception")
 
     async def _on_dialog_opening(
-        self, params: Dict[str, Any], session_id: Optional[str]
+        self, params: Dict[str, Any], session_id: str | None
     ) -> None:
         self._dialog_seq += 1
         dialog = PendingDialog(
@@ -997,7 +997,7 @@ class CDPSupervisor:
                 handle.cancel()
 
     async def _on_dialog_closed(
-        self, params: Dict[str, Any], session_id: Optional[str]
+        self, params: Dict[str, Any], session_id: str | None
     ) -> None:
         # ``Page.javascriptDialogClosed`` spec has only ``result`` (bool) and
         # ``userInput`` (string), not the original ``message``.  Match by
@@ -1026,7 +1026,7 @@ class CDPSupervisor:
                     handle.cancel()
 
     async def _on_fetch_paused(
-        self, params: Dict[str, Any], session_id: Optional[str]
+        self, params: Dict[str, Any], session_id: str | None
     ) -> None:
         """Bridge XHR captured mid-flight — materialize as a pending dialog.
 
@@ -1138,7 +1138,7 @@ class CDPSupervisor:
     # ── Frame / target tracking ─────────────────────────────────────────────
 
     def _on_frame_attached(
-        self, params: Dict[str, Any], session_id: Optional[str]
+        self, params: Dict[str, Any], session_id: str | None
     ) -> None:
         frame_id = params.get("frameId")
         if not frame_id:
@@ -1154,7 +1154,7 @@ class CDPSupervisor:
             )
 
     def _on_frame_navigated(
-        self, params: Dict[str, Any], session_id: Optional[str]
+        self, params: Dict[str, Any], session_id: str | None
     ) -> None:
         frame = params.get("frame") or {}
         frame_id = frame.get("id")
@@ -1174,7 +1174,7 @@ class CDPSupervisor:
             self._frames[frame_id] = info
 
     def _on_frame_detached(
-        self, params: Dict[str, Any], session_id: Optional[str]
+        self, params: Dict[str, Any], session_id: str | None
     ) -> None:
         """Remove a frame from our state only when it's truly gone.
 
@@ -1372,7 +1372,7 @@ class _SupervisorRegistry:
         self._lock = threading.Lock()
         self._by_task: Dict[str, CDPSupervisor] = {}
 
-    def get(self, task_id: str) -> Optional[CDPSupervisor]:
+    def get(self, task_id: str) -> CDPSupervisor | None:
         """Return the supervisor for ``task_id`` if running, else ``None``."""
         with self._lock:
             return self._by_task.get(task_id)

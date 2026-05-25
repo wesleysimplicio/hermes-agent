@@ -636,7 +636,7 @@ ZAI_ENDPOINTS = [
 ]
 
 
-def detect_zai_endpoint(api_key: str, timeout: float = 8.0) -> Optional[Dict[str, str]]:
+def detect_zai_endpoint(api_key: str, timeout: float = 8.0) -> Dict[str, str] | None:
     """Probe z.ai endpoints to find one that accepts this API key.
 
     Returns {"id": ..., "base_url": ..., "model": ..., "label": ...} for the
@@ -735,7 +735,7 @@ class AuthError(RuntimeError):
         message: str,
         *,
         provider: str = "",
-        code: Optional[str] = None,
+        code: str | None = None,
         relogin_required: bool = False,
     ) -> None:
         super().__init__(message)
@@ -770,7 +770,7 @@ def format_auth_error(error: Exception) -> str:
     return str(error)
 
 
-def _token_fingerprint(token: Any) -> Optional[str]:
+def _token_fingerprint(token: Any) -> str | None:
     """Return a short hash fingerprint for telemetry without leaking token bytes."""
     if not isinstance(token, str):
         return None
@@ -785,7 +785,7 @@ def _oauth_trace_enabled() -> bool:
     return raw in {"1", "true", "yes", "on"}
 
 
-def _oauth_trace(event: str, *, sequence_id: Optional[str] = None, **fields: Any) -> None:
+def _oauth_trace(event: str, *, sequence_id: str | None = None, **fields: Any) -> None:
     if not _oauth_trace_enabled():
         return
     payload: Dict[str, Any] = {"event": event}
@@ -821,7 +821,7 @@ def _auth_file_path() -> Path:
     return path
 
 
-def _global_auth_file_path() -> Optional[Path]:
+def _global_auth_file_path() -> Path | None:
     """Return the global-root auth.json when the process is in profile mode.
 
     Returns ``None`` when the profile and global root resolve to the same
@@ -986,7 +986,7 @@ def _auth_store_lock(timeout_seconds: float = AUTH_LOCK_TIMEOUT_SECONDS):
         yield
 
 
-def _load_auth_store(auth_file: Optional[Path] = None) -> Dict[str, Any]:
+def _load_auth_store(auth_file: Path | None = None) -> Dict[str, Any]:
     auth_file = auth_file or _auth_file_path()
     if not auth_file.exists():
         return {"version": AUTH_STORE_VERSION, "providers": {}}
@@ -1075,7 +1075,7 @@ def _save_auth_store(auth_store: Dict[str, Any]) -> Path:
     return auth_file
 
 
-def _load_provider_state(auth_store: Dict[str, Any], provider_id: str) -> Optional[Dict[str, Any]]:
+def _load_provider_state(auth_store: Dict[str, Any], provider_id: str) -> Dict[str, Any] | None:
     providers = auth_store.get("providers")
     if not isinstance(providers, dict):
         return None
@@ -1120,7 +1120,7 @@ def get_auth_provider_display_name(provider_id: str) -> str:
     return SERVICE_PROVIDER_NAMES.get(normalized, provider_id)
 
 
-def read_credential_pool(provider_id: Optional[str] = None) -> Dict[str, Any]:
+def read_credential_pool(provider_id: str | None = None) -> Dict[str, Any]:
     """Return the persisted credential pool, or one provider slice.
 
     In profile mode, the profile's credential pool is authoritative. If a
@@ -1222,7 +1222,7 @@ def unsuppress_credential_source(provider_id: str, source: str) -> bool:
         return True
 
 
-def get_provider_auth_state(provider_id: str) -> Optional[Dict[str, Any]]:
+def get_provider_auth_state(provider_id: str) -> Dict[str, Any] | None:
     """Return persisted auth state for a provider, or None.
 
     In profile mode, falls back to the global-root ``auth.json`` when the
@@ -1244,7 +1244,7 @@ def get_provider_auth_state(provider_id: str) -> Optional[Dict[str, Any]]:
     return _load_provider_state(global_store, provider_id)
 
 
-def get_active_provider() -> Optional[str]:
+def get_active_provider() -> str | None:
     """Return the currently active provider ID from auth store."""
     auth_store = _load_auth_store()
     return auth_store.get("active_provider")
@@ -1301,7 +1301,7 @@ def is_provider_explicitly_configured(provider_id: str) -> bool:
     return False
 
 
-def clear_provider_auth(provider_id: Optional[str] = None) -> bool:
+def clear_provider_auth(provider_id: str | None = None) -> bool:
     """
     Clear auth state for a provider. Used by `hermes logout`.
     If provider_id is None, clears the active provider.
@@ -1384,10 +1384,10 @@ def _get_config_hint_for_unknown_provider(provider_name: str) -> str:
 
 
 def resolve_provider(
-    requested: Optional[str] = None,
+    requested: str | None = None,
     *,
-    explicit_api_key: Optional[str] = None,
-    explicit_base_url: Optional[str] = None,
+    explicit_api_key: str | None = None,
+    explicit_base_url: str | None = None,
 ) -> str:
     """
     Determine which inference provider to use.
@@ -1521,7 +1521,7 @@ def resolve_provider(
 # Timestamp / TTL helpers
 # =============================================================================
 
-def _parse_iso_timestamp(value: Any) -> Optional[float]:
+def _parse_iso_timestamp(value: Any) -> float | None:
     if not isinstance(value, str) or not value:
         return None
     text = value.strip()
@@ -1553,7 +1553,7 @@ def _coerce_ttl_seconds(expires_in: Any) -> int:
     return max(0, ttl)
 
 
-def _optional_base_url(value: Any) -> Optional[str]:
+def _optional_base_url(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     cleaned = value.strip().rstrip("/")
@@ -1574,7 +1574,7 @@ _ALLOWED_NOUS_INFERENCE_HOSTS: FrozenSet[str] = frozenset({
 })
 
 
-def _validate_nous_inference_url_from_network(url: Optional[str]) -> Optional[str]:
+def _validate_nous_inference_url_from_network(url: str | None) -> str | None:
     """Validate a Portal-returned inference URL against the host allowlist.
 
     Returns ``url`` (normalised by stripping trailing slashes) if it's a
@@ -1658,7 +1658,7 @@ def _nous_scope_has_invoke(raw_scope: Any) -> bool:
     return NOUS_INFERENCE_INVOKE_SCOPE in _scope_values(raw_scope)
 
 
-def _normalize_nous_inference_auth_mode(inference_auth_mode: Optional[str]) -> str:
+def _normalize_nous_inference_auth_mode(inference_auth_mode: str | None) -> str:
     mode = str(inference_auth_mode or NOUS_INFERENCE_AUTH_MODE_AUTO).strip().lower()
     if mode not in NOUS_INFERENCE_AUTH_MODES:
         allowed = ", ".join(sorted(NOUS_INFERENCE_AUTH_MODES))
@@ -1675,7 +1675,7 @@ def _nous_invoke_jwt_status(
     scope: Any = None,
     expires_at: Any = None,
     min_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
-) -> Optional[str]:
+) -> str | None:
     """Return None when the token can be used for inference, else a reason."""
     claims = _decode_jwt_claims(token)
     if not claims:
@@ -1739,7 +1739,7 @@ def _choose_nous_inference_auth_path(
     access_token: Any = None,
     min_key_ttl_seconds: int = DEFAULT_AGENT_KEY_MIN_TTL_SECONDS,
     inference_auth_mode: str = NOUS_INFERENCE_AUTH_MODE_AUTO,
-) -> Tuple[str, Optional[str]]:
+) -> Tuple[str, str | None]:
     inference_auth_mode = _normalize_nous_inference_auth_mode(inference_auth_mode)
     token = state.get("access_token") if access_token is None else access_token
     if (
@@ -1774,7 +1774,7 @@ def _choose_nous_inference_auth_path(
 def _log_nous_invoke_jwt_selected(
     *,
     access_token: Any,
-    sequence_id: Optional[str] = None,
+    sequence_id: str | None = None,
 ) -> None:
     logger.info("Nous inference auth: using NAS invoke JWT")
     _oauth_trace(
@@ -1788,7 +1788,7 @@ def _log_nous_legacy_session_key_selected(
     reason: str,
     *,
     access_token: Any,
-    sequence_id: Optional[str] = None,
+    sequence_id: str | None = None,
 ) -> None:
     logger.info(
         "Nous inference auth: using legacy session key path (%s)",
@@ -1802,7 +1802,7 @@ def _log_nous_legacy_session_key_selected(
     )
 
 
-def _nous_jwt_expires_at(token: Any, fallback_expires_at: Any = None) -> Optional[str]:
+def _nous_jwt_expires_at(token: Any, fallback_expires_at: Any = None) -> str | None:
     claims = _decode_jwt_claims(token)
     exp = claims.get("exp")
     if isinstance(exp, (int, float)):
@@ -1816,7 +1816,7 @@ def _nous_jwt_expires_at(token: Any, fallback_expires_at: Any = None) -> Optiona
 def _set_nous_agent_key_from_invoke_jwt(
     state: Dict[str, Any],
     *,
-    obtained_at: Optional[str] = None,
+    obtained_at: str | None = None,
 ) -> None:
     access_token = state.get("access_token")
     if not isinstance(access_token, str) or not access_token.strip():
@@ -1855,7 +1855,7 @@ def _select_nous_invoke_jwt(
     state: Dict[str, Any],
     *,
     access_token: Any = None,
-    sequence_id: Optional[str] = None,
+    sequence_id: str | None = None,
 ) -> None:
     if isinstance(access_token, str) and access_token.strip():
         state["access_token"] = access_token
@@ -2163,7 +2163,7 @@ def get_gemini_oauth_auth_status() -> Dict[str, Any]:
 # =============================================================================
 
 
-def _spotify_scope_list(raw_scope: Optional[str] = None) -> List[str]:
+def _spotify_scope_list(raw_scope: str | None = None) -> List[str]:
     scope_text = (raw_scope or DEFAULT_SPOTIFY_SCOPE).strip()
     scopes = [part for part in scope_text.split() if part]
     seen: set[str] = set()
@@ -2175,13 +2175,13 @@ def _spotify_scope_list(raw_scope: Optional[str] = None) -> List[str]:
     return ordered
 
 
-def _spotify_scope_string(raw_scope: Optional[str] = None) -> str:
+def _spotify_scope_string(raw_scope: str | None = None) -> str:
     return " ".join(_spotify_scope_list(raw_scope))
 
 
 def _spotify_client_id(
-    explicit: Optional[str] = None,
-    state: Optional[Dict[str, Any]] = None,
+    explicit: str | None = None,
+    state: Dict[str, Any] | None = None,
 ) -> str:
     from hermes_cli.config import get_env_value
 
@@ -2203,8 +2203,8 @@ def _spotify_client_id(
 
 
 def _spotify_redirect_uri(
-    explicit: Optional[str] = None,
-    state: Optional[Dict[str, Any]] = None,
+    explicit: str | None = None,
+    state: Dict[str, Any] | None = None,
 ) -> str:
     from hermes_cli.config import get_env_value
 
@@ -2222,7 +2222,7 @@ def _spotify_redirect_uri(
     return DEFAULT_SPOTIFY_REDIRECT_URI
 
 
-def _spotify_api_base_url(state: Optional[Dict[str, Any]] = None) -> str:
+def _spotify_api_base_url(state: Dict[str, Any] | None = None) -> str:
     from hermes_cli.config import get_env_value
 
     candidates = (
@@ -2237,7 +2237,7 @@ def _spotify_api_base_url(state: Optional[Dict[str, Any]] = None) -> str:
     return DEFAULT_SPOTIFY_API_BASE_URL
 
 
-def _spotify_accounts_base_url(state: Optional[Dict[str, Any]] = None) -> str:
+def _spotify_accounts_base_url(state: Dict[str, Any] | None = None) -> str:
     from hermes_cli.config import get_env_value
 
     candidates = (
@@ -2418,7 +2418,7 @@ def _xai_validate_loopback_redirect_uri(redirect_uri: str) -> tuple[str, int, st
     return host, parsed.port, parsed.path or "/"
 
 
-def _xai_callback_cors_origin(origin: Optional[str]) -> str:
+def _xai_callback_cors_origin(origin: str | None) -> str:
     # CORS allowlist for the loopback callback.  Only xAI's own auth origins
     # are accepted; the redirect_uri itself is bound to 127.0.0.1 and gated by
     # PKCE+state, so additional dev/3p origins are not needed here.
@@ -2532,7 +2532,7 @@ def _xai_start_callback_server(
     if preferred_port != 0:
         ports_to_try.append(0)
     server = None
-    last_error: Optional[OSError] = None
+    last_error: OSError | None = None
     for port in ports_to_try:
         try:
             server = _ReuseHTTPServer((host, port), handler_cls)
@@ -2589,7 +2589,7 @@ def _spotify_token_payload_to_state(
     requested_scope: str,
     accounts_base_url: str,
     api_base_url: str,
-    previous_state: Optional[Dict[str, Any]] = None,
+    previous_state: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     expires_in = _coerce_ttl_seconds(token_payload.get("expires_in", 0))
@@ -3315,7 +3315,7 @@ def _refresh_codex_auth_tokens(
     return updated_tokens
 
 
-def _import_codex_cli_tokens() -> Optional[Dict[str, str]]:
+def _import_codex_cli_tokens() -> Dict[str, str] | None:
     """Try to read tokens from ~/.codex/auth.json (Codex CLI shared file).
     
     Returns tokens dict if valid and not expired, None otherwise.
@@ -3447,9 +3447,9 @@ def _read_xai_oauth_tokens(*, _lock: bool = True) -> Dict[str, Any]:
 def _save_xai_oauth_tokens(
     tokens: Dict[str, Any],
     *,
-    discovery: Optional[Dict[str, Any]] = None,
+    discovery: Dict[str, Any] | None = None,
     redirect_uri: str = "",
-    last_refresh: Optional[str] = None,
+    last_refresh: str | None = None,
 ) -> None:
     if last_refresh is None:
         last_refresh = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -3866,9 +3866,9 @@ def _default_verify() -> bool | ssl.SSLContext:
 
 def _resolve_verify(
     *,
-    insecure: Optional[bool] = None,
-    ca_bundle: Optional[str] = None,
-    auth_state: Optional[Dict[str, Any]] = None,
+    insecure: bool | None = None,
+    ca_bundle: str | None = None,
+    auth_state: Dict[str, Any] | None = None,
 ) -> bool | ssl.SSLContext:
     tls_state = auth_state.get("tls") if isinstance(auth_state, dict) else {}
     tls_state = tls_state if isinstance(tls_state, dict) else {}
@@ -3907,7 +3907,7 @@ def _request_device_code(
     client: httpx.Client,
     portal_base_url: str,
     client_id: str,
-    scope: Optional[str],
+    scope: str | None,
 ) -> Dict[str, Any]:
     """POST to the device code endpoint. Returns device_code, user_code, etc."""
     response = client.post(
@@ -3959,7 +3959,7 @@ def _is_nous_invoke_scope_refusal(exc: Exception) -> bool:
 
 
 def _nous_device_scope_with_env_override(
-    requested_scope: Optional[str],
+    requested_scope: str | None,
     *,
     default_scope: str = DEFAULT_NOUS_SCOPE,
 ) -> Tuple[str, bool]:
@@ -4261,7 +4261,7 @@ def _write_shared_nous_state(state: Dict[str, Any]) -> None:
         logger.debug("Failed to write shared Nous auth store: %s", exc)
 
 
-def _read_shared_nous_state() -> Optional[Dict[str, Any]]:
+def _read_shared_nous_state() -> Dict[str, Any] | None:
     """Return the shared Nous OAuth state if present and well-formed.
 
     Returns ``None`` when the file is missing, unreadable, malformed, or
@@ -4425,7 +4425,7 @@ def _try_import_shared_nous_state(
     *,
     timeout_seconds: float = 15.0,
     min_key_ttl_seconds: int = 5 * 60,
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any] | None:
     """Attempt to rehydrate Nous OAuth state from the shared store.
 
     Reads the shared file (if present), runs a forced refresh+mint using
@@ -4661,8 +4661,8 @@ def _agent_key_is_usable(state: Dict[str, Any], min_ttl_seconds: int) -> bool:
 def resolve_nous_access_token(
     *,
     timeout_seconds: float = 15.0,
-    insecure: Optional[bool] = None,
-    ca_bundle: Optional[str] = None,
+    insecure: bool | None = None,
+    ca_bundle: str | None = None,
     refresh_skew_seconds: int = ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
 ) -> str:
     """Resolve a refresh-aware Nous Portal access token for managed tool gateways."""
@@ -4772,17 +4772,17 @@ def refresh_nous_oauth_pure(
     *,
     token_type: str = "Bearer",
     scope: str = DEFAULT_NOUS_SCOPE,
-    obtained_at: Optional[str] = None,
-    expires_at: Optional[str] = None,
-    agent_key: Optional[str] = None,
-    agent_key_expires_at: Optional[str] = None,
+    obtained_at: str | None = None,
+    expires_at: str | None = None,
+    agent_key: str | None = None,
+    agent_key_expires_at: str | None = None,
     min_key_ttl_seconds: int = DEFAULT_AGENT_KEY_MIN_TTL_SECONDS,
     timeout_seconds: float = 15.0,
-    insecure: Optional[bool] = None,
-    ca_bundle: Optional[str] = None,
+    insecure: bool | None = None,
+    ca_bundle: str | None = None,
     force_refresh: bool = False,
     inference_auth_mode: str = NOUS_INFERENCE_AUTH_MODE_AUTO,
-    on_state_update: Optional[Callable[[Dict[str, Any], str], None]] = None,
+    on_state_update: Callable[[Dict[str, Any], str], None] | None = None,
 ) -> Dict[str, Any]:
     """Refresh Nous OAuth state without mutating auth.json directly.
 
@@ -4891,7 +4891,7 @@ def refresh_nous_oauth_from_state(
     timeout_seconds: float = 15.0,
     force_refresh: bool = False,
     inference_auth_mode: str = NOUS_INFERENCE_AUTH_MODE_AUTO,
-    on_state_update: Optional[Callable[[Dict[str, Any], str], None]] = None,
+    on_state_update: Callable[[Dict[str, Any], str], None] | None = None,
 ) -> Dict[str, Any]:
     """Refresh Nous OAuth from a state dict. Thin wrapper around refresh_nous_oauth_pure."""
     tls = state.get("tls") or {}
@@ -4920,7 +4920,7 @@ def refresh_nous_oauth_from_state(
 def persist_nous_credentials(
     creds: Dict[str, Any],
     *,
-    label: Optional[str] = None,
+    label: str | None = None,
 ):
     """Persist minted Nous OAuth credentials as the singleton provider state
     and ensure the credential pool is in sync.
@@ -4990,8 +4990,8 @@ def resolve_nous_runtime_credentials(
     *,
     min_key_ttl_seconds: int = DEFAULT_AGENT_KEY_MIN_TTL_SECONDS,
     timeout_seconds: float = 15.0,
-    insecure: Optional[bool] = None,
-    ca_bundle: Optional[str] = None,
+    insecure: bool | None = None,
+    ca_bundle: str | None = None,
     inference_auth_mode: str = NOUS_INFERENCE_AUTH_MODE_AUTO,
 ) -> Dict[str, Any]:
     """
@@ -5179,7 +5179,7 @@ def resolve_nous_runtime_credentials(
             # path stores the NAS invoke JWT there; legacy path mints/reuses
             # the opaque session key.
             used_cached_key = False
-            mint_payload: Optional[Dict[str, Any]] = None
+            mint_payload: Dict[str, Any] | None = None
             selected_auth_path, fallback_reason = _choose_nous_inference_auth_path(
                 state,
                 access_token=access_token,
@@ -5442,10 +5442,10 @@ def _snapshot_nous_pool_status() -> Dict[str, Any]:
 # single-use refresh tokens. Cache the snapshot for a few seconds, keyed on the auth.json
 # mtime so that `hermes auth login/logout/add/remove` invalidate naturally on the next call.
 _NOUS_AUTH_STATUS_CACHE_TTL = 15.0  # seconds
-_nous_auth_status_cache: Optional[Tuple[float, Optional[float], Dict[str, Any]]] = None
+_nous_auth_status_cache: Tuple[float, float | None, Dict[str, Any]] | None = None
 
 
-def _auth_file_mtime() -> Optional[float]:
+def _auth_file_mtime() -> float | None:
     try:
         return _auth_file_path().stat().st_mtime
     except FileNotFoundError:
@@ -5696,7 +5696,7 @@ def get_external_process_provider_status(provider_id: str) -> Dict[str, Any]:
     }
 
 
-def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
+def get_auth_status(provider_id: str | None = None) -> Dict[str, Any]:
     """Generic auth status dispatcher."""
     target = (provider_id or get_active_provider() or "").strip().lower()
     if not target:
@@ -5902,7 +5902,7 @@ def resolve_external_process_provider_credentials(provider_id: str) -> Dict[str,
 def _update_config_for_provider(
     provider_id: str,
     inference_base_url: str,
-    default_model: Optional[str] = None,
+    default_model: str | None = None,
 ) -> Path:
     """Update config.yaml and auth.json to reflect the active provider.
 
@@ -5965,7 +5965,7 @@ def _update_config_for_provider(
     return config_path
 
 
-def _get_config_provider() -> Optional[str]:
+def _get_config_provider() -> str | None:
     """Return model.provider from config.yaml, normalized, if present."""
     try:
         config = read_raw_config()
@@ -5983,14 +5983,14 @@ def _get_config_provider() -> Optional[str]:
     return provider or None
 
 
-def _config_provider_matches(provider_id: Optional[str]) -> bool:
+def _config_provider_matches(provider_id: str | None) -> bool:
     """Return True when config.yaml currently selects *provider_id*."""
     if not provider_id:
         return False
     return _get_config_provider() == provider_id.strip().lower()
 
 
-def _should_reset_config_provider_on_logout(provider_id: Optional[str]) -> bool:
+def _should_reset_config_provider_on_logout(provider_id: str | None) -> bool:
     """Return True when logout should reset the model provider config."""
     if not provider_id:
         return False
@@ -5998,7 +5998,7 @@ def _should_reset_config_provider_on_logout(provider_id: Optional[str]) -> bool:
     return normalized in PROVIDER_REGISTRY and _config_provider_matches(normalized)
 
 
-def _logout_default_provider_from_config() -> Optional[str]:
+def _logout_default_provider_from_config() -> str | None:
     """Fallback logout target when auth.json has no active provider.
 
     `hermes logout` historically keyed off auth.json.active_provider only.
@@ -6035,10 +6035,10 @@ def _reset_config_provider() -> Path:
 def _prompt_model_selection(
     model_ids: List[str],
     current_model: str = "",
-    pricing: Optional[Dict[str, Dict[str, str]]] = None,
-    unavailable_models: Optional[List[str]] = None,
+    pricing: Dict[str, Dict[str, str]] | None = None,
+    unavailable_models: List[str] | None = None,
     portal_url: str = "",
-) -> Optional[str]:
+) -> str | None:
     """Interactive model selection. Puts current_model first with a marker. Returns chosen model ID or None.
 
     If *pricing* is provided (``{model_id: {prompt, completion}}``), a compact
@@ -6892,7 +6892,7 @@ def _minimax_resolve_token_expiry_unix(expired_in: int, *, now: datetime) -> flo
 
 def _minimax_poll_token(
     client: httpx.Client, *, portal_base_url: str, client_id: str,
-    user_code: str, code_verifier: str, expired_in: int, interval_ms: Optional[int],
+    user_code: str, code_verifier: str, expired_in: int, interval_ms: int | None,
 ) -> Dict[str, Any]:
     # OpenClaw treats expired_in as a unix-ms timestamp (Date.now() < expireTimeMs).
     # Defensive parsing: if it's small enough to be a duration, treat as seconds.
@@ -7257,14 +7257,14 @@ def _login_minimax_oauth(args, pconfig: ProviderConfig) -> None:
 
 def _nous_device_code_login(
     *,
-    portal_base_url: Optional[str] = None,
-    inference_base_url: Optional[str] = None,
-    client_id: Optional[str] = None,
-    scope: Optional[str] = None,
+    portal_base_url: str | None = None,
+    inference_base_url: str | None = None,
+    client_id: str | None = None,
+    scope: str | None = None,
     open_browser: bool = True,
     timeout_seconds: float = 15.0,
     insecure: bool = False,
-    ca_bundle: Optional[str] = None,
+    ca_bundle: str | None = None,
     min_key_ttl_seconds: int = 5 * 60,
 ) -> Dict[str, Any]:
     """Run the Nous device-code flow and return full OAuth state without persisting."""

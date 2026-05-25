@@ -210,11 +210,11 @@ class SignalAdapter(BasePlatformAdapter):
         self.dm_allow_from = set(_parse_comma_list(dm_allowed_str))
 
         # HTTP client
-        self.client: Optional[httpx.AsyncClient] = None
+        self.client: httpx.AsyncClient | None = None
 
         # Background tasks
-        self._sse_task: Optional[asyncio.Task] = None
-        self._health_monitor_task: Optional[asyncio.Task] = None
+        self._sse_task: asyncio.Task | None = None
+        self._health_monitor_task: asyncio.Task | None = None
         self._typing_tasks: Dict[str, asyncio.Task] = {}
         # Per-chat typing-indicator backoff. When signal-cli reports
         # NETWORK_FAILURE (recipient offline / unroutable), base.py's
@@ -226,7 +226,7 @@ class SignalAdapter(BasePlatformAdapter):
         self._typing_skip_until: Dict[str, float] = {}
         self._running = False
         self._last_sse_activity = 0.0
-        self._sse_response: Optional[httpx.Response] = None
+        self._sse_response: httpx.Response | None = None
 
         # Normalize account for self-message filtering
         self._account_normalized = self.account.strip()
@@ -643,14 +643,14 @@ class SignalAdapter(BasePlatformAdapter):
 
         await self.handle_message(event)
 
-    def _remember_recipient_identifiers(self, number: Optional[str], service_id: Optional[str]) -> None:
+    def _remember_recipient_identifiers(self, number: str | None, service_id: str | None) -> None:
         """Cache any number↔UUID mapping observed from Signal envelopes."""
         if not number or not service_id or not _is_signal_service_id(service_id):
             return
         self._recipient_uuid_by_number[number] = service_id
         self._recipient_number_by_uuid[service_id] = number
 
-    def _extract_contact_uuid(self, contact: Any, phone_number: str) -> Optional[str]:
+    def _extract_contact_uuid(self, contact: Any, phone_number: str) -> str | None:
         """Best-effort extraction of a Signal service ID from listContacts output."""
         if not isinstance(contact, dict):
             return None
@@ -970,8 +970,8 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a text message with native Signal formatting."""
         await self._stop_typing_indicator(chat_id)
@@ -1069,7 +1069,7 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         images: List[Tuple[str, str]],
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
         human_delay: float = 0.0,
     ) -> None:
         """Send a batch of images via chunked Signal RPC calls.
@@ -1241,7 +1241,7 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
+        caption: str | None = None,
         **kwargs,
     ) -> SendResult:
         """Send an image. Supports http(s):// and file:// URLs."""
@@ -1288,7 +1288,7 @@ class SignalAdapter(BasePlatformAdapter):
         chat_id: str,
         file_path: str,
         media_label: str,
-        caption: Optional[str] = None,
+        caption: str | None = None,
     ) -> SendResult:
         """Send any file as a Signal attachment via RPC.
 
@@ -1326,8 +1326,8 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        filename: Optional[str] = None,
+        caption: str | None = None,
+        filename: str | None = None,
         **kwargs,
     ) -> SendResult:
         """Send a document/file attachment."""
@@ -1337,8 +1337,8 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         """Send a local image file as a native Signal attachment.
@@ -1352,8 +1352,8 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         """Send an audio file as a Signal attachment.
@@ -1367,8 +1367,8 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         """Send a video file as a Signal attachment."""
@@ -1461,7 +1461,7 @@ class SignalAdapter(BasePlatformAdapter):
     # Processing Lifecycle Hooks (reactions as progress indicators)
     # ------------------------------------------------------------------
 
-    def _extract_reaction_target(self, event: MessageEvent) -> Optional[tuple]:
+    def _extract_reaction_target(self, event: MessageEvent) -> tuple | None:
         """Extract (target_author, target_timestamp) from a MessageEvent.
 
         Returns None if the event doesn't carry the raw Signal envelope data

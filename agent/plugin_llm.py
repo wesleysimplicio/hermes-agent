@@ -92,8 +92,8 @@ class PluginLlmImageInput:
     providers.
     """
 
-    data: Optional[bytes] = None
-    url: Optional[str] = None
+    data: bytes | None = None
+    url: str | None = None
     mime_type: str = "image/png"
     file_name: str = ""
     type: str = "image"
@@ -121,7 +121,7 @@ class PluginLlmUsage:
     total_tokens: int = 0
     cache_read_tokens: int = 0
     cache_write_tokens: int = 0
-    cost_usd: Optional[float] = None
+    cost_usd: float | None = None
 
 
 @dataclass
@@ -150,7 +150,7 @@ class PluginLlmStructuredResult:
     model: str
     agent_id: str
     usage: PluginLlmUsage = field(default_factory=PluginLlmUsage)
-    parsed: Optional[Any] = None
+    parsed: Any | None = None
     content_type: str = "text"
     audit: Dict[str, Any] = field(default_factory=dict)
 
@@ -166,10 +166,10 @@ class _TrustPolicy:
 
     plugin_id: str
     allow_provider_override: bool = False
-    allowed_providers: Optional[frozenset] = None  # None = no allowlist
+    allowed_providers: frozenset | None = None  # None = no allowlist
     allow_any_provider: bool = False  # True when allowed_providers == ["*"]
     allow_model_override: bool = False
-    allowed_models: Optional[frozenset] = None  # None = no allowlist
+    allowed_models: frozenset | None = None  # None = no allowlist
     allow_any_model: bool = False  # True when allowed_models == ["*"]
     allow_agent_id_override: bool = False
     allow_profile_override: bool = False
@@ -180,7 +180,7 @@ def _normalize_ref(raw: str) -> str:
     return (raw or "").strip().lower()
 
 
-def _coerce_allowlist(raw: Any) -> tuple[Optional[frozenset], bool]:
+def _coerce_allowlist(raw: Any) -> tuple[frozenset | None, bool]:
     """Coerce a YAML list into ``(frozenset_or_None, allow_any)``.
 
     ``["*"]`` (or any list containing ``"*"``) → ``(frozenset(), True)``.
@@ -253,11 +253,11 @@ class PluginLlmTrustError(PermissionError):
 def _check_overrides(
     policy: _TrustPolicy,
     *,
-    requested_provider: Optional[str],
-    requested_model: Optional[str],
-    requested_agent_id: Optional[str],
-    requested_profile: Optional[str],
-) -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+    requested_provider: str | None,
+    requested_model: str | None,
+    requested_agent_id: str | None,
+    requested_profile: str | None,
+) -> tuple[str | None, str | None, str | None, str | None]:
     """Apply the trust gate. Returns the validated overrides as
     ``(provider, model, agent_id, profile)`` or raises
     :class:`PluginLlmTrustError`.
@@ -266,9 +266,9 @@ def _check_overrides(
     is independently gated. ``provider`` and ``model`` each have an
     optional allowlist via ``allowed_providers`` / ``allowed_models``.
     """
-    final_provider: Optional[str] = None
-    final_model: Optional[str] = None
-    final_profile: Optional[str] = None
+    final_provider: str | None = None
+    final_model: str | None = None
+    final_profile: str | None = None
 
     if requested_provider:
         if not policy.allow_provider_override:
@@ -376,9 +376,9 @@ def _build_structured_messages(
     instructions: str,
     inputs: Sequence[PluginLlmInput],
     json_mode: bool,
-    json_schema: Optional[Any],
-    schema_name: Optional[str],
-    system_prompt: Optional[str],
+    json_schema: Any | None,
+    schema_name: str | None,
+    system_prompt: str | None,
 ) -> List[Dict[str, Any]]:
     """Build the OpenAI-style messages list for a structured call.
 
@@ -454,8 +454,8 @@ def _strip_code_fences(text: str) -> str:
 
 
 def _parse_structured_text(
-    *, text: str, json_mode: bool, json_schema: Optional[Any]
-) -> tuple[Optional[Any], str]:
+    *, text: str, json_mode: bool, json_schema: Any | None
+) -> tuple[Any | None, str]:
     """Return ``(parsed, content_type)``. ``content_type`` is ``"json"``
     when parsing succeeded and (when a schema was given) validation
     passed; ``"text"`` otherwise."""
@@ -542,8 +542,8 @@ def _extract_text(response: Any) -> str:
 
 def _resolve_attribution(
     *,
-    provider_override: Optional[str],
-    model_override: Optional[str],
+    provider_override: str | None,
+    model_override: str | None,
     response: Any,
 ) -> tuple[str, str]:
     """Decide what to record as ``result.provider`` / ``result.model``.
@@ -608,9 +608,9 @@ class PluginLlm:
         self,
         *,
         plugin_id: str,
-        policy_loader: Optional[Callable[[str], _TrustPolicy]] = None,
-        sync_caller: Optional[Callable[..., Any]] = None,
-        async_caller: Optional[Callable[..., Awaitable[Any]]] = None,
+        policy_loader: Callable[[str], _TrustPolicy] | None = None,
+        sync_caller: Callable[..., Any] | None = None,
+        async_caller: Callable[..., Awaitable[Any]] | None = None,
     ) -> None:
         self._plugin_id = plugin_id
         self._policy_loader = policy_loader or _resolve_trust_policy
@@ -623,14 +623,14 @@ class PluginLlm:
         self,
         messages: List[Dict[str, Any]],
         *,
-        provider: Optional[str] = None,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        timeout: Optional[float] = None,
-        agent_id: Optional[str] = None,
-        profile: Optional[str] = None,
-        purpose: Optional[str] = None,
+        provider: str | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        timeout: float | None = None,
+        agent_id: str | None = None,
+        profile: str | None = None,
+        purpose: str | None = None,
     ) -> PluginLlmCompleteResult:
         """Run a host-owned chat completion against the user's active model.
 
@@ -685,18 +685,18 @@ class PluginLlm:
         *,
         instructions: str,
         input: Sequence[PluginLlmInput],
-        json_schema: Optional[Any] = None,
+        json_schema: Any | None = None,
         json_mode: bool = False,
-        schema_name: Optional[str] = None,
-        system_prompt: Optional[str] = None,
-        provider: Optional[str] = None,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        timeout: Optional[float] = None,
-        agent_id: Optional[str] = None,
-        profile: Optional[str] = None,
-        purpose: Optional[str] = None,
+        schema_name: str | None = None,
+        system_prompt: str | None = None,
+        provider: str | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        timeout: float | None = None,
+        agent_id: str | None = None,
+        profile: str | None = None,
+        purpose: str | None = None,
     ) -> PluginLlmStructuredResult:
         """Run a bounded host-owned structured completion.
 
@@ -778,14 +778,14 @@ class PluginLlm:
         self,
         messages: List[Dict[str, Any]],
         *,
-        provider: Optional[str] = None,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        timeout: Optional[float] = None,
-        agent_id: Optional[str] = None,
-        profile: Optional[str] = None,
-        purpose: Optional[str] = None,
+        provider: str | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        timeout: float | None = None,
+        agent_id: str | None = None,
+        profile: str | None = None,
+        purpose: str | None = None,
     ) -> PluginLlmCompleteResult:
         """Async sibling of :meth:`complete`."""
         policy = self._policy_loader(self._plugin_id)
@@ -825,18 +825,18 @@ class PluginLlm:
         *,
         instructions: str,
         input: Sequence[PluginLlmInput],
-        json_schema: Optional[Any] = None,
+        json_schema: Any | None = None,
         json_mode: bool = False,
-        schema_name: Optional[str] = None,
-        system_prompt: Optional[str] = None,
-        provider: Optional[str] = None,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        timeout: Optional[float] = None,
-        agent_id: Optional[str] = None,
-        profile: Optional[str] = None,
-        purpose: Optional[str] = None,
+        schema_name: str | None = None,
+        system_prompt: str | None = None,
+        provider: str | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        timeout: float | None = None,
+        agent_id: str | None = None,
+        profile: str | None = None,
+        purpose: str | None = None,
     ) -> PluginLlmStructuredResult:
         """Async sibling of :meth:`complete_structured`."""
         if not instructions or not instructions.strip():
@@ -896,8 +896,8 @@ class PluginLlm:
 
     @staticmethod
     def _json_response_format(
-        *, json_mode: bool, json_schema: Optional[Any]
-    ) -> Optional[Dict[str, Any]]:
+        *, json_mode: bool, json_schema: Any | None
+    ) -> Dict[str, Any] | None:
         """Build the ``extra_body.response_format`` payload for the
         provider request. Falls back to ``json_object`` when no schema
         is given so providers that ignore json_schema still get a hint."""
@@ -920,13 +920,13 @@ class PluginLlm:
         self,
         *,
         messages: List[Dict[str, Any]],
-        provider_override: Optional[str],
-        model_override: Optional[str],
-        profile_override: Optional[str],
-        temperature: Optional[float],
-        max_tokens: Optional[int],
-        timeout: Optional[float],
-        extra_body: Optional[Dict[str, Any]] = None,
+        provider_override: str | None,
+        model_override: str | None,
+        profile_override: str | None,
+        temperature: float | None,
+        max_tokens: int | None,
+        timeout: float | None,
+        extra_body: Dict[str, Any] | None = None,
     ) -> tuple[str, str, Any]:
         """Invoke the host's ``call_llm``. Lazy-imports
         ``agent.auxiliary_client`` to avoid circular deps at plugin
@@ -967,13 +967,13 @@ class PluginLlm:
         self,
         *,
         messages: List[Dict[str, Any]],
-        provider_override: Optional[str],
-        model_override: Optional[str],
-        profile_override: Optional[str],
-        temperature: Optional[float],
-        max_tokens: Optional[int],
-        timeout: Optional[float],
-        extra_body: Optional[Dict[str, Any]] = None,
+        provider_override: str | None,
+        model_override: str | None,
+        profile_override: str | None,
+        temperature: float | None,
+        max_tokens: int | None,
+        timeout: float | None,
+        extra_body: Dict[str, Any] | None = None,
     ) -> tuple[str, str, Any]:
         if self._async_caller is not None:
             return await self._async_caller(
@@ -1017,8 +1017,8 @@ def make_plugin_llm_for_test(
     *,
     plugin_id: str,
     policy: _TrustPolicy,
-    sync_caller: Optional[Callable[..., Any]] = None,
-    async_caller: Optional[Callable[..., Awaitable[Any]]] = None,
+    sync_caller: Callable[..., Any] | None = None,
+    async_caller: Callable[..., Awaitable[Any]] | None = None,
 ) -> PluginLlm:
     """Construct a :class:`PluginLlm` with an injected policy and caller.
 

@@ -141,7 +141,7 @@ def _split_tree_text(full_text: str) -> Tuple[str, str]:
     return summary, tree
 
 
-def _parse_key_combo(keys: str) -> Tuple[Optional[str], List[str]]:
+def _parse_key_combo(keys: str) -> Tuple[str | None, List[str]]:
     """Parse a key string like 'cmd+s' into (key, modifiers).
 
     Returns (key, modifiers) where key is the non-modifier key and modifiers
@@ -170,8 +170,8 @@ class _AsyncBridge:
     """Runs one asyncio loop on a daemon thread; marshals coroutines from the caller."""
 
     def __init__(self) -> None:
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self._thread: Optional[threading.Thread] = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._thread: threading.Thread | None = None
         self._ready = threading.Event()
 
     def start(self) -> None:
@@ -196,7 +196,7 @@ class _AsyncBridge:
         if not self._ready.wait(timeout=5.0):
             raise RuntimeError("cua-driver asyncio bridge failed to start")
 
-    def run(self, coro, timeout: Optional[float] = 30.0) -> Any:
+    def run(self, coro, timeout: float | None = 30.0) -> Any:
         from agent.async_utils import safe_schedule_threadsafe
         if not self._loop or not self._thread or not self._thread.is_alive():
             if asyncio.iscoroutine(coro):
@@ -307,7 +307,7 @@ def _extract_tool_result(mcp_result: Any) -> Dict[str, Any]:
     data: Any = None
     images: List[str] = []
     is_error = bool(getattr(mcp_result, "isError", False))
-    structured: Optional[Dict] = getattr(mcp_result, "structuredContent", None) or None
+    structured: Dict | None = getattr(mcp_result, "structuredContent", None) or None
     text_chunks: List[str] = []
     for part in getattr(mcp_result, "content", []) or []:
         ptype = getattr(part, "type", None)
@@ -337,9 +337,9 @@ class CuaDriverBackend(ComputerUseBackend):
         self._bridge = _AsyncBridge()
         self._session = _CuaDriverSession(self._bridge)
         # Sticky context — updated by capture(), used by action tools.
-        self._active_pid: Optional[int] = None
-        self._active_window_id: Optional[int] = None
-        self._last_app: Optional[str] = None  # last app name targeted via capture/focus_app
+        self._active_pid: int | None = None
+        self._active_window_id: int | None = None
+        self._last_app: str | None = None  # last app name targeted via capture/focus_app
 
     # ── Lifecycle ──────────────────────────────────────────────────
     def start(self) -> None:
@@ -357,7 +357,7 @@ class CuaDriverBackend(ComputerUseBackend):
         return cua_driver_binary_available()
 
     # ── Capture ────────────────────────────────────────────────────
-    def capture(self, mode: str = "som", app: Optional[str] = None) -> CaptureResult:
+    def capture(self, mode: str = "som", app: str | None = None) -> CaptureResult:
         """Capture the frontmost on-screen window (optionally filtered by app name).
 
         Maps hermes `capture(mode, app)` → cua-driver `list_windows` +
@@ -426,7 +426,7 @@ class CuaDriverBackend(ComputerUseBackend):
             self._last_app = app_name
 
         # Step 2: capture.
-        png_b64: Optional[str] = None
+        png_b64: str | None = None
         elements: List[UIElement] = []
         width = height = 0
         window_title = ""
@@ -484,12 +484,12 @@ class CuaDriverBackend(ComputerUseBackend):
     def click(
         self,
         *,
-        element: Optional[int] = None,
-        x: Optional[int] = None,
-        y: Optional[int] = None,
+        element: int | None = None,
+        x: int | None = None,
+        y: int | None = None,
         button: str = "left",
         click_count: int = 1,
-        modifiers: Optional[List[str]] = None,
+        modifiers: List[str] | None = None,
     ) -> ActionResult:
         pid = self._active_pid
         if pid is None:
@@ -525,12 +525,12 @@ class CuaDriverBackend(ComputerUseBackend):
     def drag(
         self,
         *,
-        from_element: Optional[int] = None,
-        to_element: Optional[int] = None,
-        from_xy: Optional[Tuple[int, int]] = None,
-        to_xy: Optional[Tuple[int, int]] = None,
+        from_element: int | None = None,
+        to_element: int | None = None,
+        from_xy: Tuple[int, int] | None = None,
+        to_xy: Tuple[int, int] | None = None,
         button: str = "left",
-        modifiers: Optional[List[str]] = None,
+        modifiers: List[str] | None = None,
     ) -> ActionResult:
         pid = self._active_pid
         if pid is None:
@@ -557,10 +557,10 @@ class CuaDriverBackend(ComputerUseBackend):
         *,
         direction: str,
         amount: int = 3,
-        element: Optional[int] = None,
-        x: Optional[int] = None,
-        y: Optional[int] = None,
-        modifiers: Optional[List[str]] = None,
+        element: int | None = None,
+        x: int | None = None,
+        y: int | None = None,
+        modifiers: List[str] | None = None,
     ) -> ActionResult:
         pid = self._active_pid
         if pid is None:
@@ -605,7 +605,7 @@ class CuaDriverBackend(ComputerUseBackend):
             return self._action("press_key", {"pid": pid, "key": key_name})
 
     # ── Value setter ────────────────────────────────────────────────
-    def set_value(self, value: str, element: Optional[int] = None) -> ActionResult:
+    def set_value(self, value: str, element: int | None = None) -> ActionResult:
         """Set a value on an element. Handles AXPopUpButton selects natively."""
         pid = self._active_pid
         window_id = self._active_window_id

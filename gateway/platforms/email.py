@@ -266,7 +266,7 @@ class EmailAdapter(BasePlatformAdapter):
         # Track message IDs we've already processed to avoid duplicates
         self._seen_uids: set = set()
         self._seen_uids_max: int = 2000   # cap to prevent unbounded memory growth
-        self._poll_task: Optional[asyncio.Task] = None
+        self._poll_task: asyncio.Task | None = None
 
         # Map chat_id (sender email) -> last subject + message-id for threading
         self._thread_context: Dict[str, Dict[str, str]] = {}
@@ -504,8 +504,8 @@ class EmailAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send an email reply to the given address."""
         try:
@@ -522,7 +522,7 @@ class EmailAdapter(BasePlatformAdapter):
         self,
         to_addr: str,
         body: str,
-        reply_to_msg_id: Optional[str] = None,
+        reply_to_msg_id: str | None = None,
     ) -> str:
         """Send an email via SMTP. Runs in executor thread."""
         msg = MIMEMultipart()
@@ -562,15 +562,15 @@ class EmailAdapter(BasePlatformAdapter):
         logger.info("[Email] Sent reply to %s (subject: %s)", to_addr, subject)
         return msg_id
 
-    async def send_typing(self, chat_id: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+    async def send_typing(self, chat_id: str, metadata: Dict[str, Any] | None = None) -> None:
         """Email has no typing indicator — no-op."""
 
     async def send_image(
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
     ) -> SendResult:
         """Send an image URL as part of an email body."""
         text = caption or ""
@@ -581,7 +581,7 @@ class EmailAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         images: List[Tuple[str, str]],
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
         human_delay: float = 0.0,
     ) -> None:
         """Send a batch of images as a single email with multiple MIME attachments.
@@ -688,9 +688,9 @@ class EmailAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
         **kwargs,
     ) -> SendResult:
         """Send a file as an email attachment."""
@@ -714,7 +714,7 @@ class EmailAdapter(BasePlatformAdapter):
         to_addr: str,
         body: str,
         file_path: str,
-        file_name: Optional[str] = None,
+        file_name: str | None = None,
     ) -> str:
         """Send an email with a file attachment via SMTP."""
         msg = MIMEMultipart()

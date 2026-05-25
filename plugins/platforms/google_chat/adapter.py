@@ -464,8 +464,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         # ~110ms / ~33MB on every CLI invocation. Idempotent — pays the cost
         # exactly once per process.
         _load_google_modules()
-        self._subscriber: Optional[Any] = None
-        self._chat_api: Optional[Any] = None
+        self._subscriber: Any | None = None
+        self._chat_api: Any | None = None
         # User-authed Chat API client built lazily from the OAuth refresh
         # token persisted by the plugin's ``oauth.py`` helper. Required for
         # native ``media.upload`` (bot identity is rejected by that
@@ -482,8 +482,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         # but now hold the LEGACY single-user token (if any) — used as a
         # last-ditch fallback when the requesting user has no per-user
         # token yet. Pre-multi-user installs continue to work unchanged.
-        self._user_chat_api: Optional[Any] = None
-        self._user_credentials: Optional[Any] = None
+        self._user_chat_api: Any | None = None
+        self._user_credentials: Any | None = None
         # Per-email caches. Populated lazily by ``_get_user_chat_for_chat``.
         self._user_creds_by_email: Dict[str, Any] = {}
         self._user_chat_api_by_email: Dict[str, Any] = {}
@@ -493,13 +493,13 @@ class GoogleChatAdapter(BasePlatformAdapter):
         # in ``_send_file`` so the bot uploads as the user who triggered
         # the request, not as some other authorized user.
         self._last_sender_by_chat: Dict[str, str] = {}
-        self._credentials: Optional[Any] = None
-        self._project_id: Optional[str] = None
-        self._subscription_path: Optional[str] = None
-        self._streaming_pull_future: Optional[Any] = None
-        self._supervisor_task: Optional[asyncio.Task] = None
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
-        self._bot_user_id: Optional[str] = None  # users/{id}
+        self._credentials: Any | None = None
+        self._project_id: str | None = None
+        self._subscription_path: str | None = None
+        self._streaming_pull_future: Any | None = None
+        self._supervisor_task: asyncio.Task | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._bot_user_id: str | None = None  # users/{id}
         self._dedup = MessageDeduplicator()
         self._typing_messages: Dict[str, str] = {}
         self._shutting_down = False
@@ -658,7 +658,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
             logger.exception("[GoogleChat] Background inbound processing failed")
 
     @staticmethod
-    def _loop_accepts_callbacks(loop: Optional[asyncio.AbstractEventLoop]) -> bool:
+    def _loop_accepts_callbacks(loop: asyncio.AbstractEventLoop | None) -> bool:
         return loop is not None and not bool(getattr(loop, "is_closed", lambda: False)())
 
     def _submit_on_loop(self, coro: Any) -> None:
@@ -692,7 +692,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         base = os.getenv("HERMES_HOME", str(_Path.home() / ".hermes"))
         return _Path(base) / "google_chat_bot_id.json"
 
-    def _load_cached_bot_id(self) -> Optional[str]:
+    def _load_cached_bot_id(self) -> str | None:
         path = self._bot_id_cache_path()
         if not path.exists():
             return None
@@ -713,7 +713,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         except OSError:
             logger.debug("[GoogleChat] Could not persist bot_user_id cache", exc_info=True)
 
-    async def _resolve_bot_user_id(self) -> Optional[str]:
+    async def _resolve_bot_user_id(self) -> str | None:
         """Resolve ``users/{id}`` via Chat API members.list on a known space.
 
         Tries the home channel first, then any space from the allowlist.
@@ -1018,7 +1018,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
     @staticmethod
     def _extract_message_payload(
         envelope: Dict[str, Any], ce_type: str = ""
-    ) -> Optional[Tuple[Dict[str, Any], Dict[str, Any], str]]:
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], str] | None:
         """Detect Pub/Sub envelope format and return ``(message, space, format_name)``.
 
         Three known formats are accepted. Returns ``None`` when the envelope
@@ -1297,9 +1297,9 @@ class GoogleChatAdapter(BasePlatformAdapter):
     async def _handle_setup_files_command(
         self,
         chat_id: str,
-        thread_id: Optional[str],
+        thread_id: str | None,
         raw_text: str,
-        sender_email: Optional[str] = None,
+        sender_email: str | None = None,
     ) -> bool:
         """Run the in-chat OAuth setup flow for native attachment delivery.
 
@@ -1520,7 +1520,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
     async def _build_message_event(
         self, msg: Dict[str, Any], envelope: Dict[str, Any]
-    ) -> Optional[MessageEvent]:
+    ) -> MessageEvent | None:
         """Parse a Chat API message into a hermes MessageEvent."""
         space = envelope.get("space") or msg.get("space") or {}
         space_name = space.get("name") or ""  # "spaces/XXX"
@@ -1646,7 +1646,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
     async def _download_attachment(
         self, attachment: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> Tuple[str | None, str | None]:
         """Download an inbound attachment to the local cache; return (path, mime).
 
         Priority for bot Service Accounts:
@@ -1685,7 +1685,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
             )
             return None, mime
 
-        data: Optional[bytes] = None
+        data: bytes | None = None
 
         # Path 1: media.download with attachmentDataRef.resourceName (bot-path).
         if resource_name:
@@ -1766,8 +1766,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a text message.
 
@@ -1798,7 +1798,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
             if not chunks:
                 return SendResult(success=False, error="empty message")
 
-            last_result: Optional[SendResult] = None
+            last_result: SendResult | None = None
             typing_msg_name = self._typing_messages.pop(chat_id, None)
             # Treat any earlier sentinel as "no real card to patch" — defensive.
             if typing_msg_name == _TYPING_CONSUMED_SENTINEL:
@@ -2093,10 +2093,10 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
     def _resolve_thread_id(
         self,
-        reply_to: Optional[str],
-        metadata: Optional[Dict[str, Any]],
-        chat_id: Optional[str] = None,
-    ) -> Optional[str]:
+        reply_to: str | None,
+        metadata: Dict[str, Any] | None,
+        chat_id: str | None = None,
+    ) -> str | None:
         """Return the Google Chat thread resource name to reply under, or None.
 
         Priority:
@@ -2155,7 +2155,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         Pattern lifted from PR #14965.
         """
         delay = _RETRY_BASE_DELAY
-        last_exc: Optional[BaseException] = None
+        last_exc: BaseException | None = None
         for attempt in range(1, _RETRY_MAX_ATTEMPTS + 1):
             try:
                 return await asyncio.to_thread(sync_fn)
@@ -2434,7 +2434,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
     # ------------------------------------------------------------------
     async def _consume_typing_card_with_text(
         self, chat_id: str, text: str
-    ) -> Optional[SendResult]:
+    ) -> SendResult | None:
         """Patch the tracked typing card with ``text`` (no tombstone).
 
         Returns ``None`` if there's no real typing card to patch (caller
@@ -2468,9 +2468,9 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send an inline image via attachment URL (no upload).
 
@@ -2500,8 +2500,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2514,9 +2514,9 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2530,8 +2530,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2544,8 +2544,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2558,9 +2558,9 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         animation_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Google Chat has no native animation type; fall back to send_image."""
         return await self.send_image(
@@ -2604,7 +2604,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
     _LEGACY_USER_IDENTITY = "__legacy__"
 
-    async def _load_per_user_chat_api(self, email: str) -> Optional[Any]:
+    async def _load_per_user_chat_api(self, email: str) -> Any | None:
         """Get (or build + cache) a user-authed Chat client for ``email``.
 
         Hits ``self._user_chat_api_by_email`` first; on miss, loads the
@@ -2653,8 +2653,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         return api
 
     async def _acquire_user_chat_api(
-        self, sender_email: Optional[str]
-    ) -> Tuple[Optional[Any], Optional[str]]:
+        self, sender_email: str | None
+    ) -> Tuple[Any | None, str | None]:
         """Resolve the user-authed Chat client for an outbound attachment.
 
         Lookup order:
@@ -2699,7 +2699,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
         return None, None
 
-    def _invalidate_user_creds(self, identity: Optional[str]) -> None:
+    def _invalidate_user_creds(self, identity: str | None) -> None:
         """Drop creds for ``identity`` after an auth failure.
 
         ``identity`` comes from ``_acquire_user_chat_api`` — either the
@@ -2719,10 +2719,10 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         path: str,
-        caption: Optional[str],
-        mime_hint: Optional[str],
-        thread_id: Optional[str] = None,
-        override_filename: Optional[str] = None,
+        caption: str | None,
+        mime_hint: str | None,
+        thread_id: str | None = None,
+        override_filename: str | None = None,
     ) -> SendResult:
         """Native Chat attachment via user-OAuth media.upload.
 
@@ -2870,8 +2870,8 @@ class GoogleChatAdapter(BasePlatformAdapter):
         chat_id: str,
         path: str,
         filename: str,
-        caption: Optional[str],
-        thread_id: Optional[str],
+        caption: str | None,
+        thread_id: str | None,
     ) -> SendResult:
         """Post a text notice when native attachment delivery is unavailable.
 
@@ -2979,7 +2979,7 @@ def _is_connected(config: PlatformConfig) -> bool:
     return bool(getattr(config, "enabled", False)) and _validate_config(config)
 
 
-def _env_enablement() -> Optional[Dict[str, Any]]:
+def _env_enablement() -> Dict[str, Any] | None:
     """Seed ``PlatformConfig.extra`` from env vars during
     ``_apply_env_overrides``.
 
@@ -3126,8 +3126,8 @@ async def _standalone_send(
     chat_id: str,
     message: str,
     *,
-    thread_id: Optional[str] = None,
-    media_files: Optional[List[str]] = None,
+    thread_id: str | None = None,
+    media_files: List[str] | None = None,
     force_document: bool = False,
 ) -> Dict[str, Any]:
     """POST a single Google Chat message via the REST API without the SDK.

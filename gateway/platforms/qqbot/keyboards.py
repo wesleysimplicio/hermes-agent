@@ -158,7 +158,7 @@ class InlineKeyboard:
 
 # ── INTERACTION_CREATE parsing ───────────────────────────────────────
 
-def parse_approval_button_data(button_data: str) -> Optional[tuple[str, str]]:
+def parse_approval_button_data(button_data: str) -> tuple[str, str] | None:
     """Parse approval ``button_data`` into ``(session_key, decision)``.
 
     :param button_data: Raw ``data.resolved.button_data`` from
@@ -171,7 +171,7 @@ def parse_approval_button_data(button_data: str) -> Optional[tuple[str, str]]:
     return m.group(1), m.group(2)
 
 
-def parse_update_prompt_button_data(button_data: str) -> Optional[str]:
+def parse_update_prompt_button_data(button_data: str) -> str | None:
     """Parse update-prompt ``button_data`` into ``'y'`` or ``'n'``."""
     m = _UPDATE_PROMPT_RE.match(button_data or "")
     if not m:
@@ -369,7 +369,7 @@ class ApprovalSender:
         chat_type: str,
         chat_id: str,
         req: ApprovalRequest,
-        msg_id: Optional[str] = None,
+        msg_id: str | None = None,
     ) -> bool:
         """Send an approval message to *chat_id*.
 

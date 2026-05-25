@@ -90,7 +90,7 @@ def _custom_provider_extra_body_for_agent(
     model: str,
     base_url: str,
     custom_providers: List[Dict[str, Any]],
-) -> Optional[Dict[str, Any]]:
+) -> Dict[str, Any] | None:
     if (provider or "").strip().lower() != "custom":
         return None
 
@@ -98,7 +98,7 @@ def _custom_provider_extra_body_for_agent(
     if not target_url:
         return None
 
-    fallback: Optional[Dict[str, Any]] = None
+    fallback: Dict[str, Any] | None = None
     for entry in custom_providers or []:
         if not isinstance(entry, dict):
             continue
@@ -163,7 +163,7 @@ def init_agent(
     provider_sort: str = None,
     provider_require_parameters: bool = False,
     provider_data_collection: str = None,
-    openrouter_min_coding_score: Optional[float] = None,
+    openrouter_min_coding_score: float | None = None,
     session_id: str = None,
     tool_progress_callback: callable = None,
     tool_start_callback: callable = None,
@@ -423,7 +423,7 @@ def init_agent(
     # last tool result's content so the model sees it on its next
     # iteration. Message-role alternation is preserved (we modify an
     # existing tool message rather than inserting a new user turn).
-    agent._pending_steer: Optional[str] = None
+    agent._pending_steer: str | None = None
     agent._pending_steer_lock = threading.Lock()
 
     # Concurrent-tool worker thread tracking.  `_execute_tool_calls_concurrent`
@@ -506,7 +506,7 @@ def init_agent(
 
     # Rate limit tracking — updated from x-ratelimit-* response headers
     # after each API call.  Accessed by /usage slash command.
-    agent._rate_limit_state: Optional["RateLimitState"] = None
+    agent._rate_limit_state: "RateLimitState" | None = None
 
     # OpenRouter response cache hit counter — incremented when
     # X-OpenRouter-Cache-Status: HIT is seen in streaming response headers.
@@ -1009,7 +1009,7 @@ def init_agent(
     agent._memory_write_context = "foreground"
     
     # Cached system prompt -- built once per session, only rebuilt on compression
-    agent._cached_system_prompt: Optional[str] = None
+    agent._cached_system_prompt: str | None = None
     
     # Filesystem checkpoint manager (transparent — not a tool)
     from tools.checkpoint_manager import CheckpointManager

@@ -197,7 +197,7 @@ def fetch_prices(mints: List[str], max_lookups: int = 20) -> Dict[str, float]:
     return prices
 
 
-def fetch_sol_price() -> Optional[float]:
+def fetch_sol_price() -> float | None:
     """Fetch current SOL price in USD via CoinGecko."""
     data = _http_get_json(
         "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
@@ -207,7 +207,7 @@ def fetch_sol_price() -> Optional[float]:
     return None
 
 
-def resolve_token_name(mint: str) -> Optional[Dict[str, str]]:
+def resolve_token_name(mint: str) -> Dict[str, str] | None:
     """Look up token name and symbol from CoinGecko by mint address.
 
     Returns {"name": ..., "symbol": ...} or None.

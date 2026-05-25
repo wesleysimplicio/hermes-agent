@@ -86,7 +86,7 @@ def list_providers() -> List[BrowserProvider]:
     return sorted(items, key=lambda p: p.name)
 
 
-def get_provider(name: str) -> Optional[BrowserProvider]:
+def get_provider(name: str) -> BrowserProvider | None:
     """Return the provider registered under *name*, or None."""
     if not isinstance(name, str):
         return None
@@ -110,7 +110,7 @@ _LEGACY_PREFERENCE = (
 )
 
 
-def _resolve(configured: Optional[str]) -> Optional[BrowserProvider]:
+def _resolve(configured: str | None) -> BrowserProvider | None:
     """Resolve the active browser provider.
 
     Resolution rules (in order):
@@ -186,7 +186,7 @@ def _resolve(configured: Optional[str]) -> Optional[BrowserProvider]:
     return None
 
 
-def get_active_browser_provider() -> Optional[BrowserProvider]:
+def get_active_browser_provider() -> BrowserProvider | None:
     """Resolve the currently-active cloud browser provider.
 
     Reads ``browser.cloud_provider`` from config.yaml; falls back per the
@@ -202,7 +202,7 @@ def get_active_browser_provider() -> Optional[BrowserProvider]:
         logger.debug("Could not read browser config: %s", exc)
         browser_cfg = {}
 
-    configured: Optional[str] = None
+    configured: str | None = None
     if isinstance(browser_cfg, dict) and "cloud_provider" in browser_cfg:
         try:
             from tools.tool_backend_helpers import normalize_browser_cloud_provider

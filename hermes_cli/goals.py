@@ -149,9 +149,9 @@ class GoalState:
     max_turns: int = DEFAULT_MAX_TURNS
     created_at: float = 0.0
     last_turn_at: float = 0.0
-    last_verdict: Optional[str] = None        # "done" | "continue" | "skipped"
-    last_reason: Optional[str] = None
-    paused_reason: Optional[str] = None       # why we auto-paused (budget, etc.)
+    last_verdict: str | None = None        # "done" | "continue" | "skipped"
+    last_reason: str | None = None
+    paused_reason: str | None = None       # why we auto-paused (budget, etc.)
     consecutive_parse_failures: int = 0       # judge-output parse failures in a row
     # User-added criteria appended mid-loop via the /subgoal command.
     # When non-empty the judge prompt and continuation prompt both
@@ -206,7 +206,7 @@ def _meta_key(session_id: str) -> str:
 _DB_CACHE: Dict[str, Any] = {}
 
 
-def _get_session_db() -> Optional[Any]:
+def _get_session_db() -> Any | None:
     """Return a SessionDB instance for the current HERMES_HOME.
 
     SessionDB has no built-in singleton, but opening a new connection per
@@ -236,7 +236,7 @@ def _get_session_db() -> Optional[Any]:
     return db
 
 
-def load_goal(session_id: str) -> Optional[GoalState]:
+def load_goal(session_id: str) -> GoalState | None:
     """Load the goal for a session, or None if none exists."""
     if not session_id:
         return None
@@ -342,7 +342,7 @@ def _parse_judge_response(raw: str) -> Tuple[bool, str, bool]:
             text = text[nl + 1:]
 
     # First try: parse the whole blob.
-    data: Optional[Dict[str, Any]] = None
+    data: Dict[str, Any] | None = None
     try:
         data = json.loads(text)
     except Exception:
@@ -373,7 +373,7 @@ def judge_goal(
     last_response: str,
     *,
     timeout: float = DEFAULT_JUDGE_TIMEOUT,
-    subgoals: Optional[List[str]] = None,
+    subgoals: List[str] | None = None,
 ) -> Tuple[str, str, bool]:
     """Ask the auxiliary model whether the goal is satisfied.
 
@@ -488,12 +488,12 @@ class GoalManager:
     def __init__(self, session_id: str, *, default_max_turns: int = DEFAULT_MAX_TURNS):
         self.session_id = session_id
         self.default_max_turns = int(default_max_turns or DEFAULT_MAX_TURNS)
-        self._state: Optional[GoalState] = load_goal(session_id)
+        self._state: GoalState | None = load_goal(session_id)
 
     # --- introspection ------------------------------------------------
 
     @property
-    def state(self) -> Optional[GoalState]:
+    def state(self) -> GoalState | None:
         return self._state
 
     def is_active(self) -> bool:
@@ -519,7 +519,7 @@ class GoalManager:
 
     # --- mutation -----------------------------------------------------
 
-    def set(self, goal: str, *, max_turns: Optional[int] = None) -> GoalState:
+    def set(self, goal: str, *, max_turns: int | None = None) -> GoalState:
         goal = (goal or "").strip()
         if not goal:
             raise ValueError("goal text is empty")
@@ -535,7 +535,7 @@ class GoalManager:
         save_goal(self.session_id, state)
         return state
 
-    def pause(self, reason: str = "user-paused") -> Optional[GoalState]:
+    def pause(self, reason: str = "user-paused") -> GoalState | None:
         if not self._state:
             return None
         self._state.status = "paused"
@@ -543,7 +543,7 @@ class GoalManager:
         save_goal(self.session_id, self._state)
         return self._state
 
-    def resume(self, *, reset_budget: bool = True) -> Optional[GoalState]:
+    def resume(self, *, reset_budget: bool = True) -> GoalState | None:
         if not self._state:
             return None
         self._state.status = "active"
@@ -736,7 +736,7 @@ class GoalManager:
             ),
         }
 
-    def next_continuation_prompt(self) -> Optional[str]:
+    def next_continuation_prompt(self) -> str | None:
         if not self._state or self._state.status != "active":
             return None
         if self._state.subgoals:

@@ -128,7 +128,7 @@ class VideoGenProvider(abc.ABC):
             "env_vars": [],
         }
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         """Return the default model id, or None if not applicable."""
         models = self.list_models()
         if models:
@@ -170,15 +170,15 @@ class VideoGenProvider(abc.ABC):
         self,
         prompt: str,
         *,
-        model: Optional[str] = None,
-        image_url: Optional[str] = None,
-        reference_image_urls: Optional[List[str]] = None,
-        duration: Optional[int] = None,
+        model: str | None = None,
+        image_url: str | None = None,
+        reference_image_urls: List[str] | None = None,
+        duration: int | None = None,
         aspect_ratio: str = DEFAULT_ASPECT_RATIO,
         resolution: str = DEFAULT_RESOLUTION,
-        negative_prompt: Optional[str] = None,
-        audio: Optional[bool] = None,
-        seed: Optional[int] = None,
+        negative_prompt: str | None = None,
+        audio: bool | None = None,
+        seed: int | None = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Generate a video from a prompt (text-to-video) or animate an image
@@ -253,7 +253,7 @@ def success_response(
     aspect_ratio: str = "",
     duration: int = 0,
     provider: str,
-    extra: Optional[Dict[str, Any]] = None,
+    extra: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Build a uniform success response dict.
 

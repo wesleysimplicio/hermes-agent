@@ -54,7 +54,7 @@ def _module_registers_tools(module_path: Path) -> bool:
     return any(_is_registry_register_call(stmt) for stmt in tree.body)
 
 
-def discover_builtin_tools(tools_dir: Optional[Path] = None) -> List[str]:
+def discover_builtin_tools(tools_dir: Path | None = None) -> List[str]:
     """Import built-in self-registering tool modules and return their module names."""
     tools_path = Path(tools_dir) if tools_dir is not None else Path(__file__).resolve().parent
     module_names = [
@@ -189,7 +189,7 @@ class ToolRegistry:
             logger.debug("Toolset %s check raised; marking unavailable", toolset)
             return False
 
-    def get_entry(self, name: str) -> Optional[ToolEntry]:
+    def get_entry(self, name: str) -> ToolEntry | None:
         """Return a registered tool entry by name, or None."""
         with self._lock:
             return self._tools.get(name)
@@ -222,7 +222,7 @@ class ToolRegistry:
         with self._lock:
             return dict(self._toolset_aliases)
 
-    def get_toolset_alias_target(self, alias: str) -> Optional[str]:
+    def get_toolset_alias_target(self, alias: str) -> str | None:
         """Return the canonical toolset name for an alias, or None."""
         with self._lock:
             return self._toolset_aliases.get(alias)
@@ -433,7 +433,7 @@ class ToolRegistry:
         """Return sorted list of all registered tool names."""
         return sorted(entry.name for entry in self._snapshot_entries())
 
-    def get_schema(self, name: str) -> Optional[dict]:
+    def get_schema(self, name: str) -> dict | None:
         """Return a tool's raw schema dict, bypassing check_fn filtering.
 
         Useful for token estimation and introspection where availability
@@ -442,7 +442,7 @@ class ToolRegistry:
         entry = self.get_entry(name)
         return entry.schema if entry else None
 
-    def get_toolset_for_tool(self, name: str) -> Optional[str]:
+    def get_toolset_for_tool(self, name: str) -> str | None:
         """Return the toolset a tool belongs to, or None."""
         entry = self.get_entry(name)
         return entry.toolset if entry else None

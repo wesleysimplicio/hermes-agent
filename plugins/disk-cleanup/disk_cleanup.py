@@ -340,7 +340,7 @@ def quick() -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def deep(
-    confirm: Optional[callable] = None,
+    confirm: callable | None = None,
 ) -> Dict[str, Any]:
     """Deep cleanup.
 
@@ -461,7 +461,7 @@ _TEST_PATTERNS = ("test_", "tmp_")
 _TEST_SUFFIXES = (".test.py", ".test.js", ".test.ts", ".test.md")
 
 
-def guess_category(path: Path) -> Optional[str]:
+def guess_category(path: Path) -> str | None:
     """Return a category label for *path*, or None if we shouldn't track it.
 
     Used by the ``post_tool_call`` hook to auto-track ephemeral files.

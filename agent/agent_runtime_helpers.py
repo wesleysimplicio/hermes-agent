@@ -536,10 +536,10 @@ def strip_think_blocks(agent, content: str) -> str:
 def recover_with_credential_pool(
     agent,
     *,
-    status_code: Optional[int],
+    status_code: int | None,
     has_retried_429: bool,
-    classified_reason: Optional[FailoverReason] = None,
-    error_context: Optional[Dict[str, Any]] = None,
+    classified_reason: FailoverReason | None = None,
+    error_context: Dict[str, Any] | None = None,
 ) -> tuple[bool, bool]:
     """Attempt credential recovery via pool rotation.
 
@@ -936,7 +936,7 @@ _TRANSIENT_TRANSPORT_ERRORS = frozenset({
 
 
 
-def extract_reasoning(agent, assistant_message) -> Optional[str]:
+def extract_reasoning(agent, assistant_message) -> str | None:
     """
     Extract reasoning/thinking content from an assistant message.
     
@@ -1023,8 +1023,8 @@ def dump_api_request_debug(
     api_kwargs: Dict[str, Any],
     *,
     reason: str,
-    error: Optional[Exception] = None,
-) -> Optional[Path]:
+    error: Exception | None = None,
+) -> Path | None:
     """
     Dump a debug-friendly HTTP request record for the active inference API.
 
@@ -1102,10 +1102,10 @@ def dump_api_request_debug(
 def anthropic_prompt_cache_policy(
     agent,
     *,
-    provider: Optional[str] = None,
-    base_url: Optional[str] = None,
-    api_mode: Optional[str] = None,
-    model: Optional[str] = None,
+    provider: str | None = None,
+    base_url: str | None = None,
+    api_mode: str | None = None,
+    model: str | None = None,
 ) -> tuple[bool, bool]:
     """Decide whether to apply Anthropic prompt caching and which layout to use.
 
@@ -1519,7 +1519,7 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
 
 
 def invoke_tool(agent, function_name: str, function_args: dict, effective_task_id: str,
-                 tool_call_id: Optional[str] = None, messages: list = None,
+                 tool_call_id: str | None = None, messages: list = None,
                  pre_tool_block_checked: bool = False) -> str:
     """Invoke a single tool and return the result string. No display logic.
 
@@ -1528,7 +1528,7 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
     its own inline invocation for backward-compatible display handling.
     """
     # Check plugin hooks for a block directive before executing anything.
-    block_message: Optional[str] = None
+    block_message: str | None = None
     if not pre_tool_block_checked:
         try:
             from hermes_cli.plugins import get_pre_tool_call_block_message

@@ -74,7 +74,7 @@ from utils import base_url_host_matches, env_var_enabled
 logger = logging.getLogger(__name__)
 
 
-def _ollama_context_limit_error(agent: Any, request_tokens: int) -> Optional[str]:
+def _ollama_context_limit_error(agent: Any, request_tokens: int) -> str | None:
     """Return a user-facing error when Ollama is loaded with too little context."""
     if not getattr(agent, "tools", None):
         return None
@@ -235,8 +235,8 @@ def run_conversation(
     system_message: str = None,
     conversation_history: List[Dict[str, Any]] = None,
     task_id: str = None,
-    stream_callback: Optional[callable] = None,
-    persist_user_message: Optional[str] = None,
+    stream_callback: callable | None = None,
+    persist_user_message: str | None = None,
 ) -> Dict[str, Any]:
     """
     Run a complete conversation with tool calling until completion.

@@ -245,15 +245,15 @@ REASON_BLOCKED_BY_APPLY_CONFLICT = "blocked by earlier apply conflict"
 @dataclass
 class ItemResult:
     kind: str
-    source: Optional[str]
-    destination: Optional[str]
+    source: str | None
+    destination: str | None
     status: str
     reason: str = ""
     details: Dict[str, Any] = field(default_factory=dict)
     sensitive: bool = False
 
 
-def parse_selection_values(values: Optional[Sequence[str]]) -> List[str]:
+def parse_selection_values(values: Sequence[str] | None) -> List[str]:
     parsed: List[str] = []
     for value in values or ():
         for part in str(value).split(","):
@@ -264,9 +264,9 @@ def parse_selection_values(values: Optional[Sequence[str]]) -> List[str]:
 
 
 def resolve_selected_options(
-    include: Optional[Sequence[str]] = None,
-    exclude: Optional[Sequence[str]] = None,
-    preset: Optional[str] = None,
+    include: Sequence[str] | None = None,
+    exclude: Sequence[str] | None = None,
+    preset: str | None = None,
 ) -> set[str]:
     include_values = parse_selection_values(include)
     exclude_values = parse_selection_values(exclude)
@@ -323,7 +323,7 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def resolve_secret_input(value: Any, env: Optional[Dict[str, str]] = None) -> Optional[str]:
+def resolve_secret_input(value: Any, env: Dict[str, str] | None = None) -> str | None:
     """Resolve an OpenClaw SecretInput value to a plain string.
 
     SecretInput can be:
@@ -382,7 +382,7 @@ def save_env_file(path: Path, data: Dict[str, str]) -> None:
     path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
 
 
-def backup_existing(path: Path, backup_root: Path) -> Optional[Path]:
+def backup_existing(path: Path, backup_root: Path) -> Path | None:
     if not path.exists():
         return None
     rel = Path(*path.parts[1:]) if path.is_absolute() and len(path.parts) > 1 else path
@@ -714,11 +714,11 @@ class Migrator:
         source_root: Path,
         target_root: Path,
         execute: bool,
-        workspace_target: Optional[Path],
+        workspace_target: Path | None,
         overwrite: bool,
         migrate_secrets: bool,
-        output_dir: Optional[Path],
-        selected_options: Optional[set[str]] = None,
+        output_dir: Path | None,
+        selected_options: set[str] | None = None,
         preset_name: str = "",
         skill_conflict_mode: str = "skip",
     ):
@@ -751,7 +751,7 @@ class Migrator:
         # have a custom workspace path (e.g. ~/clawd/) that differs from the
         # default ~/.openclaw/workspace/.  Reading agents.defaults.workspace
         # lets source_candidate() find files in the actual workspace.
-        self._custom_workspace: Optional[Path] = None
+        self._custom_workspace: Path | None = None
         oc_config = self.load_openclaw_config()
         ws = (oc_config.get("agents", {}).get("defaults", {}).get("workspace") or "").strip()
         if ws:
@@ -810,8 +810,8 @@ class Migrator:
     def record(
         self,
         kind: str,
-        source: Optional[Path],
-        destination: Optional[Path],
+        source: Path | None,
+        destination: Path | None,
         status: str,
         reason: str = "",
         **details: Any,
@@ -836,7 +836,7 @@ class Migrator:
             if dest_str.endswith("config.yaml") or dest_str.endswith("config.yml"):
                 self._config_apply_blocked = True
 
-    def source_candidate(self, *relative_paths: str) -> Optional[Path]:
+    def source_candidate(self, *relative_paths: str) -> Path | None:
         for rel in relative_paths:
             candidate = self.source_root / rel
             if candidate.exists():
@@ -1091,12 +1091,12 @@ class Migrator:
             )
         return steps
 
-    def maybe_backup(self, path: Path) -> Optional[Path]:
+    def maybe_backup(self, path: Path) -> Path | None:
         if not self.execute or not self.backup_dir or not path.exists():
             return None
         return backup_existing(path, self.backup_dir)
 
-    def write_overflow_entries(self, kind: str, entries: Sequence[str]) -> Optional[Path]:
+    def write_overflow_entries(self, kind: str, entries: Sequence[str]) -> Path | None:
         if not entries or not self.overflow_dir:
             return None
         self.overflow_dir.mkdir(parents=True, exist_ok=True)
@@ -1106,7 +1106,7 @@ class Migrator:
         return path
 
     def copy_file(self, source: Path, destination: Path, kind: str,
-                  transform: Optional[Any] = None) -> None:
+                  transform: Any | None = None) -> None:
         if not source or not source.exists():
             return
 
@@ -1153,7 +1153,7 @@ class Migrator:
         destination = self.workspace_target / WORKSPACE_INSTRUCTIONS_FILENAME
         self.copy_file(source, destination, kind="workspace-agents", transform=rebrand_text)
 
-    def migrate_memory(self, source: Optional[Path], destination: Path, limit: int, kind: str) -> None:
+    def migrate_memory(self, source: Path | None, destination: Path, limit: int, kind: str) -> None:
         if not source or not source.exists():
             self.record(kind, None, destination, "skipped", "Source file not found")
             return
@@ -1318,7 +1318,7 @@ class Migrator:
                 conflicting_keys=conflicts,
             )
 
-    def migrate_messaging_settings(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_messaging_settings(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         additions: Dict[str, str] = {}
 
@@ -1358,7 +1358,7 @@ class Migrator:
         else:
             self.record("messaging-settings", self.source_root / "openclaw.json", self.target_root / ".env", "skipped", "No Hermes-compatible messaging settings found")
 
-    def handle_secret_settings(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def handle_secret_settings(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         if self.migrate_secrets:
             self.migrate_secret_settings(config)
@@ -1404,7 +1404,7 @@ class Migrator:
                 supported_targets=sorted(SUPPORTED_SECRET_TARGETS),
             )
 
-    def _resolve_channel_secret(self, value: Any) -> Optional[str]:
+    def _resolve_channel_secret(self, value: Any) -> str | None:
         """Resolve a channel config value that may be a SecretRef."""
         return resolve_secret_input(value, self.load_openclaw_env())
 
@@ -1421,7 +1421,7 @@ class Migrator:
                 return default.get(field)
         return None
 
-    def migrate_discord_settings(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_discord_settings(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         additions: Dict[str, str] = {}
         discord = config.get("channels", {}).get("discord", {})
@@ -1439,7 +1439,7 @@ class Migrator:
         else:
             self.record("discord-settings", self.source_root / "openclaw.json", self.target_root / ".env", "skipped", "No Discord settings found")
 
-    def migrate_slack_settings(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_slack_settings(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         additions: Dict[str, str] = {}
         slack = config.get("channels", {}).get("slack", {})
@@ -1460,7 +1460,7 @@ class Migrator:
         else:
             self.record("slack-settings", self.source_root / "openclaw.json", self.target_root / ".env", "skipped", "No Slack settings found")
 
-    def migrate_whatsapp_settings(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_whatsapp_settings(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         additions: Dict[str, str] = {}
         whatsapp = config.get("channels", {}).get("whatsapp", {})
@@ -1475,7 +1475,7 @@ class Migrator:
         else:
             self.record("whatsapp-settings", self.source_root / "openclaw.json", self.target_root / ".env", "skipped", "No WhatsApp settings found")
 
-    def migrate_signal_settings(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_signal_settings(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         additions: Dict[str, str] = {}
         signal = config.get("channels", {}).get("signal", {})
@@ -1496,7 +1496,7 @@ class Migrator:
         else:
             self.record("signal-settings", self.source_root / "openclaw.json", self.target_root / ".env", "skipped", "No Signal settings found")
 
-    def handle_provider_keys(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def handle_provider_keys(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         if not self.migrate_secrets:
             config_path = self.source_root / "openclaw.json"
@@ -1650,7 +1650,7 @@ class Migrator:
                 supported_targets=sorted(SUPPORTED_SECRET_TARGETS),
             )
 
-    def migrate_model_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_model_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         destination = self.target_root / "config.yaml"
         source_path = self.source_root / "openclaw.json"
@@ -1719,7 +1719,7 @@ class Migrator:
         else:
             self.record("model-config", source_path, destination, "migrated", "Would set model", model=model_str)
 
-    def migrate_tts_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_tts_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         destination = self.target_root / "config.yaml"
         source_path = self.source_root / "openclaw.json"
@@ -1999,10 +1999,10 @@ class Migrator:
 
     def copy_tree_non_destructive(
         self,
-        source_root: Optional[Path],
+        source_root: Path | None,
         destination_root: Path,
         kind: str,
-        ignore_dir_names: Optional[set[str]] = None,
+        ignore_dir_names: set[str] | None = None,
     ) -> None:
         if not source_root or not source_root.exists():
             self.record(kind, None, destination_root, "skipped", "Source directory not found")
@@ -2100,7 +2100,7 @@ class Migrator:
             self.record("archive", source, destination, "archived", reason)
 
     # ── MCP servers ─────────────────────────────────────────────
-    def migrate_mcp_servers(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_mcp_servers(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         mcp_raw = (config.get("mcp") or {}).get("servers") or {}
         if not mcp_raw:
@@ -2176,7 +2176,7 @@ class Migrator:
             dump_yaml_file(hermes_cfg_path, hermes_cfg)
 
     # ── Plugins ───────────────────────────────────────────────
-    def migrate_plugins_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_plugins_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         plugins = config.get("plugins") or {}
         if not plugins:
@@ -2214,7 +2214,7 @@ class Migrator:
                     self._set_env_var(env_key, api_key, f"plugins.entries.{plugin_name}.apiKey")
 
     # ── Cron jobs ─────────────────────────────────────────────
-    def migrate_cron_jobs(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_cron_jobs(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         cron = config.get("cron") or {}
         cron_store = self.source_root / "cron"
@@ -2246,7 +2246,7 @@ class Migrator:
             self.record("cron-jobs", None, None, "skipped", "No cron configuration found")
 
     # ── Hooks ─────────────────────────────────────────────────
-    def migrate_hooks_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_hooks_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         hooks = config.get("hooks") or {}
         if not hooks:
@@ -2276,7 +2276,7 @@ class Migrator:
                 break
 
     # ── Agent config ──────────────────────────────────────────
-    def migrate_agent_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_agent_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         agents = config.get("agents") or {}
         defaults = agents.get("defaults") or {}
@@ -2395,7 +2395,7 @@ class Migrator:
                         "archived", f"Agent routing bindings ({len(bindings)} rules) archived")
 
     # ── Gateway config ────────────────────────────────────────
-    def migrate_gateway_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_gateway_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         gateway = config.get("gateway") or {}
         if not gateway:
@@ -2416,7 +2416,7 @@ class Migrator:
             self._set_env_var("HERMES_GATEWAY_TOKEN", auth["token"], "gateway.auth.token")
 
     # ── Session config ────────────────────────────────────────
-    def migrate_session_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_session_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         session = config.get("session") or {}
         if not session:
@@ -2479,7 +2479,7 @@ class Migrator:
                         "Advanced session settings archived (identity links, thread bindings, etc.)")
 
     # ── Full model providers ──────────────────────────────────
-    def migrate_full_providers(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_full_providers(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         models = config.get("models") or {}
         providers = models.get("providers") or {}
@@ -2553,7 +2553,7 @@ class Migrator:
                         "archived", f"Model aliases/catalog ({len(model_aliases)} entries) archived")
 
     # ── Deep channel config ───────────────────────────────────
-    def migrate_deep_channels(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_deep_channels(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         channels = config.get("channels") or {}
         if not channels:
@@ -2641,7 +2641,7 @@ class Migrator:
                         f"Deep channel config for {len(complex_archive)} channels archived")
 
     # ── Browser config ────────────────────────────────────────
-    def migrate_browser_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_browser_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         browser = config.get("browser") or {}
         if not browser:
@@ -2681,7 +2681,7 @@ class Migrator:
                         "archive/browser-config.json", "archived")
 
     # ── Tools config ──────────────────────────────────────────
-    def migrate_tools_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_tools_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         tools = config.get("tools") or {}
         if not tools:
@@ -2725,7 +2725,7 @@ class Migrator:
                         "archived", "Full tools config archived for reference")
 
     # ── Approvals config ──────────────────────────────────────
-    def migrate_approvals_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_approvals_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         approvals = config.get("approvals") or {}
         if not approvals:
@@ -2758,7 +2758,7 @@ class Migrator:
                         "archive/approvals-config.json", "archived")
 
     # ── Memory backend ────────────────────────────────────────
-    def migrate_memory_backend(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_memory_backend(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         memory = config.get("memory") or {}
         if not memory:
@@ -2773,7 +2773,7 @@ class Migrator:
                     "archived", "Memory backend config (QMD, vector search, citations) archived for manual review")
 
     # ── Skills config ─────────────────────────────────────────
-    def migrate_skills_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_skills_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         skills = config.get("skills") or {}
         entries = skills.get("entries") or {}
@@ -2789,7 +2789,7 @@ class Migrator:
                     "archived", f"Skills registry config ({len(entries)} entries) archived")
 
     # ── UI / Identity ─────────────────────────────────────────
-    def migrate_ui_identity(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_ui_identity(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         ui = config.get("ui") or {}
         if not ui:
@@ -2804,7 +2804,7 @@ class Migrator:
                     "archived", "UI theme and identity settings archived")
 
     # ── Logging / Diagnostics ─────────────────────────────────
-    def migrate_logging_config(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def migrate_logging_config(self, config: Dict[str, Any] | None = None) -> None:
         config = config or self.load_openclaw_config()
         logging_cfg = config.get("logging") or {}
         diagnostics = config.get("diagnostics") or {}

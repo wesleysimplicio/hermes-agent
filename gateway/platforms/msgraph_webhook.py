@@ -58,7 +58,7 @@ class MSGraphWebhookAdapter(BasePlatformAdapter):
             for value in (extra.get("accepted_resources") or [])
             if str(value).strip()
         ]
-        self._client_state: Optional[str] = self._string_or_none(extra.get("client_state"))
+        self._client_state: str | None = self._string_or_none(extra.get("client_state"))
         self._max_seen_receipts = max(
             1, int(extra.get("max_seen_receipts", DEFAULT_MAX_SEEN_RECEIPTS))
         )
@@ -66,14 +66,14 @@ class MSGraphWebhookAdapter(BasePlatformAdapter):
             self._parse_allowed_source_cidrs(extra.get("allowed_source_cidrs"))
         )
         self._runner = None
-        self._notification_scheduler: Optional[NotificationScheduler] = None
+        self._notification_scheduler: NotificationScheduler | None = None
         self._seen_receipts: set[str] = set()
         self._seen_receipt_order: deque[str] = deque()
         self._accepted_count = 0
         self._duplicate_count = 0
 
     @staticmethod
-    def _string_or_none(value: Any) -> Optional[str]:
+    def _string_or_none(value: Any) -> str | None:
         if value is None:
             return None
         text = str(value).strip()
@@ -85,7 +85,7 @@ class MSGraphWebhookAdapter(BasePlatformAdapter):
         return raw if raw.startswith("/") else f"/{raw}"
 
     @staticmethod
-    def _build_receipt_key(notification: Dict[str, Any]) -> Optional[str]:
+    def _build_receipt_key(notification: Dict[str, Any]) -> str | None:
         explicit_id = str(notification.get("id") or "").strip()
         if explicit_id:
             return f"id:{explicit_id}"
@@ -129,7 +129,7 @@ class MSGraphWebhookAdapter(BasePlatformAdapter):
                 )
         return networks
 
-    def set_notification_scheduler(self, scheduler: Optional[NotificationScheduler]) -> None:
+    def set_notification_scheduler(self, scheduler: NotificationScheduler | None) -> None:
         self._notification_scheduler = scheduler
 
     async def connect(self) -> bool:
@@ -167,8 +167,8 @@ class MSGraphWebhookAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         logger.info("[msgraph_webhook] Response for %s: %s", chat_id, content[:200])
         return SendResult(success=True)
@@ -335,7 +335,7 @@ class MSGraphWebhookAdapter(BasePlatformAdapter):
     def _build_message_event(
         self,
         notification: Dict[str, Any],
-        receipt_key: Optional[str],
+        receipt_key: str | None,
     ) -> MessageEvent:
         message_id = receipt_key or f"sha1:{sha1(json.dumps(notification, sort_keys=True).encode('utf-8')).hexdigest()}"
         source = self.build_source(

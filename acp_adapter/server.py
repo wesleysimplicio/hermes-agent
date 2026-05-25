@@ -516,7 +516,7 @@ class HermesACPAgent(acp.Agent):
     def __init__(self, session_manager: SessionManager | None = None):
         super().__init__()
         self.session_manager = session_manager or SessionManager()
-        self._conn: Optional[acp.Client] = None
+        self._conn: acp.Client | None = None
 
     # ---- Connection lifecycle -----------------------------------------------
 

@@ -38,7 +38,7 @@ _MEMORY_PLUGINS_DIR = Path(__file__).parent
 # Directory helpers
 # ---------------------------------------------------------------------------
 
-def _get_user_plugins_dir() -> Optional[Path]:
+def _get_user_plugins_dir() -> Path | None:
     """Return ``$HERMES_HOME/plugins/`` or None if unavailable."""
     try:
         from hermes_constants import get_hermes_home
@@ -98,7 +98,7 @@ def _iter_provider_dirs() -> List[Tuple[str, Path]]:
     return dirs
 
 
-def find_provider_dir(name: str) -> Optional[Path]:
+def find_provider_dir(name: str) -> Path | None:
     """Resolve a provider name to its directory.
 
     Checks bundled first, then user-installed.
@@ -157,7 +157,7 @@ def discover_memory_providers() -> List[Tuple[str, str, bool]]:
     return results
 
 
-def load_memory_provider(name: str) -> Optional["MemoryProvider"]:
+def load_memory_provider(name: str) -> "MemoryProvider" | None:
     """Load and return a MemoryProvider instance by name.
 
     Checks both bundled (``plugins/memory/<name>/``) and user-installed
@@ -182,7 +182,7 @@ def load_memory_provider(name: str) -> Optional["MemoryProvider"]:
         return None
 
 
-def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
+def _load_provider_from_dir(provider_dir: Path) -> "MemoryProvider" | None:
     """Import a provider module and extract the MemoryProvider instance.
 
     The module must have either:
@@ -305,7 +305,7 @@ class _ProviderCollector:
         pass  # CLI registration happens via discover_plugin_cli_commands()
 
 
-def _get_active_memory_provider() -> Optional[str]:
+def _get_active_memory_provider() -> str | None:
     """Read the active memory provider name from config.yaml.
 
     Returns the provider name (e.g. ``"honcho"``) or None if no

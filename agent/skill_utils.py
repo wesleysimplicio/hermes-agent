@@ -549,7 +549,7 @@ def iter_skill_index_files(skills_dir: Path, filename: str):
 _NAMESPACE_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
-def parse_qualified_name(name: str) -> Tuple[Optional[str], str]:
+def parse_qualified_name(name: str) -> Tuple[str | None, str]:
     """Split ``'namespace:skill-name'`` into ``(namespace, bare_name)``.
 
     Returns ``(None, name)`` when there is no ``':'``.
@@ -559,7 +559,7 @@ def parse_qualified_name(name: str) -> Tuple[Optional[str], str]:
     return tuple(name.split(":", 1))  # type: ignore[return-value]
 
 
-def is_valid_namespace(candidate: Optional[str]) -> bool:
+def is_valid_namespace(candidate: str | None) -> bool:
     """Check whether *candidate* is a valid namespace (``[a-zA-Z0-9_-]+``)."""
     if not candidate:
         return False

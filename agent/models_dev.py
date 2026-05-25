@@ -67,13 +67,13 @@ class ModelInfo:
     # Limits
     context_window: int = 0
     max_output: int = 0
-    max_input: Optional[int] = None
+    max_input: int | None = None
 
     # Cost (per million tokens, USD)
     cost_input: float = 0.0
     cost_output: float = 0.0
-    cost_cache_read: Optional[float] = None
-    cost_cache_write: Optional[float] = None
+    cost_cache_read: float | None = None
+    cost_cache_write: float | None = None
 
     # Metadata
     knowledge_cutoff: str = ""
@@ -181,7 +181,7 @@ PROVIDER_TO_MODELS_DEV: Dict[str, str] = {
 }
 
 # Reverse mapping: models.dev → Hermes (built lazily)
-_MODELS_DEV_TO_PROVIDER: Optional[Dict[str, str]] = None
+_MODELS_DEV_TO_PROVIDER: Dict[str, str] | None = None
 
 
 
@@ -203,7 +203,7 @@ def _load_disk_cache() -> Dict[str, Any]:
     return {}
 
 
-def _disk_cache_age_seconds() -> Optional[float]:
+def _disk_cache_age_seconds() -> float | None:
     """Return age (in seconds) of the disk cache file, or None if missing.
 
     Used by ``fetch_models_dev`` to short-circuit the network probe when
@@ -319,7 +319,7 @@ def fetch_models_dev(force_refresh: bool = False) -> Dict[str, Any]:
     return _models_dev_cache
 
 
-def lookup_models_dev_context(provider: str, model: str) -> Optional[int]:
+def lookup_models_dev_context(provider: str, model: str) -> int | None:
     """Look up context_length for a provider+model combo in models.dev.
 
     Returns the context window in tokens, or None if not found.
@@ -378,7 +378,7 @@ def lookup_models_dev_context(provider: str, model: str) -> Optional[int]:
     return None
 
 
-def _extract_context(entry: Dict[str, Any]) -> Optional[int]:
+def _extract_context(entry: Dict[str, Any]) -> int | None:
     """Extract context_length from a models.dev model entry.
 
     Returns None for invalid/zero values (some audio/image models have context=0).
@@ -411,7 +411,7 @@ class ModelCapabilities:
     model_family: str = ""
 
 
-def _get_provider_models(provider: str) -> Optional[Dict[str, Any]]:
+def _get_provider_models(provider: str) -> Dict[str, Any] | None:
     """Resolve a Hermes provider ID to its models dict from models.dev.
 
     Returns the models dict or None if the provider is unknown or has no data.
@@ -432,7 +432,7 @@ def _get_provider_models(provider: str) -> Optional[Dict[str, Any]]:
     return models
 
 
-def _find_model_entry(models: Dict[str, Any], model: str) -> Optional[Dict[str, Any]]:
+def _find_model_entry(models: Dict[str, Any], model: str) -> Dict[str, Any] | None:
     """Find a model entry by exact match, then case-insensitive fallback."""
     # Exact match
     entry = models.get(model)
@@ -448,7 +448,7 @@ def _find_model_entry(models: Dict[str, Any], model: str) -> Optional[Dict[str, 
     return None
 
 
-def get_model_capabilities(provider: str, model: str) -> Optional[ModelCapabilities]:
+def get_model_capabilities(provider: str, model: str) -> ModelCapabilities | None:
     """Look up full capability metadata from models.dev cache.
 
     Uses the existing fetch_models_dev() and PROVIDER_TO_MODELS_DEV mapping.
@@ -672,7 +672,7 @@ def _parse_provider_info(provider_id: str, raw: Dict[str, Any]) -> ProviderInfo:
 # Provider-level queries
 # ---------------------------------------------------------------------------
 
-def get_provider_info(provider_id: str) -> Optional[ProviderInfo]:
+def get_provider_info(provider_id: str) -> ProviderInfo | None:
     """Get full provider metadata from models.dev.
 
     Accepts either a Hermes provider ID (e.g. "kilocode") or a models.dev
@@ -695,7 +695,7 @@ def get_provider_info(provider_id: str) -> Optional[ProviderInfo]:
 
 def get_model_info(
     provider_id: str, model_id: str
-) -> Optional[ModelInfo]:
+) -> ModelInfo | None:
     """Get full model metadata from models.dev.
 
     Accepts Hermes or models.dev provider ID.  Tries exact match then

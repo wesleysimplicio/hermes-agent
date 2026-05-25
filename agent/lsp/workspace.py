@@ -41,7 +41,7 @@ def normalize_path(path: str) -> str:
     return os.path.abspath(os.path.expanduser(path))
 
 
-def find_git_worktree(start: str) -> Optional[str]:
+def find_git_worktree(start: str) -> str | None:
     """Walk up from ``start`` looking for a ``.git`` entry (file or dir).
 
     Returns the directory containing ``.git``, or ``None`` if no git
@@ -114,9 +114,9 @@ def nearest_root(
     start: str,
     markers: Iterable[str],
     *,
-    excludes: Optional[Iterable[str]] = None,
-    ceiling: Optional[str] = None,
-) -> Optional[str]:
+    excludes: Iterable[str] | None = None,
+    ceiling: str | None = None,
+) -> str | None:
     """Walk up from ``start`` looking for any of the given marker files.
 
     Returns the **directory containing** the first matched marker, or
@@ -173,8 +173,8 @@ def nearest_root(
 def resolve_workspace_for_file(
     file_path: str,
     *,
-    cwd: Optional[str] = None,
-) -> Tuple[Optional[str], bool]:
+    cwd: str | None = None,
+) -> Tuple[str | None, bool]:
     """Resolve the workspace root for a file.
 
     Returns ``(workspace_root, gated_in)`` where ``gated_in`` is True

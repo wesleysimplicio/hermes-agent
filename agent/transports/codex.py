@@ -38,7 +38,7 @@ class ResponsesApiTransport(ProviderTransport):
         self,
         model: str,
         messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        tools: List[Dict[str, Any]] | None = None,
         **params,
     ) -> Dict[str, Any]:
         """Build Responses API kwargs.

@@ -456,8 +456,8 @@ def _build_fal_payload(
     model_id: str,
     prompt: str,
     aspect_ratio: str = DEFAULT_ASPECT_RATIO,
-    seed: Optional[int] = None,
-    overrides: Optional[Dict[str, Any]] = None,
+    seed: int | None = None,
+    overrides: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Build a FAL request payload for `model_id` from unified inputs.
 
@@ -498,7 +498,7 @@ def _build_fal_payload(
 # ---------------------------------------------------------------------------
 # Upscaler
 # ---------------------------------------------------------------------------
-def _upscale_image(image_url: str, original_prompt: str) -> Optional[Dict[str, Any]]:
+def _upscale_image(image_url: str, original_prompt: str) -> Dict[str, Any] | None:
     """Upscale an image using FAL.ai's Clarity Upscaler.
 
     Returns upscaled image dict, or None on failure (caller falls back to
@@ -550,11 +550,11 @@ def _upscale_image(image_url: str, original_prompt: str) -> Optional[Dict[str, A
 def image_generate_tool(
     prompt: str,
     aspect_ratio: str = DEFAULT_ASPECT_RATIO,
-    num_inference_steps: Optional[int] = None,
-    guidance_scale: Optional[float] = None,
-    num_images: Optional[int] = None,
-    output_format: Optional[str] = None,
-    seed: Optional[int] = None,
+    num_inference_steps: int | None = None,
+    guidance_scale: float | None = None,
+    num_images: int | None = None,
+    output_format: str | None = None,
+    seed: int | None = None,
 ) -> str:
     """Generate an image from a text prompt using the configured FAL model.
 

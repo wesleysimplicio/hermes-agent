@@ -31,7 +31,7 @@ class UpstreamCredential:
     token_type: str = "Bearer"
     """Auth scheme — currently always ``Bearer`` for supported providers."""
 
-    expires_at: Optional[str] = None
+    expires_at: str | None = None
     """ISO-8601 expiry timestamp for the bearer, when known. Informational."""
 
 
@@ -86,7 +86,7 @@ class UpstreamAdapter(ABC):
         *,
         failed_credential: UpstreamCredential,
         status_code: int,
-    ) -> Optional[UpstreamCredential]:
+    ) -> UpstreamCredential | None:
         """Return an alternate credential after an upstream auth failure.
 
         The default is no retry. Providers can override this for one-shot

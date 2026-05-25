@@ -100,7 +100,7 @@ async def _exec_request(client, method, uri, paths=None, queries=None, body=None
 # ---------------------------------------------------------------------------
 
 
-def parse_drive_comment_event(data: Any) -> Optional[Dict[str, Any]]:
+def parse_drive_comment_event(data: Any) -> Dict[str, Any] | None:
     """Extract structured fields from a ``drive.notice.comment_add_v1`` payload.
 
     *data* may be a ``CustomizedEvent`` (WebSocket) whose ``.event`` is a dict,
@@ -710,7 +710,7 @@ def _extract_docs_links(replies: List[Dict[str, Any]]) -> List[Dict[str, str]]:
 
 async def _reverse_lookup_wiki_token(
     client: Any, obj_type: str, obj_token: str,
-) -> Optional[str]:
+) -> str | None:
     """Reverse-lookup: given an obj_token, find its wiki node_token.
 
     Returns the wiki_token if the document belongs to a wiki space,

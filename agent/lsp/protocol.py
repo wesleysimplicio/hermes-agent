@@ -63,7 +63,7 @@ def encode_message(obj: dict) -> bytes:
     return header + body
 
 
-async def read_message(reader: asyncio.StreamReader) -> Optional[dict]:
+async def read_message(reader: asyncio.StreamReader) -> dict | None:
     """Read one Content-Length framed JSON-RPC message from the stream.
 
     Returns ``None`` on clean EOF (server closed stdout cleanly between

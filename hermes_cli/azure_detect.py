@@ -68,7 +68,7 @@ class DetectionResult:
 
     #: Detected API transport: ``"chat_completions"``,
     #: ``"anthropic_messages"``, or ``None`` when detection failed.
-    api_mode: Optional[str] = None
+    api_mode: str | None = None
 
     #: Deployment / model IDs returned by ``/models`` (best effort).
     #: Empty when the endpoint doesn't expose the list with an API key.
@@ -90,8 +90,8 @@ class DetectionResult:
 
 
 def _resolve_credential(api_key: Any,
-                        token_provider: Optional[Callable[[], str]] = None,
-                        ) -> tuple[Optional[str], str]:
+                        token_provider: Callable[[], str] | None = None,
+                        ) -> tuple[str | None, str]:
     """Coerce wizard inputs into a (token, mode) pair.
 
     Returns ``(token_or_None, mode)`` where ``mode`` is:
@@ -129,7 +129,7 @@ def _resolve_credential(api_key: Any,
 
 
 def _apply_auth_headers(req: urllib_request.Request,
-                        token: Optional[str],
+                        token: str | None,
                         mode: str) -> None:
     """Attach the right auth headers to ``req`` based on credential mode."""
     if not token:
@@ -149,8 +149,8 @@ def _http_get_json(url: str,
                    api_key: Any,
                    timeout: float = 6.0,
                    *,
-                   token_provider: Optional[Callable[[], str]] = None,
-                   ) -> tuple[int, Optional[dict]]:
+                   token_provider: Callable[[], str] | None = None,
+                   ) -> tuple[int, dict | None]:
     """GET a URL with the appropriate auth headers.  Return
     ``(status_code, parsed_json_or_None)``.  Never raises."""
     token, mode = _resolve_credential(api_key, token_provider)
@@ -211,7 +211,7 @@ def _extract_model_ids(payload: dict) -> list[str]:
 def _probe_openai_models(base_url: str,
                          api_key: Any,
                          *,
-                         token_provider: Optional[Callable[[], str]] = None,
+                         token_provider: Callable[[], str] | None = None,
                          ) -> tuple[bool, list[str]]:
     """Probe ``<base>/models`` for an OpenAI-shaped response.
 
@@ -247,7 +247,7 @@ def _probe_openai_models(base_url: str,
 def _probe_anthropic_messages(base_url: str,
                               api_key: Any,
                               *,
-                              token_provider: Optional[Callable[[], str]] = None,
+                              token_provider: Callable[[], str] | None = None,
                               ) -> bool:
     """Send a zero-token request to ``<base>/v1/messages`` and check
     whether the endpoint at least *recognises* the Anthropic Messages
@@ -297,7 +297,7 @@ def _probe_anthropic_messages(base_url: str,
 def detect(base_url: str,
            api_key: Any = "",
            *,
-           token_provider: Optional[Callable[[], str]] = None,
+           token_provider: Callable[[], str] | None = None,
            ) -> DetectionResult:
     """Inspect an Azure endpoint and describe its transport + models.
 
@@ -363,8 +363,8 @@ def lookup_context_length(model: str,
                           base_url: str,
                           api_key: Any = "",
                           *,
-                          token_provider: Optional[Callable[[], str]] = None,
-                          ) -> Optional[int]:
+                          token_provider: Callable[[], str] | None = None,
+                          ) -> int | None:
     """Thin wrapper around :func:`agent.model_metadata.get_model_context_length`
     that returns ``None`` when only the fallback default (128k) would
     fire, so the wizard can distinguish "we actually know this" from

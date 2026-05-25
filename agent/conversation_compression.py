@@ -253,9 +253,9 @@ def compress_context(
     messages: list,
     system_message: str,
     *,
-    approx_tokens: Optional[int] = None,
+    approx_tokens: int | None = None,
     task_id: str = "default",
-    focus_topic: Optional[str] = None,
+    focus_topic: str | None = None,
     force: bool = False,
 ) -> Tuple[list, str]:
     """Compress conversation context and split the session in SQLite.
@@ -516,7 +516,7 @@ def try_shrink_image_parts_in_messages(api_messages: list) -> bool:
     target_bytes = 4 * 1024 * 1024
     changed_count = 0
 
-    def _shrink_data_url(url: str) -> Optional[str]:
+    def _shrink_data_url(url: str) -> str | None:
         """Return a smaller data URL, or None if shrink can't help."""
         if not isinstance(url, str) or not url.startswith("data:"):
             return None

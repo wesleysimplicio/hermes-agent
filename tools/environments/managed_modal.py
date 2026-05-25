@@ -48,7 +48,7 @@ class ManagedModalEnvironment(BaseModalExecutionEnvironment):
         image: str,
         cwd: str = "/root",
         timeout: int = 60,
-        modal_sandbox_kwargs: Optional[Dict[str, Any]] = None,
+        modal_sandbox_kwargs: Dict[str, Any] | None = None,
         persistent_filesystem: bool = True,
         task_id: str = "default",
     ):

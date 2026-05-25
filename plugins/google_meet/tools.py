@@ -49,7 +49,7 @@ def check_meet_requirements() -> bool:
 # Node client helper
 # ---------------------------------------------------------------------------
 
-def _resolve_node_client(node: Optional[str]):
+def _resolve_node_client(node: str | None):
     """Return (NodeClient, node_name) for *node*, or (None, None) to run local.
 
     Raises RuntimeError with a readable message if the node is named but

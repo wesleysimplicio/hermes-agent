@@ -398,7 +398,7 @@ class ChunkedUploader:
         total_parts: int,
     ) -> None:
         """PUT part data to a pre-signed COS URL with retry."""
-        last_exc: Optional[Exception] = None
+        last_exc: Exception | None = None
         for attempt in range(_PART_UPLOAD_MAX_RETRIES + 1):
             try:
                 resp = await asyncio.wait_for(
@@ -506,7 +506,7 @@ class ChunkedUploader:
         path = f"{base}/{target_id}/files"
         body = {"upload_id": upload_id}
 
-        last_exc: Optional[Exception] = None
+        last_exc: Exception | None = None
         for attempt in range(_COMPLETE_UPLOAD_MAX_RETRIES + 1):
             try:
                 return await self._api_request(

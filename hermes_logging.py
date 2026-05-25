@@ -155,11 +155,11 @@ COMPONENT_PREFIXES = {
 
 def setup_logging(
     *,
-    hermes_home: Optional[Path] = None,
-    log_level: Optional[str] = None,
-    max_size_mb: Optional[int] = None,
-    backup_count: Optional[int] = None,
-    mode: Optional[str] = None,
+    hermes_home: Path | None = None,
+    log_level: str | None = None,
+    max_size_mb: int | None = None,
+    backup_count: int | None = None,
+    mode: str | None = None,
     force: bool = False,
 ) -> Path:
     """Configure the Hermes logging subsystem.
@@ -335,7 +335,7 @@ def _add_rotating_handler(
     max_bytes: int,
     backup_count: int,
     formatter: logging.Formatter,
-    log_filter: Optional[logging.Filter] = None,
+    log_filter: logging.Filter | None = None,
 ) -> None:
     """Add a ``RotatingFileHandler`` to *logger*, skipping if one already
     exists for the same resolved file path (idempotent).

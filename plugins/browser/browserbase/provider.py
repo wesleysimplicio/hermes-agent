@@ -65,7 +65,7 @@ class BrowserbaseBrowserProvider(BrowserProvider):
     # Config resolution
     # ------------------------------------------------------------------
 
-    def _get_config_or_none(self) -> Optional[Dict[str, Any]]:
+    def _get_config_or_none(self) -> Dict[str, Any] | None:
         api_key = os.environ.get("BROWSERBASE_API_KEY")
         project_id = os.environ.get("BROWSERBASE_PROJECT_ID")
         if api_key and project_id:

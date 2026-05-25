@@ -41,7 +41,7 @@ class _BothModalitiesProvider(VideoGenProvider):
     def list_models(self) -> List[Dict[str, Any]]:
         return [{"id": "family-a", "modalities": ["text", "image"]}]
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         return "family-a"
 
     def capabilities(self) -> Dict[str, Any]:
@@ -73,7 +73,7 @@ class _ImageOnlyProvider(VideoGenProvider):
     def list_models(self) -> List[Dict[str, Any]]:
         return [{"id": "img-only-v1", "modalities": ["image"]}]
 
-    def default_model(self) -> Optional[str]:
+    def default_model(self) -> str | None:
         return "img-only-v1"
 
     def capabilities(self) -> Dict[str, Any]:

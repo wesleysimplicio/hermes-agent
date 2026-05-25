@@ -217,7 +217,7 @@ class MarkdownProcessor:
     def split_at_paragraph_boundary(
         text: str,
         max_chars: int,
-        len_fn: Optional[Callable[[str], int]] = None,
+        len_fn: Callable[[str], int] | None = None,
     ) -> tuple[str, str]:
         """
         Find the nearest paragraph boundary split point within max_chars, return (head, tail).
@@ -356,7 +356,7 @@ class MarkdownProcessor:
         cls,
         text: str,
         max_chars: int = 4000,
-        len_fn: Optional[Callable[[str], int]] = None,
+        len_fn: Callable[[str], int] | None = None,
     ) -> list[str]:
         """
         Split Markdown text into multiple chunks by max_chars.
@@ -895,7 +895,7 @@ class InboundContext:
     raw_frames: list = dc_field(default_factory=list)  # Raw bytes frames (debounce-aggregated)
 
     # Populated by DecodeMiddleware
-    push: Optional[dict] = None
+    push: dict | None = None
     decoded_via: str = ""  # "json" | "protobuf"
 
     # Extracted from push by FieldExtractMiddleware
@@ -917,17 +917,17 @@ class InboundContext:
     media_refs: list = dc_field(default_factory=list)
 
     # Owner command detection
-    owner_command: Optional[str] = None
+    owner_command: str | None = None
 
     # Source built by BuildSourceMiddleware
-    source: Optional[Any] = None  # SessionSource
+    source: Any | None = None  # SessionSource
 
     # Populated by ClassifyMessageTypeMiddleware
-    msg_type: Optional[Any] = None  # MessageType
+    msg_type: Any | None = None  # MessageType
 
     # Populated by QuoteContextMiddleware
-    reply_to_message_id: Optional[str] = None
-    reply_to_text: Optional[str] = None
+    reply_to_message_id: str | None = None
+    reply_to_text: str | None = None
     quote_media_refs: list = dc_field(default_factory=list)  # List of (rid, kind, filename)
 
     # Populated by MediaResolveMiddleware
@@ -938,7 +938,7 @@ class InboundContext:
     link_urls: list = dc_field(default_factory=list)
 
     # Populated by GroupAttributionMiddleware
-    channel_prompt: Optional[str] = None
+    channel_prompt: str | None = None
 
 
 class InboundMiddleware(ABC):
@@ -1316,7 +1316,7 @@ class RecallGuardMiddleware(InboundMiddleware):
     # -- Branch C: interrupt currently-processing message ---------------
 
     @staticmethod
-    def _find_processing_session(adapter, recalled_id: str) -> Optional[str]:
+    def _find_processing_session(adapter, recalled_id: str) -> str | None:
         for sk, mid in adapter._processing_msg_ids.items():
             if mid == recalled_id and sk in adapter._active_sessions:
                 return sk
@@ -1400,7 +1400,7 @@ class RecallGuardMiddleware(InboundMiddleware):
 
     @classmethod
     def _patch_transcript(cls, adapter, recalled_id: str, group_code: str,
-                          from_account: str, recalled_content: Optional[str] = None) -> None:
+                          from_account: str, recalled_content: str | None = None) -> None:
         store = getattr(adapter, "_session_store", None)
         if not store:
             return
@@ -1466,7 +1466,7 @@ class SkipSelfMiddleware(InboundMiddleware):
     name = "skip-self"
 
     @staticmethod
-    def _is_self_reference(from_account: str, bot_id: Optional[str]) -> bool:
+    def _is_self_reference(from_account: str, bot_id: str | None) -> bool:
         """Detect whether the message is from the bot itself."""
         if not from_account or not bot_id:
             return False
@@ -1637,7 +1637,7 @@ class ExtractContentMiddleware(InboundMiddleware):
         return "\n".join(lines)
 
     @staticmethod
-    def _format_link_understanding(custom: dict) -> Optional[str]:
+    def _format_link_understanding(custom: dict) -> str | None:
         """Format elem_type 1007 (link understanding card) into bracket-placeholder text."""
         content = custom.get("content")
         if not content:
@@ -1915,7 +1915,7 @@ class OwnerCommandMiddleware(InboundMiddleware):
         msg_body: list,
         chat_type: str,
         from_account: str,
-    ) -> Tuple[Optional[str], Optional[str], bool]:
+    ) -> Tuple[str | None, str | None, bool]:
         """Identify allowlisted slash commands and determine sender identity.
 
         Returns (cmd, cmd_line, is_owner):
@@ -2007,7 +2007,7 @@ class GroupAtGuardMiddleware(InboundMiddleware):
     name = "group-at-guard"
 
     @staticmethod
-    def _is_at_bot(msg_body: list, bot_id: Optional[str]) -> bool:
+    def _is_at_bot(msg_body: list, bot_id: str | None) -> bool:
         """Detect whether the message @Bot.
 
         AT element format: TIMCustomElem, msg_content.data is a JSON string:
@@ -2031,7 +2031,7 @@ class GroupAtGuardMiddleware(InboundMiddleware):
         return False
 
     @staticmethod
-    def _extract_bot_mention_text(msg_body: list, bot_id: Optional[str]) -> str:
+    def _extract_bot_mention_text(msg_body: list, bot_id: str | None) -> str:
         """Extract the display text used to @-mention this bot (e.g. ``@yuanbao-bot``)."""
         if not bot_id:
             return ""
@@ -2052,7 +2052,7 @@ class GroupAtGuardMiddleware(InboundMiddleware):
         return ""
 
     @staticmethod
-    def _build_group_channel_prompt(msg_body: list, bot_id: Optional[str]) -> str:
+    def _build_group_channel_prompt(msg_body: list, bot_id: str | None) -> str:
         """Build a per-turn group-chat prompt that highlights which message to respond to."""
         bid = str(bot_id or "unknown")
         bot_mention = GroupAtGuardMiddleware._extract_bot_mention_text(msg_body, bot_id) or "unknown"
@@ -2068,7 +2068,7 @@ class GroupAtGuardMiddleware(InboundMiddleware):
     @staticmethod
     def _observe_group_message(
         adapter, source, sender_display: str, text: str,
-        *, msg_id: Optional[str] = None,
+        *, msg_id: str | None = None,
     ) -> None:
         """Write a group message into the session transcript without triggering the agent.
 
@@ -2178,7 +2178,7 @@ class QuoteContextMiddleware(InboundMiddleware):
     name = "quote-context"
 
     @staticmethod
-    def _extract_quote_context(cloud_custom_data: str) -> Tuple[Optional[str], Optional[str], list]:
+    def _extract_quote_context(cloud_custom_data: str) -> Tuple[str | None, str | None, list]:
         """Extract quote context, mapping to MessageEvent.reply_to_*.
 
         Returns:
@@ -2326,8 +2326,8 @@ class MediaResolveMiddleware(InboundMiddleware):
     @classmethod
     async def _download_and_cache(
         cls, adapter, *, fetch_url: str, kind: str,
-        file_name: Optional[str] = None, log_tag: str = "",
-    ) -> Optional[Tuple[str, str]]:
+        file_name: str | None = None, log_tag: str = "",
+    ) -> Tuple[str, str] | None:
         """Download a Yuanbao resource and cache locally. Returns ``(local_path, mime)`` or ``None``."""
         try:
             file_bytes, content_type = await media_download_url(
@@ -2748,11 +2748,11 @@ class ConnectionManager:
     def __init__(self, adapter: "YuanbaoAdapter") -> None:
         self._adapter = adapter
         self._ws = None  # websockets connection
-        self._connect_id: Optional[str] = None
-        self._heartbeat_task: Optional[asyncio.Task] = None
-        self._recv_task: Optional[asyncio.Task] = None
+        self._connect_id: str | None = None
+        self._heartbeat_task: asyncio.Task | None = None
+        self._recv_task: asyncio.Task | None = None
         self._pending_acks: Dict[str, asyncio.Future] = {}
-        self._pending_pong: Optional[asyncio.Future] = None
+        self._pending_pong: asyncio.Future | None = None
         self._consecutive_hb_timeouts: int = 0
         self._reconnect_attempts: int = 0
         self._reconnecting: bool = False
@@ -2767,7 +2767,7 @@ class ConnectionManager:
         return self._ws
 
     @property
-    def connect_id(self) -> Optional[str]:
+    def connect_id(self) -> str | None:
         return self._connect_id
 
     @property
@@ -2990,7 +2990,7 @@ class ConnectionManager:
             logger.error("[%s] AUTH_BIND error: %s", adapter.name, exc, exc_info=True)
             return False
 
-    def _extract_connect_id(self, decoded_msg: dict) -> Optional[str]:
+    def _extract_connect_id(self, decoded_msg: dict) -> str | None:
         """Extract connectId from decoded BIND_ACK message."""
         data: bytes = decoded_msg.get("data", b"")
         if not data:
@@ -3425,8 +3425,8 @@ class MediaSendHandler(ABC):
         self,
         adapter: "YuanbaoAdapter",
         chat_id: str,
-        reply_to: Optional[str] = None,
-        caption: Optional[str] = None,
+        reply_to: str | None = None,
+        caption: str | None = None,
         **kwargs: Any,
     ) -> "SendResult":
         """Template method: shared media send flow."""
@@ -3671,7 +3671,7 @@ class GroupQueryService:
     # Low-level WS query methods
     # ------------------------------------------------------------------
 
-    async def query_group_info_raw(self, group_code: str) -> Optional[dict]:
+    async def query_group_info_raw(self, group_code: str) -> dict | None:
         """Query group info via WS (group name, owner, member count, etc.).
 
         Returns:
@@ -3704,7 +3704,7 @@ class GroupQueryService:
 
     async def get_group_member_list_raw(
         self, group_code: str, offset: int = 0, limit: int = 200
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Query group member list via WS.
 
         Returns:
@@ -3761,7 +3761,7 @@ class GroupQueryService:
         self,
         chat_id: str,
         action: str = "list_all",
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> dict:
         """AI tool: Query group member list.
 
@@ -3997,8 +3997,8 @@ class MessageSender:
         self._chat_locks: collections.OrderedDict[str, asyncio.Lock] = collections.OrderedDict()
 
         # Optional hooks injected by OutboundManager for coordination
-        self._on_send_start: Optional[Callable[[str], Any]] = None   # cancel slow-notifier
-        self._on_send_finish: Optional[Callable[[str], Any]] = None  # send FINISH heartbeat
+        self._on_send_start: Callable[[str], Any] | None = None   # cancel slow-notifier
+        self._on_send_finish: Callable[[str], Any] | None = None  # send FINISH heartbeat
 
         # Media send handlers (strategy pattern)
         self._media_handlers: Dict[str, MediaSendHandler] = {
@@ -4040,7 +4040,7 @@ class MessageSender:
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
+        reply_to: str | None = None,
         group_code: str = "",
     ) -> "SendResult":
         """Send text message with auto-chunking and per-chat-id ordering guarantee."""
@@ -4079,8 +4079,8 @@ class MessageSender:
         self,
         chat_id: str,
         handler_name: str,
-        reply_to: Optional[str] = None,
-        caption: Optional[str] = None,
+        reply_to: str | None = None,
+        caption: str | None = None,
         **kwargs: Any,
     ) -> "SendResult":
         """Dispatch media send to the named handler strategy."""
@@ -4101,7 +4101,7 @@ class MessageSender:
         self,
         chat_id: str,
         message: str,
-        media_files: Optional[List[Tuple[str, bool]]] = None,
+        media_files: List[Tuple[str, bool]] | None = None,
     ) -> Dict[str, Any]:
         """Send text + media via Yuanbao (used by the ``send_message`` tool).
 
@@ -4111,7 +4111,7 @@ class MessageSender:
         extension.
         """
         adapter = self._adapter
-        last_result: Optional["SendResult"] = None
+        last_result: "SendResult" | None = None
 
         # 1. Send text
         if message.strip():
@@ -4144,7 +4144,7 @@ class MessageSender:
         self,
         chat_id: str,
         msg_body: list,
-        reply_to: Optional[str] = None,
+        reply_to: str | None = None,
         group_code: str = "",
     ) -> "SendResult":
         """Lock + dispatch an arbitrary MsgBody to C2C or group."""
@@ -4165,7 +4165,7 @@ class MessageSender:
         self,
         chat_id: str,
         text: str,
-        reply_to: Optional[str] = None,
+        reply_to: str | None = None,
         retry: int = 3,
         group_code: str = "",
     ) -> "SendResult":
@@ -4216,7 +4216,7 @@ class MessageSender:
         self,
         group_code: str,
         text: str,
-        reply_to: Optional[str] = None,
+        reply_to: str | None = None,
     ) -> dict:
         """Send group text message, auto-converting @nickname to TIMCustomElem."""
         msg_body = self._build_msg_body_with_mentions(text, group_code)
@@ -4294,7 +4294,7 @@ class MessageSender:
         self,
         group_code: str,
         msg_body: list,
-        reply_to: Optional[str] = None,
+        reply_to: str | None = None,
     ) -> dict:
         """Send group message with arbitrary MsgBody."""
         adapter = self._adapter
@@ -4327,8 +4327,8 @@ class MessageSender:
 
     @staticmethod
     def validate_media(
-        file_bytes: Optional[bytes], filename: str, max_size_mb: int = 20
-    ) -> Optional[str]:
+        file_bytes: bytes | None, filename: str, max_size_mb: int = 20
+    ) -> str | None:
         """Media pre-validation: check file validity before sending/uploading.
 
         Returns:
@@ -4348,7 +4348,7 @@ class MessageSender:
     def truncate_message(
         content: str,
         max_length: int = 4000,
-        len_fn: Optional[Callable[[str], int]] = None,
+        len_fn: Callable[[str], int] | None = None,
     ) -> List[str]:
         """
         Split a long message into chunks with table-awareness.
@@ -4441,7 +4441,7 @@ class OutboundManager:
     # -- Delegated public API (used by YuanbaoAdapter) ---------------------
 
     async def send_text(
-        self, chat_id: str, content: str, reply_to: Optional[str] = None,
+        self, chat_id: str, content: str, reply_to: str | None = None,
         group_code: str = "",
     ) -> "SendResult":
         """Send text message with auto-chunking."""
@@ -4455,7 +4455,7 @@ class OutboundManager:
 
     async def send_direct(
         self, chat_id: str, message: str,
-        media_files: Optional[List[Tuple[str, bool]]] = None,
+        media_files: List[Tuple[str, bool]] | None = None,
     ) -> Dict[str, Any]:
         """Send text + media (used by send_message tool)."""
         return await self.sender.send_direct(chat_id, message, media_files)
@@ -4487,8 +4487,8 @@ class OutboundManager:
 
     @staticmethod
     def validate_media(
-        file_bytes: Optional[bytes], filename: str, max_size_mb: int = 20,
-    ) -> Optional[str]:
+        file_bytes: bytes | None, filename: str, max_size_mb: int = 20,
+    ) -> str | None:
         """Proxy to MessageSender.validate_media."""
         return MessageSender.validate_media(file_bytes, filename, max_size_mb)
 
@@ -4509,15 +4509,15 @@ class YuanbaoAdapter(BasePlatformAdapter):
 
     # -- Active instance registry (class-level singleton) -------------------
 
-    _active_instance: ClassVar[Optional["YuanbaoAdapter"]] = None
+    _active_instance: ClassVar["YuanbaoAdapter" | None] = None
 
     @classmethod
-    def get_active(cls) -> Optional["YuanbaoAdapter"]:
+    def get_active(cls) -> "YuanbaoAdapter" | None:
         """Return the currently connected YuanbaoAdapter, or None."""
         return cls._active_instance
 
     @classmethod
-    def set_active(cls, adapter: Optional["YuanbaoAdapter"]) -> None:
+    def set_active(cls, adapter: "YuanbaoAdapter" | None) -> None:
         """Register (or clear) the active adapter instance."""
         cls._active_instance = adapter
 
@@ -4528,7 +4528,7 @@ class YuanbaoAdapter(BasePlatformAdapter):
         _extra = config.extra or {}
         self._app_key: str = (_extra.get("app_id") or "").strip()
         self._app_secret: str = (_extra.get("app_secret") or "").strip()
-        self._bot_id: Optional[str] = _extra.get("bot_id") or None
+        self._bot_id: str | None = _extra.get("bot_id") or None
         self._ws_url: str = (_extra.get("ws_url") or DEFAULT_WS_GATEWAY_URL).strip()
         self._api_domain: str = (_extra.get("api_domain") or DEFAULT_API_DOMAIN).rstrip("/")
         self._route_env: str = (_extra.get("route_env") or "").strip()
@@ -4663,8 +4663,8 @@ class YuanbaoAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         group_code: str = "",
     ) -> SendResult:
         """Send text message with auto-chunking. Delegates to OutboundManager."""
@@ -4683,7 +4683,7 @@ class YuanbaoAdapter(BasePlatformAdapter):
             return {"name": chat_id, "type": "group"}
         return {"name": chat_id, "type": "dm"}
 
-    async def send_typing(self, chat_id: str, metadata: Optional[dict] = None) -> None:
+    async def send_typing(self, chat_id: str, metadata: dict | None = None) -> None:
         """Send "typing" status heartbeat (RUNNING). Delegates to OutboundManager."""
         try:
             await self._outbound.start_typing(chat_id)
@@ -4714,13 +4714,13 @@ class YuanbaoAdapter(BasePlatformAdapter):
     # Group query (delegate to GroupQueryService)
     # ------------------------------------------------------------------
 
-    async def query_group_info(self, group_code: str) -> Optional[dict]:
+    async def query_group_info(self, group_code: str) -> dict | None:
         """Query group info (delegates to GroupQueryService)."""
         return await self._group_query.query_group_info_raw(group_code)
 
     async def get_group_member_list(
         self, group_code: str, offset: int = 0, limit: int = 200
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Query group member list (delegates to GroupQueryService)."""
         return await self._group_query.get_group_member_list_raw(group_code, offset=offset, limit=limit)
 
@@ -4757,9 +4757,9 @@ class YuanbaoAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: dict | None = None,
         **kwargs: Any,
     ) -> SendResult:
         """Send image message (URL). Delegates to OutboundManager via ImageUrlHandler."""
@@ -4773,9 +4773,9 @@ class YuanbaoAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: dict | None = None,
         **kwargs: Any,
     ) -> SendResult:
         """Send local image file. Delegates to OutboundManager via ImageFileHandler."""
@@ -4789,9 +4789,9 @@ class YuanbaoAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_url: str,
-        filename: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        filename: str | None = None,
+        reply_to: str | None = None,
+        metadata: dict | None = None,
         **kwargs: Any,
     ) -> SendResult:
         """Send file message (URL). Delegates to OutboundManager via FileUrlHandler."""
@@ -4804,9 +4804,9 @@ class YuanbaoAdapter(BasePlatformAdapter):
     async def send_sticker(
         self,
         chat_id: str,
-        sticker_name: Optional[str] = None,
-        face_index: Optional[int] = None,
-        reply_to: Optional[str] = None,
+        sticker_name: str | None = None,
+        face_index: int | None = None,
+        reply_to: str | None = None,
         **kwargs: Any,
     ) -> SendResult:
         """Send sticker/emoji. Delegates to OutboundManager via StickerHandler."""
@@ -4821,10 +4821,10 @@ class YuanbaoAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        filename: Optional[str] = None,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        filename: str | None = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: dict | None = None,
         **kwargs: Any,
     ) -> SendResult:
         """Send local file (document). Delegates to OutboundManager via DocumentHandler."""
@@ -4859,7 +4859,7 @@ class YuanbaoAdapter(BasePlatformAdapter):
 # ---------------------------------------------------------------------------
 
 
-def get_active_adapter() -> Optional["YuanbaoAdapter"]:
+def get_active_adapter() -> "YuanbaoAdapter" | None:
     """Delegate to ``YuanbaoAdapter.get_active()``."""
     return YuanbaoAdapter.get_active()
 
@@ -4868,7 +4868,7 @@ async def send_yuanbao_direct(
     adapter: "YuanbaoAdapter",
     chat_id: str,
     message: str,
-    media_files: Optional[List[Tuple[str, bool]]] = None,
+    media_files: List[Tuple[str, bool]] | None = None,
 ) -> Dict[str, Any]:
     """Delegate to ``OutboundManager.send_direct``."""
     return await adapter._outbound.send_direct(chat_id, message, media_files)

@@ -101,8 +101,8 @@ OPENAI_MODELS = {"whisper-1", "gpt-4o-mini-transcribe", "gpt-4o-transcribe"}
 GROQ_MODELS = {"whisper-large-v3", "whisper-large-v3-turbo", "distil-whisper-large-v3-en"}
 
 # Singleton for the local model — loaded once, reused across calls
-_local_model: Optional[object] = None
-_local_model_name: Optional[str] = None
+_local_model: object | None = None
+_local_model_name: str | None = None
 
 # ---------------------------------------------------------------------------
 # Config helpers
@@ -119,7 +119,7 @@ def _load_stt_config() -> dict:
         return {}
 
 
-def is_stt_enabled(stt_config: Optional[dict] = None) -> bool:
+def is_stt_enabled(stt_config: dict | None = None) -> bool:
     """Return whether STT is enabled in config."""
     if stt_config is None:
         stt_config = _load_stt_config()
@@ -136,7 +136,7 @@ def _has_openai_audio_backend() -> bool:
         return False
 
 
-def _find_binary(binary_name: str) -> Optional[str]:
+def _find_binary(binary_name: str) -> str | None:
     """Find a local binary, checking common Homebrew/local prefixes as well as PATH."""
     for directory in COMMON_LOCAL_BIN_DIRS:
         candidate = Path(directory) / binary_name
@@ -145,15 +145,15 @@ def _find_binary(binary_name: str) -> Optional[str]:
     return shutil.which(binary_name)
 
 
-def _find_ffmpeg_binary() -> Optional[str]:
+def _find_ffmpeg_binary() -> str | None:
     return _find_binary("ffmpeg")
 
 
-def _find_whisper_binary() -> Optional[str]:
+def _find_whisper_binary() -> str | None:
     return _find_binary("whisper")
 
 
-def _get_local_command_template() -> Optional[str]:
+def _get_local_command_template() -> str | None:
     configured = os.getenv(LOCAL_STT_COMMAND_ENV, "").strip()
     if configured:
         return configured
@@ -172,7 +172,7 @@ def _has_local_command() -> bool:
     return _get_local_command_template() is not None
 
 
-def _normalize_local_model(model_name: Optional[str]) -> str:
+def _normalize_local_model(model_name: str | None) -> str:
     """Return a valid faster-whisper model size, mapping cloud-only names to the default.
 
     Cloud providers like OpenAI use names such as ``whisper-1`` which are not
@@ -193,7 +193,7 @@ def _normalize_local_model(model_name: Optional[str]) -> str:
     return model_name
 
 
-def _normalize_local_command_model(model_name: Optional[str]) -> str:
+def _normalize_local_command_model(model_name: str | None) -> str:
     return _normalize_local_model(model_name)
 
 
@@ -332,7 +332,7 @@ def _get_provider(stt_config: dict) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _validate_audio_file(file_path: str) -> Optional[Dict[str, Any]]:
+def _validate_audio_file(file_path: str) -> Dict[str, Any] | None:
     """Validate the audio file.  Returns an error dict or None if OK."""
     audio_path = Path(file_path)
 
@@ -485,7 +485,7 @@ def _transcribe_local(file_path: str, model_name: str) -> Dict[str, Any]:
         return {"success": False, "transcript": "", "error": f"Local transcription failed: {e}"}
 
 
-def _prepare_local_audio(file_path: str, work_dir: str) -> tuple[Optional[str], Optional[str]]:
+def _prepare_local_audio(file_path: str, work_dir: str) -> tuple[str | None, str | None]:
     """Normalize audio for local CLI STT when needed."""
     audio_path = Path(file_path)
     if audio_path.suffix.lower() in LOCAL_NATIVE_AUDIO_FORMATS:
@@ -838,7 +838,7 @@ def _transcribe_xai(file_path: str, model_name: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def transcribe_audio(file_path: str, model: Optional[str] = None) -> Dict[str, Any]:
+def transcribe_audio(file_path: str, model: str | None = None) -> Dict[str, Any]:
     """
     Transcribe an audio file using the configured STT provider.
 

@@ -87,8 +87,8 @@ class PtyBridge:
         cls,
         argv: Sequence[str],
         *,
-        cwd: Optional[str] = None,
-        env: Optional[dict] = None,
+        cwd: str | None = None,
+        env: dict | None = None,
         cols: int = 80,
         rows: int = 24,
     ) -> "PtyBridge":
@@ -141,7 +141,7 @@ class PtyBridge:
 
     # -- I/O --------------------------------------------------------------
 
-    def read(self, timeout: float = 0.2) -> Optional[bytes]:
+    def read(self, timeout: float = 0.2) -> bytes | None:
         """Read up to 64 KiB of raw bytes from the PTY master.
 
         Returns:

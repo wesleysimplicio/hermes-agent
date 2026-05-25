@@ -16,7 +16,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from hermes_cli.colors import Colors, color
 
 
-def _normalize_skills(single_skill=None, skills: Optional[Iterable[str]] = None) -> Optional[List[str]]:
+def _normalize_skills(single_skill=None, skills: Iterable[str] | None = None) -> List[str] | None:
     if skills is None:
         if single_skill is None:
             return None

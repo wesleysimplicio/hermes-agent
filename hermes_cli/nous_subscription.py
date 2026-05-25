@@ -226,7 +226,7 @@ def _resolve_browser_feature_state(
 
 
 def get_nous_subscription_features(
-    config: Optional[Dict[str, object]] = None,
+    config: Dict[str, object] | None = None,
 ) -> NousSubscriptionFeatures:
     if config is None:
         config = load_config() or {}
@@ -492,7 +492,7 @@ def get_nous_subscription_features(
 def apply_nous_managed_defaults(
     config: Dict[str, object],
     *,
-    enabled_toolsets: Optional[Iterable[str]] = None,
+    enabled_toolsets: Iterable[str] | None = None,
 ) -> set[str]:
     if not managed_nous_tools_enabled():
         return set()
@@ -593,7 +593,7 @@ _ALL_GATEWAY_KEYS = ("web", "image_gen", "tts", "browser")
 
 
 def get_gateway_eligible_tools(
-    config: Optional[Dict[str, object]] = None,
+    config: Dict[str, object] | None = None,
 ) -> tuple[list[str], list[str], list[str]]:
     """Return (unconfigured, has_direct, already_managed) tool key lists.
 

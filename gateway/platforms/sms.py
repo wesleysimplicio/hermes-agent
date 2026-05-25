@@ -74,7 +74,7 @@ class SmsAdapter(BasePlatformAdapter):
         self._webhook_host: str = os.getenv("SMS_WEBHOOK_HOST", DEFAULT_WEBHOOK_HOST)
         self._webhook_url: str = os.getenv("SMS_WEBHOOK_URL", "").strip()
         self._runner = None
-        self._http_session: Optional["aiohttp.ClientSession"] = None
+        self._http_session: "aiohttp.ClientSession" | None = None
 
     def _basic_auth_header(self) -> str:
         """Build HTTP Basic auth header value for Twilio."""
@@ -154,8 +154,8 @@ class SmsAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         import aiohttp
 

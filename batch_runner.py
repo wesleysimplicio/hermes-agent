@@ -547,7 +547,7 @@ class BatchRunner:
         providers_ignored: List[str] = None,
         providers_order: List[str] = None,
         provider_sort: str = None,
-        openrouter_min_coding_score: Optional[float] = None,
+        openrouter_min_coding_score: float | None = None,
         max_tokens: int = None,
         reasoning_config: Dict[str, Any] = None,
         prefill_messages: List[Dict[str, Any]] = None,
@@ -712,7 +712,7 @@ class BatchRunner:
                 "last_updated": None
             }
     
-    def _save_checkpoint(self, checkpoint_data: Dict[str, Any], lock: Optional[Lock] = None):
+    def _save_checkpoint(self, checkpoint_data: Dict[str, Any], lock: Lock | None = None):
         """
         Save checkpoint data.
         

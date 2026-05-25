@@ -73,7 +73,7 @@ def _config_base_url_trustworthy_for_bare_custom(cfg_base_url: str, cfg_provider
     return _loopback_hostname(base_url_hostname(bu))
 
 
-def _detect_api_mode_for_url(base_url: str) -> Optional[str]:
+def _detect_api_mode_for_url(base_url: str) -> str | None:
     """Auto-detect api_mode from the resolved base URL.
 
     - Direct api.openai.com endpoints need the Responses API for GPT-5.x
@@ -202,7 +202,7 @@ def _get_model_config() -> Dict[str, Any]:
     return {}
 
 
-def _provider_supports_explicit_api_mode(provider: Optional[str], configured_provider: Optional[str] = None) -> bool:
+def _provider_supports_explicit_api_mode(provider: str | None, configured_provider: str | None = None) -> bool:
     """Check whether a persisted api_mode should be honored for a given provider.
 
     Prevents stale api_mode from a previous provider leaking into a
@@ -251,7 +251,7 @@ _VALID_API_MODES = {
 }
 
 
-def _parse_api_mode(raw: Any) -> Optional[str]:
+def _parse_api_mode(raw: Any) -> str | None:
     """Validate an api_mode value from config. Returns None if invalid."""
     if isinstance(raw, str):
         normalized = raw.strip().lower()
@@ -264,7 +264,7 @@ def _maybe_apply_codex_app_server_runtime(
     *,
     provider: str,
     api_mode: str,
-    model_cfg: Optional[Dict[str, Any]],
+    model_cfg: Dict[str, Any] | None,
 ) -> str:
     """Optional opt-in: rewrite api_mode → "codex_app_server" for OpenAI/Codex
     providers when the user has explicitly enabled that runtime via
@@ -291,9 +291,9 @@ def _resolve_runtime_from_pool_entry(
     provider: str,
     entry: PooledCredential,
     requested_provider: str,
-    model_cfg: Optional[Dict[str, Any]] = None,
-    pool: Optional[CredentialPool] = None,
-    target_model: Optional[str] = None,
+    model_cfg: Dict[str, Any] | None = None,
+    pool: CredentialPool | None = None,
+    target_model: str | None = None,
 ) -> Dict[str, Any]:
     model_cfg = model_cfg or _get_model_config()
     # When the caller is resolving for a specific target model (e.g. a /model
@@ -423,7 +423,7 @@ def _resolve_runtime_from_pool_entry(
     }
 
 
-def resolve_requested_provider(requested: Optional[str] = None) -> str:
+def resolve_requested_provider(requested: str | None = None) -> str:
     """Resolve provider request from explicit arg, config, then env."""
     if requested and requested.strip():
         return requested.strip().lower()
@@ -445,9 +445,9 @@ def resolve_requested_provider(requested: Optional[str] = None) -> str:
 def _try_resolve_from_custom_pool(
     base_url: str,
     provider_label: str,
-    api_mode_override: Optional[str] = None,
-    provider_name: Optional[str] = None,
-) -> Optional[Dict[str, Any]]:
+    api_mode_override: str | None = None,
+    provider_name: str | None = None,
+) -> Dict[str, Any] | None:
     """Check if a credential pool exists for a custom endpoint and return a runtime dict if so."""
     pool_key = get_custom_provider_pool_key(base_url, provider_name=provider_name)
     if not pool_key:
@@ -474,7 +474,7 @@ def _try_resolve_from_custom_pool(
         return None
 
 
-def _get_named_custom_provider(requested_provider: str) -> Optional[Dict[str, Any]]:
+def _get_named_custom_provider(requested_provider: str) -> Dict[str, Any] | None:
     requested_norm = _normalize_custom_provider_name(requested_provider or "")
     if not requested_norm or requested_norm == "custom":
         return None
@@ -626,9 +626,9 @@ def _custom_provider_request_overrides(custom_provider: Dict[str, Any]) -> Dict[
 def _resolve_named_custom_runtime(
     *,
     requested_provider: str,
-    explicit_api_key: Optional[str] = None,
-    explicit_base_url: Optional[str] = None,
-) -> Optional[Dict[str, Any]]:
+    explicit_api_key: str | None = None,
+    explicit_base_url: str | None = None,
+) -> Dict[str, Any] | None:
     # Bare `provider="custom"` with an explicit base_url (e.g. propagated
     # from a `model_aliases:` direct-alias resolution) — build a runtime
     # directly so the alias's base_url actually takes effect.
@@ -745,8 +745,8 @@ def _resolve_named_custom_runtime(
 def _resolve_openrouter_runtime(
     *,
     requested_provider: str,
-    explicit_api_key: Optional[str] = None,
-    explicit_base_url: Optional[str] = None,
+    explicit_api_key: str | None = None,
+    explicit_base_url: str | None = None,
 ) -> Dict[str, Any]:
     model_cfg = _get_model_config()
     cfg_base_url = model_cfg.get("base_url") if isinstance(model_cfg.get("base_url"), str) else ""
@@ -886,9 +886,9 @@ def _resolve_azure_foundry_runtime(
     *,
     requested_provider: str,
     model_cfg: Dict[str, Any],
-    explicit_api_key: Optional[str] = None,
-    explicit_base_url: Optional[str] = None,
-    target_model: Optional[str] = None,
+    explicit_api_key: str | None = None,
+    explicit_base_url: str | None = None,
+    target_model: str | None = None,
 ) -> Dict[str, Any]:
     """Resolve an Azure Foundry runtime entry.
 
@@ -1056,9 +1056,9 @@ def _resolve_explicit_runtime(
     provider: str,
     requested_provider: str,
     model_cfg: Dict[str, Any],
-    explicit_api_key: Optional[str] = None,
-    explicit_base_url: Optional[str] = None,
-) -> Optional[Dict[str, Any]]:
+    explicit_api_key: str | None = None,
+    explicit_base_url: str | None = None,
+) -> Dict[str, Any] | None:
     explicit_api_key = str(explicit_api_key or "").strip()
     explicit_base_url = str(explicit_base_url or "").strip().rstrip("/")
     if not explicit_api_key and not explicit_base_url:
@@ -1199,10 +1199,10 @@ def _resolve_explicit_runtime(
 
 def resolve_runtime_provider(
     *,
-    requested: Optional[str] = None,
-    explicit_api_key: Optional[str] = None,
-    explicit_base_url: Optional[str] = None,
-    target_model: Optional[str] = None,
+    requested: str | None = None,
+    explicit_api_key: str | None = None,
+    explicit_base_url: str | None = None,
+    target_model: str | None = None,
 ) -> Dict[str, Any]:
     """Resolve runtime provider credentials for agent execution.
 

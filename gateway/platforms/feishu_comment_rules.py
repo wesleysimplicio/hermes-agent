@@ -42,9 +42,9 @@ _VALID_POLICIES = ("allowlist", "pairing")
 @dataclass(frozen=True)
 class CommentDocumentRule:
     """Per-document rule.  ``None`` means 'inherit from lower tier'."""
-    enabled: Optional[bool] = None
-    policy: Optional[str] = None
-    allow_from: Optional[frozenset] = None
+    enabled: bool | None = None
+    policy: str | None = None
+    allow_from: frozenset | None = None
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ class _MtimeCache:
     def __init__(self, path: Path):
         self._path = path
         self._mtime: float = 0.0
-        self._data: Optional[dict] = None
+        self._data: dict | None = None
 
     def load(self) -> dict:
         try:
@@ -111,7 +111,7 @@ _pairing_cache = _MtimeCache(PAIRING_FILE)
 # Config parsing
 # ---------------------------------------------------------------------------
 
-def _parse_frozenset(raw: Any) -> Optional[frozenset]:
+def _parse_frozenset(raw: Any) -> frozenset | None:
     """Parse a list of strings into a frozenset; return None if key absent."""
     if raw is None:
         return None

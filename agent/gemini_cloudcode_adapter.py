@@ -132,7 +132,7 @@ def _translate_tool_result_to_gemini(message: Dict[str, Any]) -> Dict[str, Any]:
 
 def _build_gemini_contents(
     messages: List[Dict[str, Any]],
-) -> tuple[List[Dict[str, Any]], Optional[Dict[str, Any]]]:
+) -> tuple[List[Dict[str, Any]], Dict[str, Any] | None]:
     """Convert OpenAI messages[] to Gemini contents[] + systemInstruction."""
     system_text_parts: List[str] = []
     contents: List[Dict[str, Any]] = []
@@ -174,7 +174,7 @@ def _build_gemini_contents(
 
         contents.append({"role": gemini_role, "parts": parts})
 
-    system_instruction: Optional[Dict[str, Any]] = None
+    system_instruction: Dict[str, Any] | None = None
     joined_system = "\n".join(p for p in system_text_parts if p).strip()
     if joined_system:
         system_instruction = {
@@ -211,7 +211,7 @@ def _translate_tools_to_gemini(tools: Any) -> List[Dict[str, Any]]:
     return [{"functionDeclarations": declarations}]
 
 
-def _translate_tool_choice_to_gemini(tool_choice: Any) -> Optional[Dict[str, Any]]:
+def _translate_tool_choice_to_gemini(tool_choice: Any) -> Dict[str, Any] | None:
     """OpenAI tool_choice -> Gemini toolConfig.functionCallingConfig."""
     if tool_choice is None:
         return None
@@ -235,7 +235,7 @@ def _translate_tool_choice_to_gemini(tool_choice: Any) -> Optional[Dict[str, Any
     return None
 
 
-def _normalize_thinking_config(config: Any) -> Optional[Dict[str, Any]]:
+def _normalize_thinking_config(config: Any) -> Dict[str, Any] | None:
     """Accept thinkingBudget / thinkingLevel / includeThoughts (+ snake_case)."""
     if not isinstance(config, dict) or not config:
         return None
@@ -257,9 +257,9 @@ def build_gemini_request(
     messages: List[Dict[str, Any]],
     tools: Any = None,
     tool_choice: Any = None,
-    temperature: Optional[float] = None,
-    max_tokens: Optional[int] = None,
-    top_p: Optional[float] = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+    top_p: float | None = None,
     stop: Any = None,
     thinking_config: Any = None,
 ) -> Dict[str, Any]:
@@ -302,7 +302,7 @@ def wrap_code_assist_request(
     project_id: str,
     model: str,
     inner_request: Dict[str, Any],
-    user_prompt_id: Optional[str] = None,
+    user_prompt_id: str | None = None,
 ) -> Dict[str, Any]:
     """Wrap the inner Gemini request in the Code Assist envelope."""
     return {
@@ -446,8 +446,8 @@ def _make_stream_chunk(
     *,
     model: str,
     content: str = "",
-    tool_call_delta: Optional[Dict[str, Any]] = None,
-    finish_reason: Optional[str] = None,
+    tool_call_delta: Dict[str, Any] | None = None,
+    finish_reason: str | None = None,
     reasoning: str = "",
 ) -> _GeminiStreamChunk:
     delta_kwargs: Dict[str, Any] = {
@@ -594,9 +594,9 @@ class GeminiCloudCodeClient:
     def __init__(
         self,
         *,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        default_headers: Optional[Dict[str, str]] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        default_headers: Dict[str, str] | None = None,
         project_id: str = "",
         **_: Any,
     ):
@@ -607,7 +607,7 @@ class GeminiCloudCodeClient:
         self.base_url = base_url or MARKER_BASE_URL
         self._default_headers = dict(default_headers or {})
         self._configured_project_id = project_id
-        self._project_context: Optional[ProjectContext] = None
+        self._project_context: ProjectContext | None = None
         self._project_context_lock = False  # simple single-thread guard
         self.chat = _GeminiChatNamespace(self)
         self.is_closed = False
@@ -666,15 +666,15 @@ class GeminiCloudCodeClient:
         self,
         *,
         model: str = "gemini-2.5-flash",
-        messages: Optional[List[Dict[str, Any]]] = None,
+        messages: List[Dict[str, Any]] | None = None,
         stream: bool = False,
         tools: Any = None,
         tool_choice: Any = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        top_p: float | None = None,
         stop: Any = None,
-        extra_body: Optional[Dict[str, Any]] = None,
+        extra_body: Dict[str, Any] | None = None,
         timeout: Any = None,
         **_: Any,
     ) -> Any:
@@ -810,7 +810,7 @@ def _gemini_http_error(response: httpx.Response) -> CodeAssistError:
     # than one ErrorInfo (rare), so we pick the first one with a reason.
     error_reason = ""
     error_metadata: Dict[str, Any] = {}
-    retry_delay_seconds: Optional[float] = None
+    retry_delay_seconds: float | None = None
     for detail in err_details_list:
         if not isinstance(detail, dict):
             continue

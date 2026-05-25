@@ -840,8 +840,8 @@ def _rpc_poll_loop(
 
 def _execute_remote(
     code: str,
-    task_id: Optional[str],
-    enabled_tools: Optional[List[str]],
+    task_id: str | None,
+    enabled_tools: List[str] | None,
 ) -> str:
     """Run a script on the remote terminal backend via file-based RPC.
 
@@ -1035,8 +1035,8 @@ def _execute_remote(
 
 def execute_code(
     code: str,
-    task_id: Optional[str] = None,
-    enabled_tools: Optional[List[str]] = None,
+    task_id: str | None = None,
+    enabled_tools: List[str] | None = None,
 ) -> str:
     """
     Run a Python script in a sandboxed child process with RPC access

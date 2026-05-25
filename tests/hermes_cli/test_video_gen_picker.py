@@ -21,8 +21,8 @@ class _FakeVideoProvider(VideoGenProvider):
         self,
         name: str,
         available: bool = True,
-        schema: Optional[Dict[str, Any]] = None,
-        models: Optional[List[Dict[str, Any]]] = None,
+        schema: Dict[str, Any] | None = None,
+        models: List[Dict[str, Any]] | None = None,
     ):
         self._name = name
         self._available = available

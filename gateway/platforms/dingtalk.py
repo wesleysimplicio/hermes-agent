@@ -197,10 +197,10 @@ class DingTalkAdapter(BasePlatformAdapter):
         self._allowed_users: Set[str] = self._load_allowed_users()
 
         self._stream_client: Any = None
-        self._stream_task: Optional[asyncio.Task] = None
-        self._http_client: Optional["httpx.AsyncClient"] = None
-        self._card_sdk: Optional[Any] = None
-        self._robot_sdk: Optional[Any] = None
+        self._stream_task: asyncio.Task | None = None
+        self._http_client: "httpx.AsyncClient" | None = None
+        self._card_sdk: Any | None = None
+        self._robot_sdk: Any | None = None
         self._robot_code: str = extra.get("robot_code") or self._client_id
 
         # Message deduplication
@@ -211,7 +211,7 @@ class DingTalkAdapter(BasePlatformAdapter):
         # of a single class attribute to avoid cross-message clobbering when
         # multiple conversations run concurrently.
         self._message_contexts: Dict[str, Any] = {}
-        self._card_template_id: Optional[str] = extra.get("card_template_id")
+        self._card_template_id: str | None = extra.get("card_template_id")
 
         # Chats for which we've already fired the Done reaction — prevents
         # double-firing across segment boundaries or parallel flows
@@ -822,8 +822,8 @@ class DingTalkAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a markdown reply via DingTalk session webhook."""
         metadata = metadata or {}
@@ -934,9 +934,9 @@ class DingTalkAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send an image via DingTalk markdown.
 
@@ -958,9 +958,9 @@ class DingTalkAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         **kwargs,
     ) -> SendResult:
         """DingTalk webhook replies cannot send local image files directly."""
@@ -976,10 +976,10 @@ class DingTalkAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         **kwargs,
     ) -> SendResult:
         """DingTalk webhook replies cannot send local file attachments directly."""
@@ -998,7 +998,7 @@ class DingTalkAdapter(BasePlatformAdapter):
             "type": "group" if "group" in chat_id.lower() else "dm",
         }
 
-    def _get_valid_webhook(self, chat_id: str) -> Optional[tuple[str, int]]:
+    def _get_valid_webhook(self, chat_id: str) -> tuple[str, int] | None:
         """Get a valid (non-expired) session webhook for the given chat_id."""
         info = self._session_webhooks.get(chat_id)
         if not info:
@@ -1021,7 +1021,7 @@ class DingTalkAdapter(BasePlatformAdapter):
         content: str,
         *,
         finalize: bool = True,
-    ) -> Optional[SendResult]:
+    ) -> SendResult | None:
         """Create an AI Card, deliver it to the conversation, and stream initial content.
 
         Always called with ``finalize=True`` from ``send()`` (closed state).
@@ -1208,7 +1208,7 @@ class DingTalkAdapter(BasePlatformAdapter):
             stream_request, stream_headers, runtime
         )
 
-    async def _get_access_token(self) -> Optional[str]:
+    async def _get_access_token(self) -> str | None:
         """Get access token using SDK's cached token."""
         if not self._stream_client:
             return None
@@ -1409,7 +1409,7 @@ class _IncomingHandler(
     CallbackMessage.data dict into a ChatbotMessage before forwarding.
     """
 
-    def __init__(self, adapter: DingTalkAdapter, loop: Optional[asyncio.AbstractEventLoop] = None):
+    def __init__(self, adapter: DingTalkAdapter, loop: asyncio.AbstractEventLoop | None = None):
         if DINGTALK_STREAM_AVAILABLE:
             super().__init__()
         self._adapter = adapter

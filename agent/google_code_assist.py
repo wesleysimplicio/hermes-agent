@@ -81,10 +81,10 @@ class CodeAssistError(RuntimeError):
         message: str,
         *,
         code: str = "code_assist_error",
-        status_code: Optional[int] = None,
+        status_code: int | None = None,
         response: Any = None,
-        retry_after: Optional[float] = None,
-        details: Optional[Dict[str, Any]] = None,
+        retry_after: float | None = None,
+        details: Dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.code = code
@@ -237,7 +237,7 @@ def load_code_assist(
         body["cloudaicompanionProject"] = project_id
 
     endpoints = [CODE_ASSIST_ENDPOINT] + FALLBACK_ENDPOINTS
-    last_err: Optional[Exception] = None
+    last_err: Exception | None = None
     for endpoint in endpoints:
         url = f"{endpoint}/v1internal:loadCodeAssist"
         try:

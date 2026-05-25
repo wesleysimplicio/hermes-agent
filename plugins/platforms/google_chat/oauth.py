@@ -132,7 +132,7 @@ def _user_pending_dir() -> Path:
     return _hermes_home() / "google_chat_user_oauth_pending"
 
 
-def _token_path(email: Optional[str] = None) -> Path:
+def _token_path(email: str | None = None) -> Path:
     """Return the on-disk token path for ``email`` or the legacy path."""
     if email:
         return _user_tokens_dir() / f"{_sanitize_email(email)}.json"
@@ -143,7 +143,7 @@ def _client_secret_path() -> Path:
     return _hermes_home() / "google_chat_user_client_secret.json"
 
 
-def _pending_auth_path(email: Optional[str] = None) -> Path:
+def _pending_auth_path(email: str | None = None) -> Path:
     if email:
         return _user_pending_dir() / f"{_sanitize_email(email)}.json"
     return _legacy_pending_path()
@@ -176,7 +176,7 @@ _REDIRECT_URI = "http://localhost:1"
 # =============================================================================
 
 
-def load_user_credentials(email: Optional[str] = None) -> Optional[Any]:
+def load_user_credentials(email: str | None = None) -> Any | None:
     """Load + validate persisted user OAuth credentials.
 
     ``email`` selects the per-user token file; ``None`` falls back to the
@@ -236,7 +236,7 @@ def load_user_credentials(email: Optional[str] = None) -> Optional[Any]:
     return None
 
 
-def refresh_or_none(creds: Any, email: Optional[str] = None) -> Optional[Any]:
+def refresh_or_none(creds: Any, email: str | None = None) -> Any | None:
     """Refresh ``creds`` if expired. Returns the credentials or ``None``.
 
     Used by the adapter just before calling media.upload to ensure the
@@ -392,7 +392,7 @@ def install_deps() -> bool:
         return False
 
 
-def check_auth(email: Optional[str] = None) -> bool:
+def check_auth(email: str | None = None) -> bool:
     """Print status; return True if creds are usable.
 
     Per-user when ``email`` given, legacy single-user when omitted.
@@ -440,7 +440,7 @@ def store_client_secret(path: str) -> None:
 
 
 def _save_pending_auth(*, state: str, code_verifier: str,
-                      email: Optional[str] = None) -> None:
+                      email: str | None = None) -> None:
     pending = _pending_auth_path(email)
     _write_private_json(
         pending,
@@ -453,7 +453,7 @@ def _save_pending_auth(*, state: str, code_verifier: str,
     )
 
 
-def _load_pending_auth(email: Optional[str] = None) -> dict:
+def _load_pending_auth(email: str | None = None) -> dict:
     pending = _pending_auth_path(email)
     if not pending.exists():
         print("ERROR: No pending OAuth session found. Run --auth-url first.")
@@ -471,7 +471,7 @@ def _load_pending_auth(email: Optional[str] = None) -> dict:
     return data
 
 
-def _extract_code_and_state(code_or_url: str) -> Tuple[str, Optional[str]]:
+def _extract_code_and_state(code_or_url: str) -> Tuple[str, str | None]:
     """Accept a raw auth code OR the full failed-redirect URL the user pastes."""
     if not code_or_url.startswith("http"):
         return code_or_url, None
@@ -487,7 +487,7 @@ def _extract_code_and_state(code_or_url: str) -> Tuple[str, Optional[str]]:
     return params["code"][0], state
 
 
-def get_auth_url(email: Optional[str] = None) -> None:
+def get_auth_url(email: str | None = None) -> None:
     """Print the OAuth URL for the user to visit. Persists PKCE state.
 
     ``email`` namespaces the pending state so two users can be mid-flow
@@ -514,7 +514,7 @@ def get_auth_url(email: Optional[str] = None) -> None:
     print(auth_url)
 
 
-def exchange_auth_code(code: str, email: Optional[str] = None) -> None:
+def exchange_auth_code(code: str, email: str | None = None) -> None:
     """Exchange an auth code (or pasted redirect URL) for a refresh token.
 
     ``email`` selects the destination token path. ``None`` writes to the
@@ -589,7 +589,7 @@ def exchange_auth_code(code: str, email: Optional[str] = None) -> None:
     print(f"Profile path: {rel_label}")
 
 
-def revoke(email: Optional[str] = None) -> None:
+def revoke(email: str | None = None) -> None:
     """Revoke the stored token with Google and delete it locally.
 
     Per-user when ``email`` given, legacy single-user when omitted.

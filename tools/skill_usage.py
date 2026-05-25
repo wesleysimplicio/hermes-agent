@@ -108,7 +108,7 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _parse_iso_timestamp(value: Any) -> Optional[datetime]:
+def _parse_iso_timestamp(value: Any) -> datetime | None:
     """Parse an ISO timestamp defensively for activity comparisons."""
     if not value:
         return None
@@ -121,15 +121,15 @@ def _parse_iso_timestamp(value: Any) -> Optional[datetime]:
     return parsed
 
 
-def latest_activity_at(record: Dict[str, Any]) -> Optional[str]:
+def latest_activity_at(record: Dict[str, Any]) -> str | None:
     """Return the newest actual activity timestamp for a usage record.
 
     "Activity" means a skill was used, viewed, or patched. Creation time is
     intentionally excluded so callers can still distinguish never-active skills;
     lifecycle code can fall back to ``created_at`` as its own anchor.
     """
-    latest_dt: Optional[datetime] = None
-    latest_raw: Optional[str] = None
+    latest_dt: datetime | None = None
+    latest_raw: str | None = None
     for key in ("last_used_at", "last_viewed_at", "last_patched_at"):
         raw = record.get(key)
         dt = _parse_iso_timestamp(raw)
@@ -567,7 +567,7 @@ def restore_skill(skill_name: str) -> Tuple[bool, str]:
     return True, f"restored to {dest}"
 
 
-def _find_skill_dir(skill_name: str) -> Optional[Path]:
+def _find_skill_dir(skill_name: str) -> Path | None:
     """Locate the directory for a skill by its frontmatter `name:` field.
 
     Handles both flat (~/.hermes/skills/<skill>/SKILL.md) and category-nested

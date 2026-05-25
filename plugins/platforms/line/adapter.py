@@ -304,7 +304,7 @@ class RequestCache:
         self._entries[rid] = _CacheEntry(state=State.PENDING, chat_id=chat_id)
         return rid
 
-    def get(self, request_id: str) -> Optional[_CacheEntry]:
+    def get(self, request_id: str) -> _CacheEntry | None:
         return self._entries.get(request_id)
 
     def set_ready(self, request_id: str, payload: Any) -> None:
@@ -330,7 +330,7 @@ class RequestCache:
         entry.state = State.DELIVERED
         entry.updated_at = time.time()
 
-    def find_pending_for_chat(self, chat_id: str) -> Optional[str]:
+    def find_pending_for_chat(self, chat_id: str) -> str | None:
         for rid, entry in self._entries.items():
             if entry.state is State.PENDING and entry.chat_id == chat_id:
                 return rid
@@ -499,7 +499,7 @@ class _LineClient:
                     raise RuntimeError(f"LINE content {resp.status}")
                 return await resp.read()
 
-    async def get_bot_user_id(self) -> Optional[str]:
+    async def get_bot_user_id(self) -> str | None:
         """Fetch this channel's own userId so we can filter self-messages."""
         import aiohttp
         timeout = aiohttp.ClientTimeout(total=10.0)
@@ -525,7 +525,7 @@ def _text_message(text: str) -> Dict[str, Any]:
     return {"type": "text", "text": text}
 
 
-def _image_message(original_url: str, preview_url: Optional[str] = None) -> Dict[str, Any]:
+def _image_message(original_url: str, preview_url: str | None = None) -> Dict[str, Any]:
     return {
         "type": "image",
         "originalContentUrl": original_url,
@@ -703,15 +703,15 @@ class LineAdapter(BasePlatformAdapter):
         )
 
         # Runtime state
-        self._client: Optional[_LineClient] = None
+        self._client: _LineClient | None = None
         self._app = None  # aiohttp.web.Application
         self._runner = None  # aiohttp.web.AppRunner
         self._site = None  # aiohttp.web.TCPSite
         self._reply_tokens: Dict[str, Tuple[str, float]] = {}  # chat_id → (token, expiry)
         self._cache = RequestCache()
         self._dedup = _MessageDeduplicator()
-        self._bot_user_id: Optional[str] = None
-        self._lock_key: Optional[str] = None
+        self._bot_user_id: str | None = None
+        self._lock_key: str | None = None
 
         # Media state
         self._media_tokens: Dict[str, Tuple[str, float]] = {}  # token → (path, expiry)
@@ -1038,7 +1038,7 @@ class LineAdapter(BasePlatformAdapter):
             except Exception:
                 pass
 
-    async def _download_media(self, message_id: str, msg_type: str) -> Optional[str]:
+    async def _download_media(self, message_id: str, msg_type: str) -> str | None:
         if not self._client or not message_id:
             return None
         try:
@@ -1066,8 +1066,8 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         if not self._client:
             return SendResult(success=False, error="LINE adapter not connected")
@@ -1307,8 +1307,8 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         path = Path(image_path)
         if not path.exists() or not path.is_file():
@@ -1338,7 +1338,7 @@ class LineAdapter(BasePlatformAdapter):
         chat_id: str,
         audio_path: str,
         duration_ms: int = 1000,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         path = Path(audio_path)
         if not path.exists() or not path.is_file():
@@ -1361,8 +1361,8 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        preview_path: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        preview_path: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         path = Path(video_path)
         if not path.exists() or not path.is_file():
@@ -1492,7 +1492,7 @@ def is_connected(config) -> bool:
     return validate_config(config)
 
 
-def _env_enablement() -> Optional[Dict[str, Any]]:
+def _env_enablement() -> Dict[str, Any] | None:
     """Auto-seed PlatformConfig.extra from env-only setups.
 
     Lets ``hermes status`` reflect a LINE configuration that lives entirely
@@ -1521,8 +1521,8 @@ async def _standalone_send(
     chat_id: str,
     message: str,
     *,
-    thread_id: Optional[str] = None,
-    media_files: Optional[List[str]] = None,
+    thread_id: str | None = None,
+    media_files: List[str] | None = None,
     force_document: bool = False,
 ) -> Dict[str, Any]:
     """Out-of-process push delivery for cron jobs running detached from the gateway.

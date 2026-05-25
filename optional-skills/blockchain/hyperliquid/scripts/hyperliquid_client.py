@@ -104,7 +104,7 @@ def _info_url() -> str:
     return f"{api_base}/info"
 
 
-def _resolve_user(user: Optional[str]) -> str:
+def _resolve_user(user: str | None) -> str:
     candidate = (user or "").strip()
     if candidate:
         return candidate
@@ -146,7 +146,7 @@ def _post_info(payload: Dict[str, Any], timeout: int = 20, retries: int = 2) -> 
     return None
 
 
-def _safe_float(value: Any) -> Optional[float]:
+def _safe_float(value: Any) -> float | None:
     try:
         if value is None or value == "":
             return None
@@ -161,7 +161,7 @@ def _limit_items(items: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]
     return items[:limit]
 
 
-def _hours_ago_ms(hours: float, now_ms: Optional[int] = None) -> int:
+def _hours_ago_ms(hours: float, now_ms: int | None = None) -> int:
     end_ms = now_ms if now_ms is not None else int(time.time() * 1000)
     return end_ms - int(hours * 60 * 60 * 1000)
 
@@ -218,7 +218,7 @@ def _format_fraction_percent(value: Any, decimals: int = 4) -> str:
     return f"{number * 100:+.{decimals}f}%"
 
 
-def _percent_change(current: Any, previous: Any) -> Optional[float]:
+def _percent_change(current: Any, previous: Any) -> float | None:
     curr = _safe_float(current)
     prev = _safe_float(previous)
     if curr is None or prev is None or prev == 0:
@@ -600,7 +600,7 @@ def _direction_bucket(direction: Any) -> str:
     return "other"
 
 
-def _average(values: Iterable[Optional[float]]) -> Optional[float]:
+def _average(values: Iterable[float | None]) -> float | None:
     clean_values = [value for value in values if value is not None]
     if not clean_values:
         return None
@@ -1644,7 +1644,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: List[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 

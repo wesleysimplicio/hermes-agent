@@ -139,8 +139,8 @@ class ServerDef:
 
     server_id: str
     extensions: Tuple[str, ...]
-    resolve_root: Callable[[str, str], Optional[str]]
-    build_spawn: Callable[[str, "ServerContext"], Optional[SpawnSpec]]
+    resolve_root: Callable[[str, str], str | None]
+    build_spawn: Callable[[str, "ServerContext"], SpawnSpec | None]
     seed_first_push: bool = False
     description: str = ""
 
@@ -185,7 +185,7 @@ def _file_ext_or_basename(path: str) -> str:
     return base
 
 
-def _which(*names: str) -> Optional[str]:
+def _which(*names: str) -> str | None:
     """Return the full path of the first command found on PATH."""
     for n in names:
         path = shutil.which(n)
@@ -194,7 +194,7 @@ def _which(*names: str) -> Optional[str]:
     return None
 
 
-def _root_or_workspace(file_path: str, workspace: str, markers: Sequence[str], excludes: Sequence[str] = ()) -> Optional[str]:
+def _root_or_workspace(file_path: str, workspace: str, markers: Sequence[str], excludes: Sequence[str] = ()) -> str | None:
     """Common pattern: try ``nearest_root``, fall back to workspace root.
 
     Returns ``None`` if an exclude marker matches first (server gated off).
@@ -226,7 +226,7 @@ def _root_or_workspace(file_path: str, workspace: str, markers: Sequence[str], e
 # ---------------------------------------------------------------------------
 
 
-def _spawn_pyright(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_pyright(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "pyright") or _which(
         "pyright-langserver", "pyright"
     )
@@ -258,7 +258,7 @@ def _spawn_pyright(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _detect_python(root: str) -> Optional[str]:
+def _detect_python(root: str) -> str | None:
     candidates = []
     if os.environ.get("VIRTUAL_ENV"):
         candidates.append(os.environ["VIRTUAL_ENV"])
@@ -271,7 +271,7 @@ def _detect_python(root: str) -> Optional[str]:
     return None
 
 
-def _spawn_typescript(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_typescript(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "typescript") or _which("typescript-language-server")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -288,7 +288,7 @@ def _spawn_typescript(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_gopls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_gopls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "gopls") or _which("gopls")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -304,7 +304,7 @@ def _spawn_gopls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_rust_analyzer(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_rust_analyzer(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "rust-analyzer") or _which("rust-analyzer")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -320,7 +320,7 @@ def _spawn_rust_analyzer(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_clangd(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_clangd(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "clangd") or _which("clangd")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -339,7 +339,7 @@ def _spawn_clangd(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
 _BASH_SHELLCHECK_WARNED = False
 
 
-def _spawn_bash_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_bash_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "bash-language-server") or _which("bash-language-server")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -367,7 +367,7 @@ def _spawn_bash_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_yaml_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_yaml_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "yaml-language-server") or _which("yaml-language-server")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -383,7 +383,7 @@ def _spawn_yaml_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_lua_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_lua_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "lua-language-server") or _which("lua-language-server")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -399,7 +399,7 @@ def _spawn_lua_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_intelephense(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_intelephense(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "intelephense") or _which("intelephense")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -417,7 +417,7 @@ def _spawn_intelephense(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_ocamllsp(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_ocamllsp(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "ocaml-lsp") or _which("ocamllsp")
     if bin_path is None:
         return None
@@ -430,7 +430,7 @@ def _spawn_ocamllsp(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_dockerfile_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_dockerfile_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "dockerfile-ls") or _which("docker-langserver")
     if bin_path is None:
         from agent.lsp.install import try_install
@@ -446,7 +446,7 @@ def _spawn_dockerfile_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_terraform_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_terraform_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "terraform-ls") or _which("terraform-ls")
     if bin_path is None:
         return None  # terraform-ls is heavy to auto-install; require user
@@ -466,7 +466,7 @@ def _spawn_terraform_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_dart(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_dart(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "dart") or _which("dart")
     if bin_path is None:
         return None
@@ -479,7 +479,7 @@ def _spawn_dart(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_haskell_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_haskell_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "haskell-language-server") or _which(
         "haskell-language-server-wrapper", "haskell-language-server"
     )
@@ -494,7 +494,7 @@ def _spawn_haskell_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_julia(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_julia(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "julia") or _which("julia")
     if bin_path is None:
         return None
@@ -513,7 +513,7 @@ def _spawn_julia(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_clojure_lsp(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_clojure_lsp(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "clojure-lsp") or _which("clojure-lsp")
     if bin_path is None:
         return None
@@ -526,7 +526,7 @@ def _spawn_clojure_lsp(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_nixd(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_nixd(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "nixd") or _which("nixd")
     if bin_path is None:
         return None
@@ -539,7 +539,7 @@ def _spawn_nixd(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_zls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_zls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "zls") or _which("zls")
     if bin_path is None:
         return None
@@ -552,7 +552,7 @@ def _spawn_zls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_gleam(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_gleam(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "gleam") or _which("gleam")
     if bin_path is None:
         return None
@@ -565,7 +565,7 @@ def _spawn_gleam(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_elixir_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_elixir_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "elixir-ls") or _which("elixir-ls", "language_server.sh")
     if bin_path is None:
         return None
@@ -578,7 +578,7 @@ def _spawn_elixir_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_prisma(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_prisma(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "prisma") or _which("prisma")
     if bin_path is None:
         return None
@@ -591,7 +591,7 @@ def _spawn_prisma(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_kotlin_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_kotlin_ls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "kotlin-language-server") or _which(
         "kotlin-language-server"
     )
@@ -606,7 +606,7 @@ def _spawn_kotlin_ls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_jdtls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_jdtls(root: str, ctx: ServerContext) -> SpawnSpec | None:
     # jdtls has a complex install flow.  We require a manual install
     # for now and look for the wrapper script that the jdtls install
     # produces.
@@ -622,7 +622,7 @@ def _spawn_jdtls(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_vue(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_vue(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "vue-language-server") or _which(
         "vue-language-server"
     )
@@ -640,7 +640,7 @@ def _spawn_vue(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_svelte(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_svelte(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "svelte-language-server") or _which(
         "svelteserver", "svelte-language-server"
     )
@@ -658,7 +658,7 @@ def _spawn_svelte(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _spawn_astro(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
+def _spawn_astro(root: str, ctx: ServerContext) -> SpawnSpec | None:
     bin_path = _resolve_override(ctx, "astro-language-server") or _which(
         "astro-ls", "astro-language-server"
     )
@@ -676,7 +676,7 @@ def _spawn_astro(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
     )
 
 
-def _resolve_override(ctx: ServerContext, server_id: str) -> Optional[str]:
+def _resolve_override(ctx: ServerContext, server_id: str) -> str | None:
     """User can pin a binary path in config."""
     override = ctx.binary_overrides.get(server_id)
     if override and override[0] and os.path.exists(override[0]):
@@ -689,7 +689,7 @@ def _resolve_override(ctx: ServerContext, server_id: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 
-def _root_python(file_path: str, workspace: str) -> Optional[str]:
+def _root_python(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path,
         workspace,
@@ -697,7 +697,7 @@ def _root_python(file_path: str, workspace: str) -> Optional[str]:
     )
 
 
-def _root_typescript(file_path: str, workspace: str) -> Optional[str]:
+def _root_typescript(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path,
         workspace,
@@ -714,7 +714,7 @@ def _root_typescript(file_path: str, workspace: str) -> Optional[str]:
     )
 
 
-def _root_go(file_path: str, workspace: str) -> Optional[str]:
+def _root_go(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path,
         workspace,
@@ -722,15 +722,15 @@ def _root_go(file_path: str, workspace: str) -> Optional[str]:
     )
 
 
-def _root_rust(file_path: str, workspace: str) -> Optional[str]:
+def _root_rust(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["Cargo.toml", "Cargo.lock"])
 
 
-def _root_ruby(file_path: str, workspace: str) -> Optional[str]:
+def _root_ruby(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["Gemfile"])
 
 
-def _root_clangd(file_path: str, workspace: str) -> Optional[str]:
+def _root_clangd(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path,
         workspace,
@@ -746,7 +746,7 @@ def _root_yaml(file_path: str, workspace: str) -> str:
     return workspace
 
 
-def _root_lua(file_path: str, workspace: str) -> Optional[str]:
+def _root_lua(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path,
         workspace,
@@ -754,11 +754,11 @@ def _root_lua(file_path: str, workspace: str) -> Optional[str]:
     )
 
 
-def _root_php(file_path: str, workspace: str) -> Optional[str]:
+def _root_php(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["composer.json", "composer.lock", ".php-version"])
 
 
-def _root_ocaml(file_path: str, workspace: str) -> Optional[str]:
+def _root_ocaml(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["dune-project", "dune-workspace", ".merlin", "opam"])
 
 
@@ -766,23 +766,23 @@ def _root_docker(file_path: str, workspace: str) -> str:
     return workspace
 
 
-def _root_terraform(file_path: str, workspace: str) -> Optional[str]:
+def _root_terraform(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, [".terraform.lock.hcl", "terraform.tfstate"])
 
 
-def _root_dart(file_path: str, workspace: str) -> Optional[str]:
+def _root_dart(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["pubspec.yaml", "analysis_options.yaml"])
 
 
-def _root_haskell(file_path: str, workspace: str) -> Optional[str]:
+def _root_haskell(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["stack.yaml", "cabal.project", "hie.yaml"])
 
 
-def _root_julia(file_path: str, workspace: str) -> Optional[str]:
+def _root_julia(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["Project.toml", "Manifest.toml"])
 
 
-def _root_clojure(file_path: str, workspace: str) -> Optional[str]:
+def _root_clojure(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path, workspace, ["deps.edn", "project.clj", "shadow-cljs.edn", "bb.edn", "build.boot"]
     )
@@ -793,21 +793,21 @@ def _root_nix(file_path: str, workspace: str) -> str:
     return found or workspace
 
 
-def _root_zig(file_path: str, workspace: str) -> Optional[str]:
+def _root_zig(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["build.zig"])
 
 
-def _root_elixir(file_path: str, workspace: str) -> Optional[str]:
+def _root_elixir(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(file_path, workspace, ["mix.exs", "mix.lock"])
 
 
-def _root_prisma(file_path: str, workspace: str) -> Optional[str]:
+def _root_prisma(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path, workspace, ["schema.prisma", "prisma/schema.prisma"]
     )
 
 
-def _root_kotlin(file_path: str, workspace: str) -> Optional[str]:
+def _root_kotlin(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path,
         workspace,
@@ -815,7 +815,7 @@ def _root_kotlin(file_path: str, workspace: str) -> Optional[str]:
     )
 
 
-def _root_java(file_path: str, workspace: str) -> Optional[str]:
+def _root_java(file_path: str, workspace: str) -> str | None:
     return _root_or_workspace(
         file_path,
         workspace,
@@ -1015,7 +1015,7 @@ SERVERS: List[ServerDef] = [
 ]
 
 
-def find_server_for_file(file_path: str) -> Optional[ServerDef]:
+def find_server_for_file(file_path: str) -> ServerDef | None:
     """Return the registry entry that handles ``file_path``, or None."""
     for srv in SERVERS:
         if srv.matches(file_path):

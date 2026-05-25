@@ -35,7 +35,7 @@ class XAIGrokAdapter(UpstreamAdapter):
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._pool: Optional[CredentialPool] = None
+        self._pool: CredentialPool | None = None
 
     @property
     def name(self) -> str:
@@ -78,7 +78,7 @@ class XAIGrokAdapter(UpstreamAdapter):
         *,
         failed_credential: UpstreamCredential,
         status_code: int,
-    ) -> Optional[UpstreamCredential]:
+    ) -> UpstreamCredential | None:
         if status_code != 401:
             return None
 
@@ -99,7 +99,7 @@ class XAIGrokAdapter(UpstreamAdapter):
             logger.info("proxy: xAI upstream rejected bearer; retrying with refreshed pool credential")
             return retry_cred
 
-    def _load_pool(self) -> Optional[CredentialPool]:
+    def _load_pool(self) -> CredentialPool | None:
         try:
             return load_pool(_POOL_PROVIDER)
         except Exception as exc:

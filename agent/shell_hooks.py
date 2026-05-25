@@ -91,7 +91,7 @@ _DEFAULT_BLOCK_MESSAGE = "Blocked by shell hook."
 # the same event (e.g. one entry per tool the user wants to gate).
 # Second registration attempts for the exact same triple become no-ops
 # so the CLI and gateway can both call register_from_config() safely.
-_registered: Set[Tuple[str, Optional[str], str]] = set()
+_registered: Set[Tuple[str, str | None, str]] = set()
 _registered_lock = threading.Lock()
 
 # Intra-process lock for allowlist read-modify-write on platforms that
@@ -109,9 +109,9 @@ class ShellHookSpec:
 
     event: str
     command: str
-    matcher: Optional[str] = None
+    matcher: str | None = None
     timeout: int = DEFAULT_TIMEOUT_SECONDS
-    compiled_matcher: Optional[re.Pattern] = field(default=None, repr=False)
+    compiled_matcher: re.Pattern | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         # Strip whitespace introduced by YAML quirks (e.g. multi-line string
@@ -130,7 +130,7 @@ class ShellHookSpec:
                 )
                 self.compiled_matcher = None
 
-    def matches_tool(self, tool_name: Optional[str]) -> bool:
+    def matches_tool(self, tool_name: str | None) -> bool:
         if not self.matcher:
             return True
         if tool_name is None:
@@ -147,7 +147,7 @@ class ShellHookSpec:
 # ---------------------------------------------------------------------------
 
 def register_from_config(
-    cfg: Optional[Dict[str, Any]],
+    cfg: Dict[str, Any] | None,
     *,
     accept_hooks: bool = False,
 ) -> List[ShellHookSpec]:
@@ -221,7 +221,7 @@ def register_from_config(
     return registered
 
 
-def iter_configured_hooks(cfg: Optional[Dict[str, Any]]) -> List[ShellHookSpec]:
+def iter_configured_hooks(cfg: Dict[str, Any] | None) -> List[ShellHookSpec]:
     """Return the parsed ``ShellHookSpec`` entries from config without
     registering anything.  Used by ``hermes hooks list`` and ``doctor``."""
     if not isinstance(cfg, dict):
@@ -289,7 +289,7 @@ def _parse_hooks_block(hooks_cfg: Any) -> List[ShellHookSpec]:
 
 def _parse_single_entry(
     event: str, index: int, raw: Any,
-) -> Optional[ShellHookSpec]:
+) -> ShellHookSpec | None:
     if not isinstance(raw, dict):
         logger.warning(
             "hooks.%s[%d] must be a mapping with a 'command' key; got %s",
@@ -419,10 +419,10 @@ def _spawn(spec: ShellHookSpec, stdin_json: str) -> Dict[str, Any]:
     return result
 
 
-def _make_callback(spec: ShellHookSpec) -> Callable[..., Optional[Dict[str, Any]]]:
+def _make_callback(spec: ShellHookSpec) -> Callable[..., Dict[str, Any] | None]:
     """Build the closure that ``invoke_hook()`` will call per firing."""
 
-    def _callback(**kwargs: Any) -> Optional[Dict[str, Any]]:
+    def _callback(**kwargs: Any) -> Dict[str, Any] | None:
         # Matcher gate — only meaningful for tool-scoped events.
         if spec.event in {"pre_tool_call", "post_tool_call"}:
             if not spec.matches_tool(kwargs.get("tool_name")):
@@ -493,7 +493,7 @@ def _block_message(primary: Any, secondary: Any) -> str:
     return raw if isinstance(raw, str) and raw else _DEFAULT_BLOCK_MESSAGE
 
 
-def _parse_response(event: str, stdout: str) -> Optional[Dict[str, Any]]:
+def _parse_response(event: str, stdout: str) -> Dict[str, Any] | None:
     """Translate stdout JSON into a Hermes wire-shape dict.
 
     For ``pre_tool_call`` the Claude-Code-style ``{"decision": "block",
@@ -777,7 +777,7 @@ def _resolve_effective_accept(
 # Introspection (used by `hermes hooks` CLI)
 # ---------------------------------------------------------------------------
 
-def allowlist_entry_for(event: str, command: str) -> Optional[Dict[str, Any]]:
+def allowlist_entry_for(event: str, command: str) -> Dict[str, Any] | None:
     """Return the allowlist record for this pair, if any."""
     for e in load_allowlist().get("approvals", []):
         if (
@@ -789,7 +789,7 @@ def allowlist_entry_for(event: str, command: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def script_mtime_iso(command: str) -> Optional[str]:
+def script_mtime_iso(command: str) -> str | None:
     """ISO-8601 mtime of the resolved script path, or ``None`` if the
     script is missing."""
     path = _command_script_path(command)

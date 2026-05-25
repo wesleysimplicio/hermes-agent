@@ -86,8 +86,8 @@ class MattermostAdapter(BasePlatformAdapter):
         # aiohttp session + websocket handle
         self._session: Any = None  # aiohttp.ClientSession
         self._ws: Any = None       # aiohttp.ClientWebSocketResponse
-        self._ws_task: Optional[asyncio.Task] = None
-        self._reconnect_task: Optional[asyncio.Task] = None
+        self._ws_task: asyncio.Task | None = None
+        self._reconnect_task: asyncio.Task | None = None
         self._closing = False
 
         # Reply mode: "thread" to nest replies, "off" for flat messages.
@@ -165,7 +165,7 @@ class MattermostAdapter(BasePlatformAdapter):
 
     async def _upload_file(
         self, channel_id: str, file_data: bytes, filename: str, content_type: str = "application/octet-stream"
-    ) -> Optional[str]:
+    ) -> str | None:
         """Upload a file and return its file ID, or None on failure."""
         import aiohttp
 
@@ -270,8 +270,8 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         content: str,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Send a message (or multiple chunks) to a channel."""
         if not content:
@@ -315,7 +315,7 @@ class MattermostAdapter(BasePlatformAdapter):
     # ------------------------------------------------------------------
 
     async def send_typing(
-        self, chat_id: str, metadata: Optional[Dict[str, Any]] = None
+        self, chat_id: str, metadata: Dict[str, Any] | None = None
     ) -> None:
         """Send a typing indicator."""
         await self._api_post(
@@ -340,9 +340,9 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_url: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Download an image and upload it as a file attachment."""
         return await self._send_url_as_file(
@@ -353,9 +353,9 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         image_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload a local image file."""
         return await self._send_local_file(
@@ -366,10 +366,10 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str] = None,
-        file_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        file_name: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload a local file as a document."""
         return await self._send_local_file(
@@ -380,9 +380,9 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload an audio file."""
         return await self._send_local_file(
@@ -393,9 +393,9 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        caption: Optional[str] = None,
-        reply_to: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        caption: str | None = None,
+        reply_to: str | None = None,
+        metadata: Dict[str, Any] | None = None,
     ) -> SendResult:
         """Upload a video file."""
         return await self._send_local_file(
@@ -420,8 +420,8 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         url: str,
-        caption: Optional[str],
-        reply_to: Optional[str],
+        caption: str | None,
+        reply_to: str | None,
         kind: str = "file",
     ) -> SendResult:
         """Download a URL and upload it as a file attachment."""
@@ -482,9 +482,9 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         file_path: str,
-        caption: Optional[str],
-        reply_to: Optional[str],
-        file_name: Optional[str] = None,
+        caption: str | None,
+        reply_to: str | None,
+        file_name: str | None = None,
     ) -> SendResult:
         """Upload a local file and attach it to a post."""
         import mimetypes
@@ -521,7 +521,7 @@ class MattermostAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         images: List[Tuple[str, str]],
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Dict[str, Any] | None = None,
         human_delay: float = 0.0,
     ) -> None:
         """Send a batch of images as a single Mattermost post with multiple attachments.
@@ -883,8 +883,8 @@ async def _standalone_send(
     chat_id: str,
     message: str,
     *,
-    thread_id: Optional[str] = None,
-    media_files: Optional[list] = None,
+    thread_id: str | None = None,
+    media_files: list | None = None,
     force_document: bool = False,
 ) -> Dict[str, Any]:
     """Send via the Mattermost v4 REST API without a live gateway adapter.

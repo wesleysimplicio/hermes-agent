@@ -127,7 +127,7 @@ def _extract_paths_from_terminal(args: Dict[str, Any], result: str) -> Set[str]:
 
 def _on_post_tool_call(
     tool_name: str = "",
-    args: Optional[Dict[str, Any]] = None,
+    args: Dict[str, Any] | None = None,
     result: Any = None,
     task_id: str = "",
     session_id: str = "",
@@ -220,7 +220,7 @@ def _fmt_summary(summary: Dict[str, Any]) -> str:
     return base
 
 
-def _handle_slash(raw_args: str) -> Optional[str]:
+def _handle_slash(raw_args: str) -> str | None:
     argv = raw_args.strip().split()
     if not argv or argv[0] in {"help", "-h", "--help"}:
         return _HELP_TEXT

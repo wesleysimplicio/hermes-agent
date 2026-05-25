@@ -649,7 +649,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
 # Skin loading and management
 # =============================================================================
 
-_active_skin: Optional[SkinConfig] = None
+_active_skin: SkinConfig | None = None
 _active_skin_name: str = "default"
 
 
@@ -658,7 +658,7 @@ def _skins_dir() -> Path:
     return get_hermes_home() / "skins"
 
 
-def _load_skin_from_yaml(path: Path) -> Optional[Dict[str, Any]]:
+def _load_skin_from_yaml(path: Path) -> Dict[str, Any] | None:
     """Load a skin definition from a YAML file."""
     try:
         import yaml

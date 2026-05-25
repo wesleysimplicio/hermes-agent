@@ -160,8 +160,8 @@ class EntraIdentityConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: Optional[Dict[str, Any]],
-                  *, default_scope: Optional[str] = None) -> "EntraIdentityConfig":
+    def from_dict(cls, data: Dict[str, Any] | None,
+                  *, default_scope: str | None = None) -> "EntraIdentityConfig":
         data = data or {}
         scope = str(data.get("scope") or "").strip() or default_scope or SCOPE_AI_AZURE_DEFAULT
         exclude_browser = bool(data.get("exclude_interactive_browser", True))
@@ -212,10 +212,10 @@ def build_credential(config: EntraIdentityConfig) -> Any:
     return _build_default_credential(config)
 
 
-def build_token_provider(scope: Optional[str] = None,
+def build_token_provider(scope: str | None = None,
                          *,
-                         config: Optional[EntraIdentityConfig] = None,
-                         base_url: Optional[str] = None,
+                         config: EntraIdentityConfig | None = None,
+                         base_url: str | None = None,
                          exclude_interactive_browser: bool = True,
                          ) -> Callable[[], str]:
     """Return a zero-arg callable that mints a fresh Entra bearer JWT.
@@ -258,9 +258,9 @@ def build_token_provider(scope: Optional[str] = None,
 # ---------------------------------------------------------------------------
 
 
-def has_azure_identity_credentials(scope: Optional[str] = None,
+def has_azure_identity_credentials(scope: str | None = None,
                                    *,
-                                   config: Optional[EntraIdentityConfig] = None,
+                                   config: EntraIdentityConfig | None = None,
                                    timeout_seconds: float = 10.0,
                                    allow_install: bool = True,
                                    **overrides: Any) -> bool:
@@ -312,9 +312,9 @@ def has_azure_identity_credentials(scope: Optional[str] = None,
     return bool(result.get("ok"))
 
 
-def describe_active_credential(config: Optional[EntraIdentityConfig] = None,
+def describe_active_credential(config: EntraIdentityConfig | None = None,
                                *,
-                               scope: Optional[str] = None,
+                               scope: str | None = None,
                                timeout_seconds: float = 10.0,
                                allow_install: bool = True,
                                **overrides: Any) -> Dict[str, Any]:
