@@ -5636,7 +5636,7 @@ def _mirror_slash_side_effects(sid: str, session: dict, command: str) -> str:
         if name == "model" and arg and agent:
             result = _apply_model_switch(sid, session, arg)
             return result.get("warning", "")
-        elif name == "personality" and arg and agent:
+        if name == "personality" and arg and agent:
             _, new_prompt = _validate_personality(arg, _load_cfg())
             _apply_personality_to_session(sid, session, new_prompt)
         elif name == "prompt" and agent:

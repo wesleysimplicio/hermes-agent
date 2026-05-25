@@ -274,9 +274,8 @@ def _image_to_base64_data_url(image_path: Path, mime_type: Optional[str] = None)
     mime = mime_type or _determine_mime_type(image_path)
     
     # Create data URL
-    data_url = f"data:{mime};base64,{encoded}"
+    return f"data:{mime};base64,{encoded}"
     
-    return data_url
 
 
 # Hard limit for vision API payloads (20 MB) — matches the most restrictive

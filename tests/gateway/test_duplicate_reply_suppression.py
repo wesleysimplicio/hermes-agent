@@ -177,11 +177,10 @@ class TestOnlyFinalStreamDeliverySuppressesFinalSend:
     the real answer."""
 
     def _make_mock_stream_consumer(self, already_sent=False, final_response_sent=False):
-        sc = SimpleNamespace(
+        return SimpleNamespace(
             already_sent=already_sent,
             final_response_sent=final_response_sent,
         )
-        return sc
 
     def test_partial_stream_output_does_not_set_already_sent(self):
         """already_sent=True alone must NOT suppress final delivery."""

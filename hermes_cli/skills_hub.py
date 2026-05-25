@@ -1235,8 +1235,7 @@ def _github_publish(skill_path: Path, skill_name: str, target_repo: str,
         if resp.status_code == 201:
             pr_url = resp.json().get("html_url", "")
             return True, f"PR created: {pr_url}"
-        else:
-            return False, f"Failed to create PR: {resp.status_code} {resp.text[:200]}"
+        return False, f"Failed to create PR: {resp.status_code} {resp.text[:200]}"
     except httpx.HTTPError as e:
         return False, f"Network error creating PR: {e}"
 

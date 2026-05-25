@@ -544,13 +544,12 @@ def stop_continuous(force_transcribe: bool = False) -> None:
 
             threading.Thread(target=_transcribe_and_cleanup, daemon=True).start()
             return
-        else:
-            try:
-                # cancel() (not stop()) discards buffered frames — the loop
-                # is over, we don't want to transcribe a half-captured turn.
-                rec.cancel()
-            except Exception as e:
-                logger.warning("failed to cancel recorder: %s", e)
+        try:
+            # cancel() (not stop()) discards buffered frames — the loop
+            # is over, we don't want to transcribe a half-captured turn.
+            rec.cancel()
+        except Exception as e:
+            logger.warning("failed to cancel recorder: %s", e)
 
     with _continuous_lock:
         _continuous_stopping = False

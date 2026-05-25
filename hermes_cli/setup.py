@@ -2724,15 +2724,15 @@ def _get_section_config_summary(config: dict, section_key: str) -> Optional[str]
             return str(model.get("default") or model.get("model") or "configured")
         return "configured"
 
-    elif section_key == "terminal":
+    if section_key == "terminal":
         backend = cfg_get(config, "terminal", "backend", default="local")
         return f"backend: {backend}"
 
-    elif section_key == "agent":
+    if section_key == "agent":
         max_turns = cfg_get(config, "agent", "max_turns", default=90)
         return f"max turns: {max_turns}"
 
-    elif section_key == "gateway":
+    if section_key == "gateway":
         from hermes_cli.gateway import _all_platforms, _platform_status
         # Count any non-empty status other than the "not configured" sentinel —
         # platforms like WhatsApp ("enabled, not paired"), Matrix ("configured
@@ -2747,7 +2747,7 @@ def _get_section_config_summary(config: dict, section_key: str) -> Optional[str]
             return ", ".join(configured)
         return None  # No platforms configured — section must run
 
-    elif section_key == "tools":
+    if section_key == "tools":
         tools = []
         if get_env_value("ELEVENLABS_API_KEY"):
             tools.append("TTS/ElevenLabs")

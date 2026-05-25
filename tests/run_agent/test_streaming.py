@@ -31,12 +31,11 @@ def _make_stream_chunk(
         delta=delta,
         finish_reason=finish_reason,
     )
-    chunk = SimpleNamespace(
+    return SimpleNamespace(
         choices=[choice],
         model=model,
         usage=usage,
     )
-    return chunk
 
 
 def _make_tool_call_delta(index=0, tc_id=None, name=None, arguments=None, extra_content=None, model_extra=None):

@@ -729,9 +729,8 @@ def clean_base64_images(text: str) -> str:
     cleaned_text = re.sub(base64_with_parens_pattern, '[BASE64_IMAGE_REMOVED]', text)
     
     # Then replace any remaining non-parentheses images
-    cleaned_text = re.sub(base64_pattern, '[BASE64_IMAGE_REMOVED]', cleaned_text)
+    return re.sub(base64_pattern, '[BASE64_IMAGE_REMOVED]', cleaned_text)
     
-    return cleaned_text
 
 
 # ─── Exa / Parallel inline helpers — moved into plugins ──────────────────────
@@ -1043,16 +1042,15 @@ async def web_extract_tool(
                         "model_used": effective_model
                     }
                     return result, metrics, "processed"
-                else:
-                    metrics = {
-                        "url": url,
-                        "original_size": original_size,
-                        "processed_size": original_size,
-                        "compression_ratio": 1.0,
-                        "model_used": None,
-                        "reason": "content_too_short"
-                    }
-                    return result, metrics, "too_short"
+                metrics = {
+                    "url": url,
+                    "original_size": original_size,
+                    "processed_size": original_size,
+                    "compression_ratio": 1.0,
+                    "model_used": None,
+                    "reason": "content_too_short"
+                }
+                return result, metrics, "too_short"
             
             # Run all LLM processing in parallel
             results_list = response.get('results', [])

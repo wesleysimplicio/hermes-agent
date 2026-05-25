@@ -1453,13 +1453,12 @@ class HermesACPAgent(acp.Agent):
             previous_session_id = os.environ.get("HERMES_SESSION_ID")
             os.environ["HERMES_SESSION_ID"] = session_id
             try:
-                result = agent.run_conversation(
+                return agent.run_conversation(
                     user_message=user_content,
                     conversation_history=state.history,
                     task_id=session_id,
                     persist_user_message=user_text or "[Image attachment]",
                 )
-                return result
             except Exception as e:
                 logger.exception("Agent error in session %s", session_id)
                 return {"final_response": f"Error: {e}", "messages": state.history}

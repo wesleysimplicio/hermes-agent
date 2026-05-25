@@ -348,10 +348,9 @@ def _ensure_sdk_installed() -> bool:
     if result.returncode == 0:
         print("  Installed.\n")
         return True
-    else:
-        print(f"  Install failed:\n{result.stderr.strip()}")
-        print("  Run manually: pip install 'honcho-ai>=2.0.1'\n")
-        return False
+    print(f"  Install failed:\n{result.stderr.strip()}")
+    print("  Run manually: pip install 'honcho-ai>=2.0.1'\n")
+    return False
 
 
 def cmd_setup(args) -> None:
@@ -1318,7 +1317,7 @@ def honcho_command(args) -> None:
         from hermes_cli.memory_setup import cmd_setup_provider
         cmd_setup_provider("honcho")
         return
-    elif sub is None:
+    if sub is None:
         cmd_status(args)
     elif sub == "status":
         cmd_status(args)

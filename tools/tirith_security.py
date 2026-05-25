@@ -292,10 +292,9 @@ def _verify_cosign(checksums_path: str, sig_path: str, cert_path: str) -> bool |
         if result.returncode == 0:
             logger.info("cosign provenance verification passed")
             return True
-        else:
-            logger.warning("cosign verification failed (exit %d): %s",
-                          result.returncode, result.stderr.strip())
-            return False
+        logger.warning("cosign verification failed (exit %d): %s",
+                      result.returncode, result.stderr.strip())
+        return False
     except (OSError, subprocess.TimeoutExpired) as exc:
         logger.warning("cosign execution failed: %s", exc)
         return None

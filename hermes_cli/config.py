@@ -3098,12 +3098,11 @@ def _normalize_custom_provider_entry(
             if parsed.scheme and parsed.netloc:
                 base_url = candidate
                 break
-            else:
-                logger.warning(
-                    "providers.%s: '%s' value '%s' is not a valid URL "
-                    "(no scheme or host) — skipped",
-                    provider_key or "?", url_key, candidate,
-                )
+            logger.warning(
+                "providers.%s: '%s' value '%s' is not a valid URL "
+                "(no scheme or host) — skipped",
+                provider_key or "?", url_key, candidate,
+            )
     if not base_url:
         return None
 

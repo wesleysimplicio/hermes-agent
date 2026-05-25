@@ -37,7 +37,7 @@ def _make_session(
     output="",
     notify_on_complete=False,
 ) -> ProcessSession:
-    s = ProcessSession(
+    return ProcessSession(
         id=sid,
         command=command,
         task_id=task_id,
@@ -47,7 +47,6 @@ def _make_session(
         output_buffer=output,
         notify_on_complete=notify_on_complete,
     )
-    return s
 
 
 # =========================================================================

@@ -362,7 +362,7 @@ def compute_next_run(schedule: Dict[str, Any], last_run_at: Optional[str] = None
     if schedule["kind"] == "once":
         return _recoverable_oneshot_run_at(schedule, now, last_run_at=last_run_at)
 
-    elif schedule["kind"] == "interval":
+    if schedule["kind"] == "interval":
         minutes = schedule["minutes"]
         if last_run_at:
             # Next run is last_run + interval
@@ -373,7 +373,7 @@ def compute_next_run(schedule: Dict[str, Any], last_run_at: Optional[str] = None
             next_run = now + timedelta(minutes=minutes)
         return next_run.isoformat()
 
-    elif schedule["kind"] == "cron":
+    if schedule["kind"] == "cron":
         if not HAS_CRONITER:
             logger.warning(
                 "Cannot compute next run for cron schedule %r: 'croniter' is "

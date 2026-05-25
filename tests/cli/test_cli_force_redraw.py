@@ -20,8 +20,7 @@ from cli import HermesCLI
 @pytest.fixture
 def bare_cli():
     """A HermesCLI with no __init__ — we only exercise the redraw helper."""
-    cli = object.__new__(HermesCLI)
-    return cli
+    return object.__new__(HermesCLI)
 
 
 class TestForceFullRedraw:

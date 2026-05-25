@@ -39,8 +39,7 @@ def _make_adapter():
             "user_id": "@bot:example.org",
         },
     )
-    adapter = MatrixAdapter(config)
-    return adapter
+    return MatrixAdapter(config)
 
 
 def _make_audio_event(
@@ -75,14 +74,13 @@ def _make_audio_event(
     if is_voice:
         content["org.matrix.msc3245.voice"] = {}
 
-    event = SimpleNamespace(
+    return SimpleNamespace(
         event_id=event_id,
         sender=sender,
         room_id=room_id,
         timestamp=timestamp,
         content=content,
     )
-    return event
 
 
 def _make_state_store(member_count: int = 2):

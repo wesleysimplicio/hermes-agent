@@ -726,8 +726,7 @@ class TestCompressorScreenshotPruning:
     def _make_compressor(self):
         from agent.context_compressor import ContextCompressor
         # Minimal constructor — _prune_old_tool_results doesn't need a real client.
-        c = ContextCompressor.__new__(ContextCompressor)
-        return c
+        return ContextCompressor.__new__(ContextCompressor)
 
     def test_prunes_openai_content_parts_image(self):
         fake_png = "iVBORw0KGgo="

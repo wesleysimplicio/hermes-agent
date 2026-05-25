@@ -64,9 +64,8 @@ class DeliveryTarget:
                     thread_id=origin.thread_id,
                     is_origin=True,
                 )
-            else:
-                # Fallback to local if no origin
-                return cls(platform=Platform.LOCAL, is_origin=True)
+            # Fallback to local if no origin
+            return cls(platform=Platform.LOCAL, is_origin=True)
         
         if target_lower == "local":
             return cls(platform=Platform.LOCAL)

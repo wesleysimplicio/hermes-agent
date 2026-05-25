@@ -426,8 +426,7 @@ class WeComAdapter(BasePlatformAdapter):
         self._pending_responses[req_id] = future
         try:
             await self._send_json({"cmd": cmd, "headers": {"req_id": req_id}, "body": body})
-            response = await asyncio.wait_for(future, timeout=timeout)
-            return response
+            return await asyncio.wait_for(future, timeout=timeout)
         finally:
             self._pending_responses.pop(req_id, None)
 
@@ -452,8 +451,7 @@ class WeComAdapter(BasePlatformAdapter):
             await self._send_json(
                 {"cmd": cmd, "headers": {"req_id": normalized_req_id}, "body": body}
             )
-            response = await asyncio.wait_for(future, timeout=timeout)
-            return response
+            return await asyncio.wait_for(future, timeout=timeout)
         finally:
             self._pending_responses.pop(normalized_req_id, None)
 

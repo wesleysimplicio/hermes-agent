@@ -592,8 +592,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
                                 self._http_session = aiohttp.ClientSession()
                                 self._poll_task = asyncio.create_task(self._poll_messages())
                                 return True
-                            else:
-                                print(f"[{self.name}] Bridge found but not connected (status: {bridge_status}), restarting")
+                            print(f"[{self.name}] Bridge found but not connected (status: {bridge_status}), restarting")
             except Exception:
                 pass  # Bridge not running, start a new one
             
@@ -953,9 +952,8 @@ class WhatsAppAdapter(BasePlatformAdapter):
             ) as resp:
                 if resp.status == 200:
                     return SendResult(success=True, message_id=message_id)
-                else:
-                    error = await resp.text()
-                    return SendResult(success=False, error=error)
+                error = await resp.text()
+                return SendResult(success=False, error=error)
         except Exception as e:
             return SendResult(success=False, error=str(e))
 
@@ -1001,9 +999,8 @@ class WhatsAppAdapter(BasePlatformAdapter):
                         message_id=data.get("messageId"),
                         raw_response=data,
                     )
-                else:
-                    error = await resp.text()
-                    return SendResult(success=False, error=error)
+                error = await resp.text()
+                return SendResult(success=False, error=error)
 
         except Exception as e:
             return SendResult(success=False, error=str(e))

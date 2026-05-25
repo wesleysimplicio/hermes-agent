@@ -63,8 +63,7 @@ def encode_atom(word: str, dim: int = 1024) -> "np.ndarray":
         digest = hashlib.sha256(f"{word}:{i}".encode()).digest()
         uint16_values.extend(struct.unpack("<16H", digest))
 
-    phases = np.array(uint16_values[:dim], dtype=np.float64) * (_TWO_PI / 65536.0)
-    return phases
+    return np.array(uint16_values[:dim], dtype=np.float64) * (_TWO_PI / 65536.0)
 
 
 def bind(a: "np.ndarray", b: "np.ndarray") -> "np.ndarray":

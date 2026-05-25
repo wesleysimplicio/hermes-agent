@@ -902,13 +902,12 @@ class SessionStore:
                     entry.updated_at = now
                     self._save()
                     return entry
-                else:
-                    # Session is being auto-reset.
-                    was_auto_reset = True
-                    auto_reset_reason = reset_reason
-                    # Track whether the expired session had any real conversation
-                    reset_had_activity = entry.total_tokens > 0
-                    db_end_session_id = entry.session_id
+                # Session is being auto-reset.
+                was_auto_reset = True
+                auto_reset_reason = reset_reason
+                # Track whether the expired session had any real conversation
+                reset_had_activity = entry.total_tokens > 0
+                db_end_session_id = entry.session_id
             else:
                 was_auto_reset = False
                 auto_reset_reason = None

@@ -594,8 +594,7 @@ def _http_once(
                     k: v for k, v in req2.header_items()
                     if k.lower() not in {"x-api-key", "authorization", "cookie"}
                 }
-                new_req = urllib.request.Request(newurl, headers=clean_headers, method="GET")
-                return new_req
+                return urllib.request.Request(newurl, headers=clean_headers, method="GET")
             return super().redirect_request(req2, fp, code, msg, hdrs, newurl)
 
     original_host = (urlparse(url).hostname or "").lower()

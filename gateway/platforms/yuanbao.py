@@ -568,8 +568,7 @@ class MarkdownProcessor:
             return text
 
         # Strip first and last lines
-        inner = '\n'.join(lines[1:-1])
-        return inner
+        return '\n'.join(lines[1:-1])
 
     # -- Table sanitization ------------------------------------------------
 
@@ -2979,9 +2978,8 @@ class ConnectionManager:
                         self._connect_id = connect_id
                         logger.info("[%s] BIND_ACK received: connectId=%s", adapter.name, connect_id)
                         return True
-                    else:
-                        logger.error("[%s] BIND_ACK missing connectId", adapter.name)
-                        return False
+                    logger.error("[%s] BIND_ACK missing connectId", adapter.name)
+                    return False
 
         except asyncio.TimeoutError:
             logger.error("[%s] AUTH_BIND timeout", adapter.name)
@@ -3280,8 +3278,7 @@ class ConnectionManager:
         self._pending_acks[req_id] = future
         try:
             await self._ws.send(encoded_conn_msg)
-            result = await asyncio.wait_for(asyncio.shield(future), timeout=timeout)
-            return result
+            return await asyncio.wait_for(asyncio.shield(future), timeout=timeout)
         except asyncio.TimeoutError:
             raise
         except Exception:
@@ -3648,11 +3645,10 @@ class StickerHandler(MediaSendHandler):
             if sticker is None:
                 raise ValueError(f"Sticker not found: {sticker_name!r}")
             return build_sticker_msg_body(sticker)
-        elif face_index is not None:
+        if face_index is not None:
             return build_face_msg_body(face_index=face_index)
-        else:
-            sticker = get_random_sticker()
-            return build_sticker_msg_body(sticker)
+        sticker = get_random_sticker()
+        return build_sticker_msg_body(sticker)
 
 class GroupQueryService:
     """Encapsulates all group query operations (both low-level WS calls and

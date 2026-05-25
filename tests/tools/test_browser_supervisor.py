@@ -135,6 +135,7 @@ def _fire_on_page(cdp_url: str, expression: str) -> None:
                     m = json.loads(raw)
                     if m.get("id") == cid:
                         return m
+                return None
 
             targets = (await call("Target.getTargets"))["result"]["targetInfos"]
             page = next(t for t in targets if t.get("type") == "page")

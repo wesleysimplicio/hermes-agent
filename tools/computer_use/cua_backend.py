@@ -601,8 +601,7 @@ class CuaDriverBackend(ComputerUseBackend):
         if modifiers:
             # hotkey requires at least one modifier + one key.
             return self._action("hotkey", {"pid": pid, "keys": modifiers + [key_name]})
-        else:
-            return self._action("press_key", {"pid": pid, "key": key_name})
+        return self._action("press_key", {"pid": pid, "key": key_name})
 
     # ── Value setter ────────────────────────────────────────────────
     def set_value(self, value: str, element: Optional[int] = None) -> ActionResult:

@@ -25,7 +25,7 @@ from acp_adapter.entry import _BenignProbeMethodFilter
 
 
 def _make_record(msg: str, exc: BaseException | None) -> logging.LogRecord:
-    record = logging.LogRecord(
+    return logging.LogRecord(
         name="root",
         level=logging.ERROR,
         pathname=__file__,
@@ -34,7 +34,6 @@ def _make_record(msg: str, exc: BaseException | None) -> logging.LogRecord:
         args=(),
         exc_info=(type(exc), exc, exc.__traceback__) if exc else None,
     )
-    return record
 
 
 def _bake_tb(exc: BaseException) -> BaseException:

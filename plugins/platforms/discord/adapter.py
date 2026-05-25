@@ -751,7 +751,7 @@ class DiscordAdapter(BasePlatformAdapter):
                     allow_bots = os.getenv("DISCORD_ALLOW_BOTS", "none").lower().strip()
                     if allow_bots == "none":
                         return
-                    elif allow_bots == "mentions":
+                    if allow_bots == "mentions":
                         if not self._client.user or self._client.user not in message.mentions:
                             return
                     # "all" falls through; bot is permitted — skip the
@@ -3926,19 +3926,17 @@ class DiscordAdapter(BasePlatformAdapter):
             thread_name = thread_name[:77] + "..."
 
         try:
-            thread = await message.create_thread(name=thread_name, auto_archive_duration=1440)
-            return thread
+            return await message.create_thread(name=thread_name, auto_archive_duration=1440)
         except Exception as direct_error:
             display_name = getattr(getattr(message, "author", None), "display_name", None) or "unknown user"
             reason = f"Auto-threaded from mention by {display_name}"
             try:
                 seed_msg = await message.channel.send(f"\U0001f9f5 Thread created by Hermes: **{thread_name}**")
-                thread = await seed_msg.create_thread(
+                return await seed_msg.create_thread(
                     name=thread_name,
                     auto_archive_duration=1440,
                     reason=reason,
                 )
-                return thread
             except Exception as fallback_error:
                 logger.warning(
                     "[%s] Auto-thread creation failed. Direct error: %s. Fallback error: %s",
@@ -4592,7 +4590,7 @@ class DiscordAdapter(BasePlatformAdapter):
                         if doc_ext in SUPPORTED_DOCUMENT_TYPES or _allow_any:
                             msg_type = MessageType.DOCUMENT
                     break
-                elif _allow_any:
+                if _allow_any:
                     # No content_type at all (rare — discord usually fills it
                     # in). Treat as a document so downstream pipelines surface
                     # the path to the agent.

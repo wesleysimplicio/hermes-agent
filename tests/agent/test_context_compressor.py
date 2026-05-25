@@ -10,14 +10,13 @@ from agent.context_compressor import ContextCompressor, SUMMARY_PREFIX
 def compressor():
     """Create a ContextCompressor with mocked dependencies."""
     with patch("agent.context_compressor.get_model_context_length", return_value=100000):
-        c = ContextCompressor(
+        return ContextCompressor(
             model="test/model",
             threshold_percent=0.85,
             protect_first_n=2,
             protect_last_n=2,
             quiet_mode=True,
         )
-        return c
 
 
 class TestShouldCompress:
@@ -1491,14 +1490,13 @@ class TestTokenBudgetTailProtection:
     def budget_compressor(self):
         """Compressor with known token budget for tail protection tests."""
         with patch("agent.context_compressor.get_model_context_length", return_value=200_000):
-            c = ContextCompressor(
+            return ContextCompressor(
                 model="test/model",
                 threshold_percent=0.50,  # 100K threshold
                 protect_first_n=2,
                 protect_last_n=20,
                 quiet_mode=True,
             )
-            return c
 
     def test_large_tool_outputs_no_longer_block_compaction(self, budget_compressor):
         """The motivating scenario: 20 messages with large tool outputs should

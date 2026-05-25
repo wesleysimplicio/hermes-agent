@@ -124,6 +124,7 @@ def _retry_vercel_call(
                 attempts,
             )
             time.sleep(backoff_seconds * attempt)
+    return None
 
 
 def _coerce_text(value: Any) -> str:

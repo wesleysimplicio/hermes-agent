@@ -51,13 +51,12 @@ def _make_event(text="hello", chat_id="123", user_id="user1", user_name="TestUse
         user_name=user_name,
         thread_id=thread_id,
     )
-    evt = MessageEvent(
+    return MessageEvent(
         text=text,
         message_type=MessageType.TEXT,
         source=source,
         message_id="msg1",
     )
-    return evt
 
 
 def _make_runner(authorized_users=None):

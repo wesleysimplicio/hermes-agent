@@ -317,9 +317,9 @@ class ByteRoverMemoryProvider(MemoryProvider):
     def handle_tool_call(self, tool_name: str, args: dict, **kwargs) -> str:
         if tool_name == "brv_query":
             return self._tool_query(args)
-        elif tool_name == "brv_curate":
+        if tool_name == "brv_curate":
             return self._tool_curate(args)
-        elif tool_name == "brv_status":
+        if tool_name == "brv_status":
             return self._tool_status()
         return tool_error(f"Unknown tool: {tool_name}")
 

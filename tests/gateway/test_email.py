@@ -251,8 +251,7 @@ class TestDispatchMessage(unittest.TestCase):
             "EMAIL_POLL_INTERVAL": "15",
         }):
             from gateway.platforms.email import EmailAdapter
-            adapter = EmailAdapter(PlatformConfig(enabled=True))
-        return adapter
+            return EmailAdapter(PlatformConfig(enabled=True))
 
     def test_self_message_filtered(self):
         """Messages from the agent's own address should be skipped."""
@@ -283,7 +282,7 @@ class TestDispatchMessage(unittest.TestCase):
 
         async def mock_handler(event):
             captured_events.append(event)
-            return None
+            return
 
         adapter._message_handler = mock_handler
         # Override handle_message to capture the event directly
@@ -463,7 +462,7 @@ class TestDispatchMessage(unittest.TestCase):
 
             async def mock_handler(event):
                 captured_events.append(event)
-                return None
+                return
 
             adapter._message_handler = mock_handler
 
@@ -523,8 +522,7 @@ class TestThreadContext(unittest.TestCase):
             "EMAIL_SMTP_HOST": "smtp.test.com",
         }):
             from gateway.platforms.email import EmailAdapter
-            adapter = EmailAdapter(PlatformConfig(enabled=True))
-        return adapter
+            return EmailAdapter(PlatformConfig(enabled=True))
 
     def test_thread_context_stored_after_dispatch(self):
         """After dispatching a message, thread context should be stored."""
@@ -620,8 +618,7 @@ class TestSendMethods(unittest.TestCase):
             "EMAIL_SMTP_HOST": "smtp.test.com",
         }):
             from gateway.platforms.email import EmailAdapter
-            adapter = EmailAdapter(PlatformConfig(enabled=True))
-        return adapter
+            return EmailAdapter(PlatformConfig(enabled=True))
 
     def test_send_calls_smtp(self):
         """send() should use SMTP to deliver email."""
@@ -740,8 +737,7 @@ class TestConnectDisconnect(unittest.TestCase):
             "EMAIL_SMTP_HOST": "smtp.test.com",
         }):
             from gateway.platforms.email import EmailAdapter
-            adapter = EmailAdapter(PlatformConfig(enabled=True))
-        return adapter
+            return EmailAdapter(PlatformConfig(enabled=True))
 
     def test_connect_success(self):
         """Successful IMAP + SMTP connection returns True."""
@@ -818,8 +814,7 @@ class TestFetchNewMessages(unittest.TestCase):
             "EMAIL_SMTP_HOST": "smtp.test.com",
         }):
             from gateway.platforms.email import EmailAdapter
-            adapter = EmailAdapter(PlatformConfig(enabled=True))
-        return adapter
+            return EmailAdapter(PlatformConfig(enabled=True))
 
     def test_fetch_skips_seen_uids(self):
         """Already-seen UIDs should not be fetched again."""
@@ -912,8 +907,7 @@ class TestPollLoop(unittest.TestCase):
             "EMAIL_POLL_INTERVAL": "1",
         }):
             from gateway.platforms.email import EmailAdapter
-            adapter = EmailAdapter(PlatformConfig(enabled=True))
-        return adapter
+            return EmailAdapter(PlatformConfig(enabled=True))
 
     def test_check_inbox_dispatches_messages(self):
         """_check_inbox should fetch and dispatch new messages."""
@@ -1147,8 +1141,7 @@ class TestImapIdExtensionForNetEase(unittest.TestCase):
             "EMAIL_SMTP_HOST": "smtp.163.com",
         }):
             from gateway.platforms.email import EmailAdapter
-            adapter = EmailAdapter(PlatformConfig(enabled=True))
-        return adapter
+            return EmailAdapter(PlatformConfig(enabled=True))
 
     def test_connect_sends_imap_id_after_login(self):
         """connect() must call xatom('ID', ...) after LOGIN for 163 support."""

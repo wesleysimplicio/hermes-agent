@@ -29,8 +29,7 @@ def _compute_scroll_offset(cursor: int, scroll_offset: int, visible: int, n_choi
         scroll_offset = cursor
     elif cursor >= scroll_offset + visible:
         scroll_offset = cursor - visible + 1
-    scroll_offset = max(0, min(scroll_offset, max(0, n_choices - visible)))
-    return scroll_offset
+    return max(0, min(scroll_offset, max(0, n_choices - visible)))
 
 
 def _visible_indices(cursor: int, scroll_offset: int, visible: int, n_choices: int):

@@ -1214,8 +1214,7 @@ class DingTalkAdapter(BasePlatformAdapter):
             return None
         try:
             # SDK's get_access_token is sync and uses requests
-            token = await asyncio.to_thread(self._stream_client.get_access_token)
-            return token
+            return await asyncio.to_thread(self._stream_client.get_access_token)
         except Exception as e:
             logger.error("[%s] Failed to get access token: %s", self.name, e)
             return None

@@ -271,8 +271,7 @@ def _read_tail(
                                 component_prefixes=component_prefixes)
         ]
         return filtered[-num_lines:]
-    else:
-        return _read_last_n_lines(path, num_lines)
+    return _read_last_n_lines(path, num_lines)
 
 
 def _read_last_n_lines(path: Path, n: int) -> list:

@@ -210,10 +210,9 @@ def build_tool_preview(tool_name: str, args: dict, max_len: int | None = None) -
         merge = args.get("merge", False)
         if todos_arg is None:
             return "reading task list"
-        elif merge:
+        if merge:
             return f"updating {len(todos_arg)} task(s)"
-        else:
-            return f"planning {len(todos_arg)} task(s)"
+        return f"planning {len(todos_arg)} task(s)"
 
     if tool_name == "session_search":
         query = _oneline(args.get("query", ""))
@@ -225,10 +224,10 @@ def build_tool_preview(tool_name: str, args: dict, max_len: int | None = None) -
         if action == "add":
             content = _oneline(args.get("content", ""))
             return f"+{target}: \"{content[:25]}{'...' if len(content) > 25 else ''}\""
-        elif action == "replace":
+        if action == "replace":
             old = _oneline(args.get("old_text") or "") or "<missing old_text>"
             return f"~{target}: \"{old[:20]}\""
-        elif action == "remove":
+        if action == "remove":
             old = _oneline(args.get("old_text") or "") or "<missing old_text>"
             return f"-{target}: \"{old[:20]}\""
         return action
@@ -315,8 +314,7 @@ def _resolve_skill_manage_paths(args: dict) -> list[Path]:
         file_path = args.get("file_path")
         return [skill_dir / file_path] if file_path else []
     if action == "delete":
-        files = [path for path in sorted(skill_dir.rglob("*")) if path.is_file()]
-        return files
+        return [path for path in sorted(skill_dir.rglob("*")) if path.is_file()]
     return []
 
 
@@ -969,14 +967,13 @@ def get_cute_tool_message(
             if total > 0:
                 return _wrap(f"┊ 📋 plan      {done}/{total} task(s)  {dur}")
             return _wrap(f"┊ 📋 plan      reading tasks  {dur}")
-        elif merge:
+        if merge:
             if total > 0 and done > 0:
                 return _wrap(f"┊ 📋 plan      update {done}/{total} ✓  {dur}")
             return _wrap(f"┊ 📋 plan      update {len(todos_arg)} task(s)  {dur}")
-        else:
-            if total > 0 and done > 0:
-                return _wrap(f"┊ 📋 plan      {done}/{total} task(s)  {dur}")
-            return _wrap(f"┊ 📋 plan      {len(todos_arg)} task(s)  {dur}")
+        if total > 0 and done > 0:
+            return _wrap(f"┊ 📋 plan      {done}/{total} task(s)  {dur}")
+        return _wrap(f"┊ 📋 plan      {len(todos_arg)} task(s)  {dur}")
     if tool_name == "session_search":
         return _wrap(f"┊ 🔍 recall    \"{_trunc(args.get('query', ''), 35)}\"  {dur}")
     if tool_name == "memory":
@@ -984,11 +981,11 @@ def get_cute_tool_message(
         target = args.get("target", "")
         if action == "add":
             return _wrap(f"┊ 🧠 memory    +{target}: \"{_trunc(args.get('content', ''), 30)}\"  {dur}")
-        elif action == "replace":
+        if action == "replace":
             old = args.get("old_text") or ""
             old = old if old else "<missing old_text>"
             return _wrap(f"┊ 🧠 memory    ~{target}: \"{_trunc(old, 20)}\"  {dur}")
-        elif action == "remove":
+        if action == "remove":
             old = args.get("old_text") or ""
             old = old if old else "<missing old_text>"
             return _wrap(f"┊ 🧠 memory    -{target}: \"{_trunc(old, 20)}\"  {dur}")

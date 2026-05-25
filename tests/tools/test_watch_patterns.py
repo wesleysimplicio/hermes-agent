@@ -39,14 +39,13 @@ def _make_session(
     task_id="t1",
     watch_patterns=None,
 ) -> ProcessSession:
-    s = ProcessSession(
+    return ProcessSession(
         id=sid,
         command=command,
         task_id=task_id,
         started_at=time.time(),
         watch_patterns=watch_patterns or [],
     )
-    return s
 
 
 # =========================================================================

@@ -33,8 +33,7 @@ def store(tmp_path, monkeypatch):
     import hermes_state
     monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
     config = GatewayConfig()
-    s = SessionStore(sessions_dir=tmp_path, config=config)
-    return s
+    return SessionStore(sessions_dir=tmp_path, config=config)
 
 
 def _dm_source(platform=Platform.SLACK, chat_id="D123", thread_id=None, user_id="U1"):

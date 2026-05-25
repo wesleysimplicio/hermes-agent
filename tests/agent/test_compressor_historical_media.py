@@ -224,14 +224,13 @@ class TestCompressIntegration:
     @pytest.fixture
     def compressor(self):
         with patch("agent.context_compressor.get_model_context_length", return_value=100_000):
-            c = ContextCompressor(
+            return ContextCompressor(
                 model="test/model",
                 threshold_percent=0.50,
                 protect_first_n=1,
                 protect_last_n=2,
                 quiet_mode=True,
             )
-            return c
 
     def test_compress_strips_historical_images(self, compressor):
         # Enough messages to trigger the summarize path. protect_first_n=1 +

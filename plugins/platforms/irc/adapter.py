@@ -349,8 +349,7 @@ class IRCAdapter(BasePlatformAdapter):
         # Images: ![alt](url) → url  (must come BEFORE links)
         text = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r"\2", text)
         # Links: [text](url) → text (url)
-        text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", text)
-        return text
+        return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", text)
 
     # ── Raw IRC I/O ──────────────────────────────────────────────────────
 

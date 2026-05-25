@@ -104,14 +104,13 @@ class TestContextReduction:
     drop to 200k and the reduced flag should be set correctly."""
 
     def _make_compressor(self, context_length=1_000_000, threshold_percent=0.5):
-        c = SimpleNamespace(
+        return SimpleNamespace(
             context_length=context_length,
             threshold_percent=threshold_percent,
             threshold_tokens=int(context_length * threshold_percent),
             _context_probed=False,
             _context_probe_persistable=False,
         )
-        return c
 
     def test_reduces_1m_to_200k(self):
         comp = self._make_compressor(1_000_000)

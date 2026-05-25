@@ -589,10 +589,9 @@ def remove_board(slug: str, *, archive: bool = True) -> dict:
             suffix += 1
         d.rename(target)
         return {"slug": normed, "action": "archived", "new_path": str(target)}
-    else:
-        import shutil
-        shutil.rmtree(d)
-        return {"slug": normed, "action": "deleted", "new_path": ""}
+    import shutil
+    shutil.rmtree(d)
+    return {"slug": normed, "action": "deleted", "new_path": ""}
 
 
 # ---------------------------------------------------------------------------

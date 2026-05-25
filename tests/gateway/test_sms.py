@@ -233,8 +233,7 @@ class TestStartupGuard:
             env.update(extra_env)
         with patch.dict(os.environ, env, clear=False):
             pc = PlatformConfig(enabled=True, api_key="tok")
-            adapter = SmsAdapter(pc)
-        return adapter
+            return SmsAdapter(pc)
 
     @pytest.mark.asyncio
     async def test_refuses_start_without_webhook_url(self):
@@ -344,8 +343,7 @@ class TestTwilioSignatureValidation:
         }
         with patch.dict(os.environ, env):
             pc = PlatformConfig(enabled=True, api_key=auth_token)
-            adapter = SmsAdapter(pc)
-        return adapter
+            return SmsAdapter(pc)
 
     def test_valid_signature_accepted(self):
         adapter = self._make_adapter()

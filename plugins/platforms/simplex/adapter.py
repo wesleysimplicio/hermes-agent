@@ -460,10 +460,9 @@ class SimplexAdapter(BasePlatformAdapter):
                 ext = _guess_extension(data)
                 if _is_image_ext(ext):
                     return cache_image_from_bytes(data, ext)
-                elif _is_audio_ext(ext):
+                if _is_audio_ext(ext):
                     return cache_audio_from_bytes(data, ext)
-                else:
-                    return cache_document_from_bytes(data, file_name)
+                return cache_document_from_bytes(data, file_name)
         return None
 
     # ------------------------------------------------------------------

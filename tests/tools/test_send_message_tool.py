@@ -1990,11 +1990,10 @@ class _FakeSignalHttp:
         item = self.responses.pop(0)
         if isinstance(item, BaseException):
             raise item
-        resp = SimpleNamespace(
+        return SimpleNamespace(
             raise_for_status=lambda: None,
             json=lambda data=item: data,
         )
-        return resp
 
 
 def _install_signal_http(monkeypatch, fake):

@@ -755,10 +755,9 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
 
         try:
             from tools.send_message_tool import send_message_tool
-            result_str = send_message_tool(
+            return send_message_tool(
                 {"action": "send", "target": target, "message": message}
             )
-            return result_str
         except ImportError:
             return json.dumps({"error": "Send message tool not available"})
         except Exception as e:

@@ -1766,10 +1766,9 @@ def _convert_user_message(content: Any) -> Dict[str, Any]:
         ):
             converted_blocks = [{"type": "text", "text": "(empty message)"}]
         return {"role": "user", "content": converted_blocks}
-    else:
-        if not content or (isinstance(content, str) and not content.strip()):
-            content = "(empty message)"
-        return {"role": "user", "content": content}
+    if not content or (isinstance(content, str) and not content.strip()):
+        content = "(empty message)"
+    return {"role": "user", "content": content}
 
 
 def _strip_orphaned_tool_blocks(result: List[Dict[str, Any]]) -> None:

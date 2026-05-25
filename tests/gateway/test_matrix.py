@@ -353,8 +353,7 @@ def _make_adapter():
             "user_id": "@bot:example.org",
         },
     )
-    adapter = MatrixAdapter(config)
-    return adapter
+    return MatrixAdapter(config)
 
 
 # ---------------------------------------------------------------------------

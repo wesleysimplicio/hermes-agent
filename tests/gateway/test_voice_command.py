@@ -607,8 +607,7 @@ class TestVoiceReceiver:
         mock_vc._connection.add_socket_listener = MagicMock()
         mock_vc._connection.remove_socket_listener = MagicMock()
         mock_vc._connection.hook = None
-        receiver = VoiceReceiver(mock_vc)
-        return receiver
+        return VoiceReceiver(mock_vc)
 
     def test_initial_state(self):
         receiver = self._make_receiver()
@@ -2278,8 +2277,7 @@ class TestVoiceReception:
         vc.user = SimpleNamespace(id=bot_id)
         vc.channel = MagicMock()
         vc.channel.members = members or []
-        receiver = VoiceReceiver(vc, allowed_user_ids=allowed_ids)
-        return receiver
+        return VoiceReceiver(vc, allowed_user_ids=allowed_ids)
 
     @staticmethod
     def _fill_buffer(receiver, ssrc, duration_s=1.0, age_s=3.0):

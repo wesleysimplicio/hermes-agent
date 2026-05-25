@@ -862,11 +862,10 @@ class WebhookAdapter(BasePlatformAdapter):
                     "[webhook] Posted comment on %s#%s", repo, pr_number
                 )
                 return SendResult(success=True)
-            else:
-                logger.error(
-                    "[webhook] gh pr comment failed: %s", result.stderr
-                )
-                return SendResult(success=False, error=result.stderr)
+            logger.error(
+                "[webhook] gh pr comment failed: %s", result.stderr
+            )
+            return SendResult(success=False, error=result.stderr)
         except FileNotFoundError:
             logger.error(
                 "[webhook] 'gh' CLI not found — install GitHub CLI for "

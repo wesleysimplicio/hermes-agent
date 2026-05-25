@@ -20,7 +20,7 @@ def _build_agent(model_cfg, custom_providers=None, model="anthropic/claude-opus-
     ):
         from run_agent import AIAgent
 
-        agent = AIAgent(
+        return AIAgent(
             model=model,
             api_key="test-key-1234567890",
             base_url=base_url,
@@ -28,7 +28,6 @@ def _build_agent(model_cfg, custom_providers=None, model="anthropic/claude-opus-
             skip_context_files=True,
             skip_memory=True,
         )
-    return agent
 
 
 def test_valid_integer_context_length_no_warning():

@@ -409,8 +409,7 @@ class MattermostAdapter(BasePlatformAdapter):
         """
         # Convert ![alt](url) to just the URL — Mattermost renders
         # image URLs as inline previews automatically.
-        content = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r"\2", content)
-        return content
+        return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r"\2", content)
 
     # ------------------------------------------------------------------
     # File helpers

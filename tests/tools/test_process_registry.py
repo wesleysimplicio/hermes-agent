@@ -36,7 +36,7 @@ def _make_session(
     started_at=None,
 ) -> ProcessSession:
     """Helper to create a ProcessSession for testing."""
-    s = ProcessSession(
+    return ProcessSession(
         id=sid,
         command=command,
         task_id=task_id,
@@ -45,7 +45,6 @@ def _make_session(
         exit_code=exit_code,
         output_buffer=output,
     )
-    return s
 
 
 def _spawn_python_sleep(seconds: float) -> subprocess.Popen:

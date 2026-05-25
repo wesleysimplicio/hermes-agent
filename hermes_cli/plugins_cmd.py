@@ -1223,33 +1223,32 @@ def _run_composite_ui(curses, plugin_names, plugin_labels, plugin_selected,
                     # ENTER on a plugin checkbox — confirm and exit
                     result_holder["plugins_changed"] = True
                     return
-                else:
-                    # ENTER on a category — same as SPACE, launch sub-screen
-                    ci = cursor - n_plugins
-                    if 0 <= ci < n_categories:
-                        curses.endwin()
-                        _cat_name, _cat_cur, cat_fn = categories[ci]
-                        changed = cat_fn()
-                        if changed:
-                            result_holder["providers_changed"] = True
-                            categories[ci] = (
-                                _cat_name,
-                                _get_current_memory_provider() or "built-in" if ci == 0
-                                else _get_current_context_engine(),
-                                cat_fn,
-                            )
-                        stdscr = curses.initscr()
-                        curses.noecho()
-                        curses.cbreak()
-                        stdscr.keypad(True)
-                        if curses.has_colors():
-                            curses.start_color()
-                            curses.use_default_colors()
-                            curses.init_pair(1, curses.COLOR_GREEN, -1)
-                            curses.init_pair(2, curses.COLOR_YELLOW, -1)
-                            curses.init_pair(3, curses.COLOR_CYAN, -1)
-                            curses.init_pair(4, 8 if curses.COLORS > 8 else curses.COLOR_WHITE, -1)
-                        curses.curs_set(0)
+                # ENTER on a category — same as SPACE, launch sub-screen
+                ci = cursor - n_plugins
+                if 0 <= ci < n_categories:
+                    curses.endwin()
+                    _cat_name, _cat_cur, cat_fn = categories[ci]
+                    changed = cat_fn()
+                    if changed:
+                        result_holder["providers_changed"] = True
+                        categories[ci] = (
+                            _cat_name,
+                            _get_current_memory_provider() or "built-in" if ci == 0
+                            else _get_current_context_engine(),
+                            cat_fn,
+                        )
+                    stdscr = curses.initscr()
+                    curses.noecho()
+                    curses.cbreak()
+                    stdscr.keypad(True)
+                    if curses.has_colors():
+                        curses.start_color()
+                        curses.use_default_colors()
+                        curses.init_pair(1, curses.COLOR_GREEN, -1)
+                        curses.init_pair(2, curses.COLOR_YELLOW, -1)
+                        curses.init_pair(3, curses.COLOR_CYAN, -1)
+                        curses.init_pair(4, 8 if curses.COLORS > 8 else curses.COLOR_WHITE, -1)
+                    curses.curs_set(0)
             elif key in {27, ord("q")}:
                 # Save plugin changes on exit
                 result_holder["plugins_changed"] = True

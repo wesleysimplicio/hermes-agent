@@ -116,8 +116,7 @@ class TestHandleBackgroundCommand:
 
         def capture_task(coro, *args, **kwargs):
             coro.close()
-            mock_task = MagicMock()
-            return mock_task
+            return MagicMock()
 
         source = SessionSource(
             platform=Platform.TELEGRAM,

@@ -1555,23 +1555,23 @@ def _handle_process(args, **kw):
 
     if action == "list":
         return json.dumps({"processes": process_registry.list_sessions(task_id=task_id)}, ensure_ascii=False)
-    elif action in {"poll", "log", "wait", "kill", "write", "submit", "close"}:
+    if action in {"poll", "log", "wait", "kill", "write", "submit", "close"}:
         if not session_id:
             return tool_error(f"session_id is required for {action}")
         if action == "poll":
             return json.dumps(process_registry.poll(session_id), ensure_ascii=False)
-        elif action == "log":
+        if action == "log":
             return json.dumps(process_registry.read_log(
                 session_id, offset=args.get("offset", 0), limit=args.get("limit", 200)), ensure_ascii=False)
-        elif action == "wait":
+        if action == "wait":
             return json.dumps(process_registry.wait(session_id, timeout=args.get("timeout")), ensure_ascii=False)
-        elif action == "kill":
+        if action == "kill":
             return json.dumps(process_registry.kill_process(session_id), ensure_ascii=False)
-        elif action == "write":
+        if action == "write":
             return json.dumps(process_registry.write_stdin(session_id, str(args.get("data", ""))), ensure_ascii=False)
-        elif action == "submit":
+        if action == "submit":
             return json.dumps(process_registry.submit_stdin(session_id, str(args.get("data", ""))), ensure_ascii=False)
-        elif action == "close":
+        if action == "close":
             return json.dumps(process_registry.close_stdin(session_id), ensure_ascii=False)
     return tool_error(f"Unknown process action: {action}. Use: list, poll, log, wait, kill, write, submit, close")
 

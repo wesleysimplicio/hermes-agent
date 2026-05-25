@@ -1242,14 +1242,13 @@ def resolve_runtime_provider(
     # config is always picked up from model.base_url + model.api_mode,
     # regardless of whether the caller passed explicit_* args.
     if requested_provider == "azure-foundry":
-        azure_runtime = _resolve_azure_foundry_runtime(
+        return _resolve_azure_foundry_runtime(
             requested_provider=requested_provider,
             model_cfg=_get_model_config(),
             explicit_api_key=explicit_api_key,
             explicit_base_url=explicit_base_url,
             target_model=target_model,
         )
-        return azure_runtime
 
     custom_runtime = _resolve_named_custom_runtime(
         requested_provider=requested_provider,

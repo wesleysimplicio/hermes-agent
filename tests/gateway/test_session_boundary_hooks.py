@@ -226,7 +226,7 @@ async def test_idle_expiry_fires_finalize_hook(mock_invoke_hook):
 
     def _hook_and_stop(*a, **kw):
         runner._running = False
-        return None
+        return
 
     mock_invoke_hook.side_effect = _hook_and_stop
 

@@ -133,7 +133,7 @@ def test_model_command_uses_runtime_access_token_for_codex_list(monkeypatch):
     def _fake_prompt_model_selection(model_ids, current_model=""):
         captured["model_ids"] = list(model_ids)
         captured["current_model"] = current_model
-        return None
+        return
 
     monkeypatch.setattr(
         "hermes_cli.codex_models.get_codex_model_ids",
@@ -252,8 +252,7 @@ def _make_cli(model="anthropic/claude-opus-4.6", **kwargs):
         patch.dict("os.environ", clean_env, clear=False),
         patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}),
     ):
-        cli = HermesCLI(model=model, **kwargs)
-    return cli
+        return HermesCLI(model=model, **kwargs)
 
 
 class TestNormalizeModelForProvider:

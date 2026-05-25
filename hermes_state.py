@@ -1099,7 +1099,7 @@ class SessionDB:
         if numbered:
             # Return the most recent numbered variant
             return numbered[0]["id"]
-        elif exact:
+        if exact:
             return exact["id"]
         return None
 

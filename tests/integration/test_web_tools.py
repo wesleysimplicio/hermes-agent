@@ -126,9 +126,8 @@ class WebToolsTester:
         if not check_web_api_key():
             self.log_result("Web Backend API Key", "failed", "PARALLEL_API_KEY or FIRECRAWL_API_KEY not set")
             return False
-        else:
-            backend = _get_backend()
-            self.log_result("Web Backend API Key", "passed", f"Using {backend} backend")
+        backend = _get_backend()
+        self.log_result("Web Backend API Key", "passed", f"Using {backend} backend")
         
         # Check auxiliary LLM provider (optional)
         if not check_auxiliary_model():

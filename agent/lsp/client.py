@@ -479,6 +479,7 @@ class LSPClient:
                     await asyncio.sleep(RETRY_BASE_DELAY * (2 ** attempt))
                     continue
                 raise
+        return None
 
     async def _send_notification(self, method: str, params: Any) -> None:
         if self._proc is None or self._proc.stdin is None or self._proc.stdin.is_closing():

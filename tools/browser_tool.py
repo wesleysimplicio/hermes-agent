@@ -2480,11 +2480,10 @@ def browser_navigate(url: str, task_id: Optional[str] = None) -> str:
             logger.debug("Auto-snapshot after navigate failed: %s", e)
 
         return json.dumps(response, ensure_ascii=False)
-    else:
-        return json.dumps({
-            "success": False,
-            "error": result.get("error", "Navigation failed")
-        }, ensure_ascii=False)
+    return json.dumps({
+        "success": False,
+        "error": result.get("error", "Navigation failed")
+    }, ensure_ascii=False)
 
 
 def browser_snapshot(
@@ -2548,12 +2547,11 @@ def browser_snapshot(
             logger.debug("supervisor snapshot merge failed: %s", _sv_exc)
 
         return json.dumps(response, ensure_ascii=False)
-    else:
-        response = {
-            "success": False,
-            "error": result.get("error", "Failed to get snapshot")
-        }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+    response = {
+        "success": False,
+        "error": result.get("error", "Failed to get snapshot")
+    }
+    return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_click(ref: str, task_id: Optional[str] = None) -> str:
@@ -2585,12 +2583,11 @@ def browser_click(ref: str, task_id: Optional[str] = None) -> str:
             "clicked": ref
         }
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
-    else:
-        response = {
-            "success": False,
-            "error": result.get("error", f"Failed to click {ref}")
-        }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+    response = {
+        "success": False,
+        "error": result.get("error", f"Failed to click {ref}")
+    }
+    return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_type(ref: str, text: str, task_id: Optional[str] = None) -> str:
@@ -2625,12 +2622,11 @@ def browser_type(ref: str, text: str, task_id: Optional[str] = None) -> str:
             "element": ref
         }
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
-    else:
-        response = {
-            "success": False,
-            "error": result.get("error", f"Failed to type into {ref}")
-        }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+    response = {
+        "success": False,
+        "error": result.get("error", f"Failed to type into {ref}")
+    }
+    return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_scroll(direction: str, task_id: Optional[str] = None) -> str:
@@ -2706,12 +2702,11 @@ def browser_back(task_id: Optional[str] = None) -> str:
             "url": data.get("url", "")
         }
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
-    else:
-        response = {
-            "success": False,
-            "error": result.get("error", "Failed to go back")
-        }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+    response = {
+        "success": False,
+        "error": result.get("error", "Failed to go back")
+    }
+    return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 def browser_press(key: str, task_id: Optional[str] = None) -> str:
@@ -2738,12 +2733,11 @@ def browser_press(key: str, task_id: Optional[str] = None) -> str:
             "pressed": key
         }
         return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
-    else:
-        response = {
-            "success": False,
-            "error": result.get("error", f"Failed to press {key}")
-        }
-        return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
+    response = {
+        "success": False,
+        "error": result.get("error", f"Failed to press {key}")
+    }
+    return json.dumps(_copy_fallback_warning(response, result), ensure_ascii=False)
 
 
 

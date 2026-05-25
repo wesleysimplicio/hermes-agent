@@ -132,8 +132,7 @@ def _collect_skills(profile_dir: Path) -> list[str]:
     if len(names) <= MAX_SKILLS_FOR_PROMPT:
         return names
     step = len(names) / MAX_SKILLS_FOR_PROMPT
-    sampled = [names[int(i * step)] for i in range(MAX_SKILLS_FOR_PROMPT)]
-    return sampled
+    return [names[int(i * step)] for i in range(MAX_SKILLS_FOR_PROMPT)]
 
 
 def _extract_json_blob(raw: str) -> Optional[dict]:

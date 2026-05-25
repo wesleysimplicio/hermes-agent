@@ -667,6 +667,7 @@ async def cache_image_from_url(url: str, ext: str = ".jpg", retries: int = 2) ->
                     await asyncio.sleep(wait)
                     continue
                 raise
+    return None
 
 
 def cleanup_image_cache(max_age_hours: int = 24) -> int:
@@ -781,6 +782,7 @@ async def cache_audio_from_url(url: str, ext: str = ".ogg", retries: int = 2) ->
                     await asyncio.sleep(wait)
                     continue
                 raise
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -1110,8 +1112,7 @@ class MessageEvent:
         parts = self.text.split(maxsplit=1)
         args = parts[1] if len(parts) > 1 else ""
         # iOS auto-corrects -- to — (em dash) and - to – (en dash)
-        args = args.replace("\u2014\u2014", "--").replace("\u2014", "--").replace("\u2013", "-")
-        return args
+        return args.replace("\u2014\u2014", "--").replace("\u2014", "--").replace("\u2013", "-")
 
 
 @dataclass

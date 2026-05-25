@@ -116,7 +116,7 @@ def set_session_vars(
     Returns a list of ``Token`` objects (one per variable) that can be
     passed to ``clear_session_vars``.
     """
-    tokens = [
+    return [
         _SESSION_PLATFORM.set(platform),
         _SESSION_CHAT_ID.set(chat_id),
         _SESSION_CHAT_NAME.set(chat_name),
@@ -126,7 +126,6 @@ def set_session_vars(
         _SESSION_KEY.set(session_key),
         _SESSION_MESSAGE_ID.set(message_id),
     ]
-    return tokens
 
 
 def clear_session_vars(tokens: list) -> None:

@@ -122,14 +122,13 @@ class FirecrawlBrowserProvider(BrowserProvider):
             if response.status_code in {200, 201, 204}:
                 logger.debug("Successfully closed Firecrawl session %s", session_id)
                 return True
-            else:
-                logger.warning(
-                    "Failed to close Firecrawl session %s: HTTP %s - %s",
-                    session_id,
-                    response.status_code,
-                    response.text[:200],
-                )
-                return False
+            logger.warning(
+                "Failed to close Firecrawl session %s: HTTP %s - %s",
+                session_id,
+                response.status_code,
+                response.text[:200],
+            )
+            return False
         except Exception as e:
             logger.error("Exception closing Firecrawl session %s: %s", session_id, e)
             return False

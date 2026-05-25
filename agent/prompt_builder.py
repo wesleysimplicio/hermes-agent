@@ -1331,8 +1331,7 @@ def load_soul_md() -> Optional[str]:
         if not content:
             return None
         content = _scan_context_content(content, "SOUL.md")
-        content = _truncate_content(content, "SOUL.md")
-        return content
+        return _truncate_content(content, "SOUL.md")
     except Exception as e:
         logger.debug("Could not read SOUL.md from %s: %s", soul_path, e)
         return None

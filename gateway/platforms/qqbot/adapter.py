@@ -1774,17 +1774,16 @@ class QQAdapter(BasePlatformAdapter):
         if content_type.startswith("image/"):
             ext = mimetypes.guess_extension(content_type) or ".jpg"
             return cache_image_from_bytes(data, ext)
-        elif content_type == "voice" or content_type.startswith("audio/"):
+        if content_type == "voice" or content_type.startswith("audio/"):
             # QQ voice messages are typically .amr or .silk format.
             # Convert to .wav using ffmpeg so STT engines can process it.
             return await self._convert_audio_to_wav(data, url)
-        else:
-            filename = (
-                original_name
-                or Path(urlparse(url).path).name
-                or "qq_attachment"
-            )
-            return cache_document_from_bytes(data, filename)
+        filename = (
+            original_name
+            or Path(urlparse(url).path).name
+            or "qq_attachment"
+        )
+        return cache_document_from_bytes(data, filename)
 
     @staticmethod
     def _is_voice_content_type(content_type: str, filename: str) -> bool:
@@ -2389,6 +2388,7 @@ class QQAdapter(BasePlatformAdapter):
                     await asyncio.sleep(1.5 * (attempt + 1))
                 else:
                     raise
+        return None
 
     # Maximum time (seconds) to wait for reconnection before giving up on send.
     _RECONNECT_WAIT_SECONDS = 15.0
@@ -2464,14 +2464,13 @@ class QQAdapter(BasePlatformAdapter):
             try:
                 if chat_type == "c2c":
                     return await self._send_c2c_text(chat_id, content, reply_to)
-                elif chat_type == "group":
+                if chat_type == "group":
                     return await self._send_group_text(chat_id, content, reply_to)
-                elif chat_type == "guild":
+                if chat_type == "guild":
                     return await self._send_guild_text(chat_id, content, reply_to)
-                else:
-                    return SendResult(
-                        success=False, error=f"Unknown chat type for {chat_id}"
-                    )
+                return SendResult(
+                    success=False, error=f"Unknown chat type for {chat_id}"
+                )
             except Exception as exc:
                 last_exc = exc
                 err = str(exc).lower()
@@ -3129,8 +3128,7 @@ class QQAdapter(BasePlatformAdapter):
         # QQ group @-messages may have the bot's QQ/ID as prefix
         import re
 
-        stripped = re.sub(r"^@\S+\s*", "", content.strip())
-        return stripped
+        return re.sub(r"^@\S+\s*", "", content.strip())
 
     def _is_dm_allowed(self, user_id: str) -> bool:
         if self._dm_policy == "disabled":

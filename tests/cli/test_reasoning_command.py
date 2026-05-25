@@ -59,12 +59,11 @@ class TestHandleReasoningCommand(unittest.TestCase):
 
     def _make_cli(self, reasoning_config=None, show_reasoning=False):
         """Create a minimal CLI stub with the reasoning attributes."""
-        stub = SimpleNamespace(
+        return SimpleNamespace(
             reasoning_config=reasoning_config,
             show_reasoning=show_reasoning,
             agent=MagicMock(),
         )
-        return stub
 
     def test_show_enables_display(self):
         stub = self._make_cli(show_reasoning=False)

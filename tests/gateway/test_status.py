@@ -235,7 +235,7 @@ class TestGatewayPidState:
         def fake_kill(pid, sig):
             if pid == 99999:
                 raise ProcessLookupError
-            return None
+            return
 
         monkeypatch.setattr(status.os, "kill", fake_kill)
 

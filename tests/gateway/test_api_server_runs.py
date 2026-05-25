@@ -37,8 +37,7 @@ def _make_adapter(api_key: str = "") -> APIServerAdapter:
     if api_key:
         extra["key"] = api_key
     config = PlatformConfig(enabled=True, extra=extra)
-    adapter = APIServerAdapter(config)
-    return adapter
+    return APIServerAdapter(config)
 
 
 def _create_runs_app(adapter: APIServerAdapter) -> web.Application:

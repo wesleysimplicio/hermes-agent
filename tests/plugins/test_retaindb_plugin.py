@@ -324,8 +324,7 @@ class TestRetainDBMemoryProvider:
         monkeypatch.setenv("RETAINDB_API_KEY", api_key)
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
         (tmp_path / ".hermes").mkdir(exist_ok=True)
-        provider = RetainDBMemoryProvider()
-        return provider
+        return RetainDBMemoryProvider()
 
     def test_name(self):
         p = RetainDBMemoryProvider()

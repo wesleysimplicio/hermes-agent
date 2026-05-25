@@ -197,7 +197,7 @@ async def test_active_drain_force_flushes_debounce_before_release():
         processed.append(event.text)
         if event.text == "current":
             await adapter.handle_message(_make_event("follow up"))
-        return None
+        return
 
     adapter._message_handler = _handler
     current = _make_event("current")

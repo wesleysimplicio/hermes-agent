@@ -272,8 +272,7 @@ def sanitize_yaml_string(s: str) -> str:
     """Make a string safe to embed in a YAML double-quoted scalar."""
     s = s.replace("\\", "\\\\").replace('"', '\\"')
     # Collapse newlines to spaces.
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def derive_skill_meta(skill_path: Path, source_dir: Path, source_kind: str) -> dict[str, Any]:

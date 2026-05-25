@@ -523,8 +523,7 @@ def _strip_markdown_to_plain_text(text: str) -> str:
     plain = re.sub(r"^\s*---+\s*$", "---", plain, flags=re.MULTILINE)
     plain = re.sub(r"~~([^~\n]+)~~", r"\1", plain)
     plain = re.sub(r"<u>([\s\S]*?)</u>", r"\1", plain)
-    plain = strip_markdown(plain)
-    return plain
+    return strip_markdown(plain)
 
 
 def _coerce_int(value: Any, default: Optional[int] = None, min_value: int = 0) -> Optional[int]:
@@ -2153,7 +2152,7 @@ class FeishuAdapter(BasePlatformAdapter):
 
     async def send_typing(self, chat_id: str, metadata=None) -> None:
         """Feishu bot API does not expose a typing indicator."""
-        return None
+        return
 
     async def send_image(
         self,

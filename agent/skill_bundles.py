@@ -78,8 +78,7 @@ def _bundles_dir() -> Path:
 def _slugify(name: str) -> str:
     cmd = name.lower().replace(" ", "-").replace("_", "-")
     cmd = _BUNDLE_INVALID_CHARS.sub("", cmd)
-    cmd = _BUNDLE_MULTI_HYPHEN.sub("-", cmd).strip("-")
-    return cmd
+    return _BUNDLE_MULTI_HYPHEN.sub("-", cmd).strip("-")
 
 
 def _iter_bundle_files() -> List[Path]:

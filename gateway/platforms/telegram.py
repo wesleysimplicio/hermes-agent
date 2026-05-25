@@ -189,8 +189,7 @@ def _strip_mdv2(text: str) -> str:
     # Remove MarkdownV2 strikethrough markers (~text~ → text)
     cleaned = re.sub(r'~([^~]+)~', r'\1', cleaned)
     # Remove MarkdownV2 spoiler markers (||text|| → text)
-    cleaned = re.sub(r'\|\|([^|]+)\|\|', r'\1', cleaned)
-    return cleaned
+    return re.sub(r'\|\|([^|]+)\|\|', r'\1', cleaned)
 
 
 # ---------------------------------------------------------------------------
@@ -1677,10 +1676,10 @@ class TelegramAdapter(BasePlatformAdapter):
         mode = self._reply_to_mode
         if mode == "off":
             return False
-        elif mode == "all":
+        if mode == "all":
             return True
-        else:  # "first" (default)
-            return chunk_index == 0
+        # "first" (default)
+        return chunk_index == 0
 
     async def send(
         self,
@@ -4216,9 +4215,8 @@ class TelegramAdapter(BasePlatformAdapter):
                                     depth += 1
                     return '\\' + ch
                 _safe_parts.append(re.sub(r'[(){}]', _esc_bare, _seg))
-        text = ''.join(_safe_parts)
+        return ''.join(_safe_parts)
 
-        return text
 
     # ── Group mention gating ──────────────────────────────────────────────
 

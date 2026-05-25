@@ -463,8 +463,7 @@ def _normalize_command_for_detection(command: str) -> str:
     # Strip null bytes
     command = command.replace('\x00', '')
     # Normalize Unicode (fullwidth Latin, halfwidth Katakana, etc.)
-    command = unicodedata.normalize('NFKC', command)
-    return command
+    return unicodedata.normalize('NFKC', command)
 
 
 def detect_dangerous_command(command: str) -> tuple:
@@ -787,18 +786,17 @@ def prompt_dangerous_approval(command: str, description: str,
             if choice in {'o', 'once'}:
                 print(t("approval.allowed_once"))
                 return "once"
-            elif choice in {'s', 'session'}:
+            if choice in {'s', 'session'}:
                 print(t("approval.allowed_session"))
                 return "session"
-            elif choice in {'a', 'always'}:
+            if choice in {'a', 'always'}:
                 if not allow_permanent:
                     print(t("approval.allowed_session"))
                     return "session"
                 print(t("approval.allowed_always"))
                 return "always"
-            else:
-                print(t("approval.denied"))
-                return "deny"
+            print(t("approval.denied"))
+            return "deny"
 
     except (EOFError, KeyboardInterrupt):
         print("\n" + t("approval.cancelled"))
@@ -900,10 +898,9 @@ Respond with exactly one word: APPROVE, DENY, or ESCALATE"""
 
         if "APPROVE" in answer:
             return "approve"
-        elif "DENY" in answer:
+        if "DENY" in answer:
             return "deny"
-        else:
-            return "escalate"
+        return "escalate"
 
     except Exception as e:
         logger.debug("Smart approvals: LLM call failed (%s), escalating", e)
@@ -1161,7 +1158,7 @@ def check_all_command_guards(command: str, env_type: str,
             return {"approved": True, "message": None,
                     "smart_approved": True,
                     "description": combined_desc_for_llm}
-        elif verdict == "deny":
+        if verdict == "deny":
             combined_desc_for_llm = "; ".join(desc for _, desc, _ in warnings)
             return {
                 "approved": False,

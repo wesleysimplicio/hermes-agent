@@ -1232,20 +1232,20 @@ def main(
         print("\n💡 Usage:")
         print("  python batch_runner.py --dataset_file=data.jsonl --batch_size=10 \\")
         print("                         --run_name=my_run --distribution=<name>")
-        return
+        return None
     
     # Validate required arguments
     if not dataset_file:
         print("❌ Error: --dataset_file is required")
-        return
+        return None
     
     if not batch_size or batch_size < 1:
         print("❌ Error: --batch_size must be a positive integer")
-        return
+        return None
     
     if not run_name:
         print("❌ Error: --run_name is required")
-        return
+        return None
     
     # Parse provider preferences (comma-separated strings to lists)
     providers_allowed_list = [p.strip() for p in providers_allowed.split(",")] if providers_allowed else None
@@ -1264,7 +1264,7 @@ def main(
         valid_efforts = ["none", "minimal", "low", "medium", "high", "xhigh"]
         if reasoning_effort not in valid_efforts:
             print(f"❌ Error: --reasoning_effort must be one of: {', '.join(valid_efforts)}")
-            return
+            return None
         reasoning_config = {"enabled": True, "effort": reasoning_effort}
         print(f"🧠 Reasoning effort: {reasoning_effort}")
     
@@ -1276,11 +1276,11 @@ def main(
                 prefill_messages = json.load(f)
             if not isinstance(prefill_messages, list):
                 print("❌ Error: prefill_messages_file must contain a JSON array of messages")
-                return
+                return None
             print(f"💬 Loaded {len(prefill_messages)} prefill messages from {prefill_messages_file}")
         except Exception as e:
             print(f"❌ Error loading prefill messages: {e}")
-            return
+            return None
     
     # Initialize and run batch runner
     try:

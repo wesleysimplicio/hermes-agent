@@ -149,15 +149,14 @@ def _extract_text_body(msg: email_lib.message.Message) -> str:
                     html = payload.decode(charset, errors="replace")
                     return _strip_html(html)
         return ""
-    else:
-        payload = msg.get_payload(decode=True)
-        if payload:
-            charset = msg.get_content_charset() or "utf-8"
-            text = payload.decode(charset, errors="replace")
-            if msg.get_content_type() == "text/html":
-                return _strip_html(text)
-            return text
-        return ""
+    payload = msg.get_payload(decode=True)
+    if payload:
+        charset = msg.get_content_charset() or "utf-8"
+        text = payload.decode(charset, errors="replace")
+        if msg.get_content_type() == "text/html":
+            return _strip_html(text)
+        return text
+    return ""
 
 
 def _strip_html(html: str) -> str:

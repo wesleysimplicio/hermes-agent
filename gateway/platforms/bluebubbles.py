@@ -64,8 +64,7 @@ _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
 def _redact(text: str) -> str:
     """Redact phone numbers and emails from log output."""
     text = _PHONE_RE.sub("[REDACTED]", text)
-    text = _EMAIL_RE.sub("[REDACTED]", text)
-    return text
+    return _EMAIL_RE.sub("[REDACTED]", text)
 
 
 # ---------------------------------------------------------------------------
@@ -299,13 +298,12 @@ class BlueBubblesAdapter(BasePlatformAdapter):
                     self._webhook_register_url_for_log,
                 )
                 return True
-            else:
-                logger.warning(
-                    "[bluebubbles] webhook registration returned status %s: %s",
-                    status,
-                    res.get("message"),
-                )
-                return False
+            logger.warning(
+                "[bluebubbles] webhook registration returned status %s: %s",
+                status,
+                res.get("message"),
+            )
+            return False
         except Exception as exc:
             logger.warning(
                 "[bluebubbles] failed to register webhook with server: %s",

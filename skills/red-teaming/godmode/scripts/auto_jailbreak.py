@@ -565,7 +565,7 @@ def auto_jailbreak(model=None, base_url=None, api_key=None,
                     if verbose:
                         print(f"  [PARSELTONGUE] SUCCESS! Score: {result['score']}")
                     break
-                elif verbose:
+                if verbose:
                     status = "REFUSED" if result["is_refusal"] else f"score={result['score']}"
                     print(f"  [PARSELTONGUE] {status}")
 
@@ -686,30 +686,29 @@ def auto_jailbreak(model=None, base_url=None, api_key=None,
             "prefill_path": prefill_written,
             "attempts": attempts,
         }
-    else:
-        if verbose:
-            print("[FAILED] All strategies failed.")
-            print("[SUGGESTION] Try ULTRAPLINIAN mode to race multiple models:")
-            print('  race_models("your query", tier="standard")')
-            print()
-            print("Attempt summary:")
-            for a in attempts:
-                print(f"  {a['strategy']:30s} score={a['score']:>6d}  refused={a['is_refusal']}")
+    if verbose:
+        print("[FAILED] All strategies failed.")
+        print("[SUGGESTION] Try ULTRAPLINIAN mode to race multiple models:")
+        print('  race_models("your query", tier="standard")')
+        print()
+        print("Attempt summary:")
+        for a in attempts:
+            print(f"  {a['strategy']:30s} score={a['score']:>6d}  refused={a['is_refusal']}")
 
-        return {
-            "success": False,
-            "model": model,
-            "family": family,
-            "strategy": None,
-            "system_prompt": None,
-            "prefill": None,
-            "score": -9999,
-            "content_preview": "",
-            "config_path": None,
-            "prefill_path": None,
-            "attempts": attempts,
-            "message": "All strategies failed. Try ULTRAPLINIAN mode or a different model.",
-        }
+    return {
+        "success": False,
+        "model": model,
+        "family": family,
+        "strategy": None,
+        "system_prompt": None,
+        "prefill": None,
+        "score": -9999,
+        "content_preview": "",
+        "config_path": None,
+        "prefill_path": None,
+        "attempts": attempts,
+        "message": "All strategies failed. Try ULTRAPLINIAN mode or a different model.",
+    }
 
 
 def undo_jailbreak(verbose=True):

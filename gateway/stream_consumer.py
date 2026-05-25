@@ -693,9 +693,8 @@ class GatewayStreamConsumer:
                 # above so the next tool starts a new bubble below.
                 self._notify_new_message()
                 return str(result.message_id)
-            else:
-                self._edit_supported = False
-                return reply_to_id
+            self._edit_supported = False
+            return reply_to_id
         except Exception as e:
             logger.error("Stream send chunk error: %s", e)
             return reply_to_id
@@ -1233,86 +1232,82 @@ class GatewayStreamConsumer:
                         # Successful edit — reset flood strike counter
                         self._flood_strikes = 0
                         return True
-                    else:
-                        # Edit failed.  If this looks like flood control / rate
-                        # limiting, use adaptive backoff: double the edit interval
-                        # and retry on the next cycle.  Only permanently disable
-                        # edits after _MAX_FLOOD_STRIKES consecutive failures.
-                        if self._is_flood_error(result):
-                            self._flood_strikes += 1
-                            self._current_edit_interval = min(
-                                self._current_edit_interval * 2, 10.0,
-                            )
-                            logger.debug(
-                                "Flood control on edit (strike %d/%d), "
-                                "backoff interval → %.1fs",
-                                self._flood_strikes,
-                                self._MAX_FLOOD_STRIKES,
-                                self._current_edit_interval,
-                            )
-                            if self._flood_strikes < self._MAX_FLOOD_STRIKES:
-                                # Don't disable edits yet — just slow down.
-                                # Update _last_edit_time so the next edit
-                                # respects the new interval.
-                                self._last_edit_time = time.monotonic()
-                                return False
-
-                        # Non-flood error OR flood strikes exhausted: enter
-                        # fallback mode — send only the missing tail once the
-                        # final response is available.
-                        logger.debug(
-                            "Edit failed (strikes=%d), entering fallback mode",
-                            self._flood_strikes,
+                    # Edit failed.  If this looks like flood control / rate
+                    # limiting, use adaptive backoff: double the edit interval
+                    # and retry on the next cycle.  Only permanently disable
+                    # edits after _MAX_FLOOD_STRIKES consecutive failures.
+                    if self._is_flood_error(result):
+                        self._flood_strikes += 1
+                        self._current_edit_interval = min(
+                            self._current_edit_interval * 2, 10.0,
                         )
-                        self._fallback_prefix = self._visible_prefix()
-                        self._fallback_final_send = True
-                        self._edit_supported = False
-                        self._already_sent = True
-                        # Best-effort: strip the cursor from the last visible
-                        # message so the user doesn't see a stuck ▉.
-                        await self._try_strip_cursor()
-                        return False
-                else:
-                    # Editing not supported — skip intermediate updates.
-                    # The final response will be sent by the fallback path.
-                    return False
-            else:
-                # First message — send new, threaded to the original user message
-                # so it lands in the correct topic/thread.
-                result = await self.adapter.send(
-                    chat_id=self.chat_id,
-                    content=text,
-                    reply_to=self._initial_reply_to_id,
-                    metadata=self.metadata,
-                )
-                if result.success:
-                    if result.message_id:
-                        self._message_id = result.message_id
-                        # Track when the preview first became visible to
-                        # the user so fresh-final logic can detect stale
-                        # preview timestamps on long-running responses.
-                        self._message_created_ts = time.monotonic()
-                    else:
-                        self._edit_supported = False
-                    self._already_sent = True
-                    self._last_sent_text = text
-                    if not result.message_id:
-                        self._fallback_prefix = self._visible_prefix()
-                        self._fallback_final_send = True
-                        # Sentinel prevents re-entering the first-send path on
-                        # every delta/tool boundary when platforms accept a
-                        # message but do not return an editable message id.
-                        self._message_id = "__no_edit__"
-                    # Notify the gateway that a fresh content bubble was
-                    # created so any accumulated tool-progress bubble above
-                    # gets closed off — the next tool fires into a new
-                    # bubble below, preserving chronological order.
-                    self._notify_new_message()
-                    return True
-                else:
-                    # Initial send failed — disable streaming for this session
+                        logger.debug(
+                            "Flood control on edit (strike %d/%d), "
+                            "backoff interval → %.1fs",
+                            self._flood_strikes,
+                            self._MAX_FLOOD_STRIKES,
+                            self._current_edit_interval,
+                        )
+                        if self._flood_strikes < self._MAX_FLOOD_STRIKES:
+                            # Don't disable edits yet — just slow down.
+                            # Update _last_edit_time so the next edit
+                            # respects the new interval.
+                            self._last_edit_time = time.monotonic()
+                            return False
+
+                    # Non-flood error OR flood strikes exhausted: enter
+                    # fallback mode — send only the missing tail once the
+                    # final response is available.
+                    logger.debug(
+                        "Edit failed (strikes=%d), entering fallback mode",
+                        self._flood_strikes,
+                    )
+                    self._fallback_prefix = self._visible_prefix()
+                    self._fallback_final_send = True
                     self._edit_supported = False
+                    self._already_sent = True
+                    # Best-effort: strip the cursor from the last visible
+                    # message so the user doesn't see a stuck ▉.
+                    await self._try_strip_cursor()
                     return False
+                # Editing not supported — skip intermediate updates.
+                # The final response will be sent by the fallback path.
+                return False
+            # First message — send new, threaded to the original user message
+            # so it lands in the correct topic/thread.
+            result = await self.adapter.send(
+                chat_id=self.chat_id,
+                content=text,
+                reply_to=self._initial_reply_to_id,
+                metadata=self.metadata,
+            )
+            if result.success:
+                if result.message_id:
+                    self._message_id = result.message_id
+                    # Track when the preview first became visible to
+                    # the user so fresh-final logic can detect stale
+                    # preview timestamps on long-running responses.
+                    self._message_created_ts = time.monotonic()
+                else:
+                    self._edit_supported = False
+                self._already_sent = True
+                self._last_sent_text = text
+                if not result.message_id:
+                    self._fallback_prefix = self._visible_prefix()
+                    self._fallback_final_send = True
+                    # Sentinel prevents re-entering the first-send path on
+                    # every delta/tool boundary when platforms accept a
+                    # message but do not return an editable message id.
+                    self._message_id = "__no_edit__"
+                # Notify the gateway that a fresh content bubble was
+                # created so any accumulated tool-progress bubble above
+                # gets closed off — the next tool fires into a new
+                # bubble below, preserving chronological order.
+                self._notify_new_message()
+                return True
+            # Initial send failed — disable streaming for this session
+            self._edit_supported = False
+            return False
         except Exception as e:
             logger.error("Stream send/edit error: %s", e)
             return False

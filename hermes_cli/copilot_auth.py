@@ -248,7 +248,7 @@ def copilot_device_code_login(
         if error == "authorization_pending":
             print(".", end="", flush=True)
             continue
-        elif error == "slow_down":
+        if error == "slow_down":
             # RFC 8628: add 5 seconds to polling interval
             server_interval = result.get("interval")
             if isinstance(server_interval, (int, float)) and server_interval > 0:
@@ -257,15 +257,15 @@ def copilot_device_code_login(
                 interval += 5
             print(".", end="", flush=True)
             continue
-        elif error == "expired_token":
+        if error == "expired_token":
             print()
             print("  ✗ Device code expired. Please try again.")
             return None
-        elif error == "access_denied":
+        if error == "access_denied":
             print()
             print("  ✗ Authorization was denied.")
             return None
-        elif error:
+        if error:
             print()
             print(f"  ✗ Authorization failed: {error}")
             return None

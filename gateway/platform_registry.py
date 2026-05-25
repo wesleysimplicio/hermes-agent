@@ -244,8 +244,7 @@ class PlatformRegistry:
                 return None
 
         try:
-            adapter = entry.adapter_factory(config)
-            return adapter
+            return entry.adapter_factory(config)
         except Exception as e:
             logger.error(
                 "Failed to create adapter for platform '%s': %s",

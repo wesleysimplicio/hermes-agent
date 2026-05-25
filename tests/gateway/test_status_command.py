@@ -616,7 +616,7 @@ async def test_post_delivery_callback_generation_snapshot_happens_after_bind():
             lambda: fired.append("newer"),
             generation=2,
         )
-        return None
+        return
 
     adapter.set_message_handler(fake_handler)
     event = MessageEvent(text="hello", source=source, message_id="m1")

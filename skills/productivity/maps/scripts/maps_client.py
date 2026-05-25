@@ -198,6 +198,7 @@ def http_get(url, params=None, retries=MAX_RETRIES, silent=False):
     if silent:
         raise RuntimeError(msg)
     error_exit(msg)
+    return None
 
 
 def http_get_text(url, params=None, retries=MAX_RETRIES, silent=False):
@@ -231,6 +232,7 @@ def http_get_text(url, params=None, retries=MAX_RETRIES, silent=False):
     if silent:
         raise RuntimeError(msg)
     error_exit(msg)
+    return None
 
 
 def http_post(url, data_str, retries=MAX_RETRIES):
@@ -268,6 +270,7 @@ def http_post(url, data_str, retries=MAX_RETRIES):
             time.sleep(RETRY_DELAY * attempt)
 
     error_exit(f"POST failed after {retries} attempts. Last error: {last_error}")
+    return None
 
 
 def overpass_query(query):
@@ -292,6 +295,7 @@ def overpass_query(query):
     error_exit(
         f"All Overpass mirrors failed. Last error: {last_error or 'unknown'}"
     )
+    return None
 
 
 # ---------------------------------------------------------------------------

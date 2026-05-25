@@ -63,8 +63,7 @@ def _sanitize_error_text(text) -> str:
     """Redact secrets from error text before surfacing it to users/models."""
     redacted = redact_sensitive_text(text)
     redacted = _URL_SECRET_QUERY_RE.sub(lambda m: f"{m.group(1)}***", redacted)
-    redacted = _GENERIC_SECRET_ASSIGN_RE.sub(lambda m: f"{m.group(1)}=***", redacted)
-    return redacted
+    return _GENERIC_SECRET_ASSIGN_RE.sub(lambda m: f"{m.group(1)}=***", redacted)
 
 
 def _error(message: str) -> dict:
@@ -113,6 +112,7 @@ async def _send_telegram_message_with_retry(bot, *, attempts: int = 3, **kwargs)
                 _sanitize_error_text(exc),
             )
             await asyncio.sleep(delay)
+    return None
 
 
 SEND_MESSAGE_SCHEMA = {

@@ -416,8 +416,7 @@ class TestQQCloseError:
 class TestDispatchPayload:
     def _make_adapter(self, **extra):
         from gateway.platforms.qqbot import QQAdapter
-        adapter = QQAdapter(_make_config(**extra))
-        return adapter
+        return QQAdapter(_make_config(**extra))
 
     def test_unknown_op(self):
         adapter = self._make_adapter(app_id="a", client_secret="b")

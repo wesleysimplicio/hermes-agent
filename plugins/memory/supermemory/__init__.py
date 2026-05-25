@@ -549,13 +549,12 @@ class SupermemoryMemoryProvider(MemoryProvider):
         try:
             profile = self._client.get_profile(query=query[:200])
             include_profile = self._turn_count <= 1 or (self._turn_count % self._profile_frequency == 0)
-            context = _format_prefetch_context(
+            return _format_prefetch_context(
                 static_facts=profile["static"] if include_profile else [],
                 dynamic_facts=profile["dynamic"] if include_profile else [],
                 search_results=profile["search_results"],
                 max_results=self._max_recall_results,
             )
-            return context
         except Exception:
             logger.debug("Supermemory prefetch failed", exc_info=True)
             return ""

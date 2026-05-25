@@ -77,8 +77,7 @@ def _make_adapter():
         token="test-token",
         extra={"url": "https://mm.example.com"},
     )
-    adapter = MattermostAdapter(config)
-    return adapter
+    return MattermostAdapter(config)
 
 
 class TestMattermostFormatMessage:

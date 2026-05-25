@@ -6,7 +6,7 @@ from run_agent import AIAgent
 def _make_copilot_agent():
     with patch("run_agent.OpenAI") as mock_openai:
         mock_openai.return_value = MagicMock()
-        agent = AIAgent(
+        return AIAgent(
             api_key="gh-token",
             base_url="https://api.githubcopilot.com",
             provider="copilot",
@@ -15,7 +15,6 @@ def _make_copilot_agent():
             skip_context_files=True,
             skip_memory=True,
         )
-    return agent
 
 
 def test_request_client_adds_copilot_vision_header_for_native_image_payload():

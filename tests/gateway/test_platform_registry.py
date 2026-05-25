@@ -463,7 +463,7 @@ class TestApplyYamlConfigFnDispatch:
         def _hook(yaml_cfg, platform_cfg):
             if "flag" in platform_cfg and not os.getenv(env_var):
                 os.environ[env_var] = str(platform_cfg["flag"]).lower()
-            return None
+            return
 
         reg = self._register_hook("myhookplat", _hook)
         try:
@@ -514,7 +514,7 @@ class TestApplyYamlConfigFnDispatch:
         def _hook(yaml_cfg, platform_cfg):
             captured["yaml_cfg"] = yaml_cfg
             captured["platform_cfg"] = platform_cfg
-            return None
+            return
 
         reg = self._register_hook("mycaptureplat", _hook)
         try:
@@ -546,7 +546,7 @@ class TestApplyYamlConfigFnDispatch:
 
         def _good_hook(yaml_cfg, platform_cfg):
             good_called["count"] += 1
-            return None
+            return
 
         from gateway.platform_registry import platform_registry as _reg
         _reg.register(PlatformEntry(
@@ -590,7 +590,7 @@ class TestApplyYamlConfigFnDispatch:
 
         def _hook(yaml_cfg, platform_cfg):
             called["count"] += 1
-            return None
+            return
 
         reg = self._register_hook("myabsentplat", _hook)
         try:
@@ -612,7 +612,7 @@ class TestApplyYamlConfigFnDispatch:
 
         def _hook(yaml_cfg, platform_cfg):
             called["count"] += 1
-            return None
+            return
 
         reg = self._register_hook("mybadshapeplat", _hook)
         try:
@@ -638,7 +638,7 @@ class TestApplyYamlConfigFnDispatch:
         def _hook(yaml_cfg, platform_cfg):
             if "flag" in platform_cfg and not os.getenv(env_var):
                 os.environ[env_var] = str(platform_cfg["flag"]).lower()
-            return None
+            return
 
         reg = self._register_hook("myprecplat", _hook)
         try:

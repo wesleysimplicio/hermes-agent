@@ -57,8 +57,7 @@ def _make_adapter(dm_topics_config=None, group_topics_config=None):
     if group_topics_config is not None:
         extra["group_topics"] = group_topics_config
     config = PlatformConfig(enabled=True, token="***", extra=extra)
-    adapter = TelegramAdapter(config)
-    return adapter
+    return TelegramAdapter(config)
 
 
 # ── _setup_dm_topics: load persisted thread_ids ──
@@ -477,7 +476,7 @@ def _make_mock_message(chat_id=111, chat_type="private", text="hello", thread_id
     if is_topic_message is None:
         is_topic_message = bool(thread_id) if chat_type == "private" else None
 
-    msg = SimpleNamespace(
+    return SimpleNamespace(
         chat=chat,
         from_user=user,
         text=text,
@@ -488,7 +487,6 @@ def _make_mock_message(chat_id=111, chat_type="private", text="hello", thread_id
         date=None,
         forum_topic_created=forum_topic_created,
     )
-    return msg
 
 
 def test_build_message_event_sets_auto_skill():

@@ -46,13 +46,12 @@ def _make_event(text="hello", chat_id="123", platform_val="telegram"):
         chat_type="private",
         user_id="user1",
     )
-    evt = MessageEvent(
+    return MessageEvent(
         text=text,
         message_type=MessageType.TEXT,
         source=source,
         message_id="msg1",
     )
-    return evt
 
 
 def _make_runner():

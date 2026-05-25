@@ -566,8 +566,7 @@ def _normalize_anthropic_model_name(model: str) -> str:
         name = name[len("anthropic/"):]
     # Normalize dots to dashes in version numbers (e.g. 4.7 → 4-7, 4.6 → 4-6)
     # But preserve the rest of the name structure
-    name = re.sub(r"(\d+)\.(\d+)", r"\1-\2", name)
-    return name
+    return re.sub(r"(\d+)\.(\d+)", r"\1-\2", name)
 
 
 def _lookup_official_docs_pricing(route: BillingRoute) -> Optional[PricingEntry]:

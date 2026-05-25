@@ -4041,7 +4041,7 @@ class TestCredentialPoolRecovery:
 
             def mark_exhausted_and_rotate(self, *, status_code, error_context=None):
                 assert error_context is None
-                return None  # no more credentials
+                return  # no more credentials
 
         agent._credential_pool = _Pool()
         agent._swap_credential = MagicMock()

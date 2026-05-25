@@ -274,7 +274,7 @@ class SmsAdapter(BasePlatformAdapter):
                 (parsed.scheme, parsed.hostname, parsed.path,
                  parsed.params, parsed.query, parsed.fragment)
             )
-        elif parsed.port is None:
+        if parsed.port is None:
             # No port → add default
             netloc = f"{parsed.hostname}:{default_port}"
             return urllib.parse.urlunparse(

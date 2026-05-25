@@ -39,7 +39,7 @@ class DummyTelegramAdapter(BasePlatformAdapter):
 
     async def send_typing(self, chat_id: str, metadata=None) -> None:
         self.typing.append({"chat_id": chat_id, "metadata": metadata})
-        return None
+        return
 
     async def get_chat_info(self, chat_id: str):
         return {"id": chat_id}

@@ -1597,11 +1597,11 @@ class TestReconnection:
                 self_srv._tools = []
                 self_srv._ready.set()
                 raise ConnectionError("connection dropped")
-            else:
-                # Reconnection succeeds; signal shutdown so run() exits
-                self_srv.session = MagicMock()
-                self_srv._shutdown_event.set()
-                await self_srv._shutdown_event.wait()
+            # Reconnection succeeds; signal shutdown so run() exits
+            self_srv.session = MagicMock()
+            self_srv._shutdown_event.set()
+            await self_srv._shutdown_event.wait()
+            return None
 
         async def _test():
             nonlocal target_server
@@ -1751,6 +1751,7 @@ class TestConfigurableTimeouts:
             self_srv._tools = []
             self_srv._ready.set()
             await self_srv._shutdown_event.wait()
+            return None
 
         async def _test():
             nonlocal target_server
@@ -3239,12 +3240,11 @@ class TestMCPSelectiveToolLoading:
     """Tests for per-server MCP filtering and utility tool policies."""
 
     def _make_server(self, name, tool_names, session=None):
-        server = _make_mock_server(
+        return _make_mock_server(
             name,
             session=session or SimpleNamespace(),
             tools=[_make_mcp_tool(n, n) for n in tool_names],
         )
-        return server
 
     def _run_discover(self, name, tool_names, config, session=None):
         from tools.registry import ToolRegistry

@@ -190,9 +190,8 @@ def strip_markdown_preserving_urls(text: str) -> str:
 
     # Headings (#, ##) and bullet markers — strip the prefix only.
     text = _MD_HEADING_RE.sub("", text)
-    text = _MD_BULLET_RE.sub("• ", text)
+    return _MD_BULLET_RE.sub("• ", text)
 
-    return text
 
 
 def split_for_line(text: str, max_chars: int = LINE_SAFE_BUBBLE_CHARS) -> List[str]:

@@ -44,7 +44,7 @@ class DCFModelValidator:
         self.check_formula_errors()
         self.check_dcf_logic()
 
-        results = {
+        return {
             'file': self.excel_path,
             'validation_date': datetime.now().isoformat(),
             'status': 'PASS' if len(self.errors) == 0 else 'FAIL',
@@ -55,7 +55,6 @@ class DCFModelValidator:
             'info': self.info
         }
 
-        return results
     
     def check_sheet_structure(self):
         """Verify required sheets exist"""

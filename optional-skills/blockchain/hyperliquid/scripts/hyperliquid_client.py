@@ -131,8 +131,7 @@ def _post_info(payload: Dict[str, Any], timeout: int = 20, retries: int = 2) -> 
         request = urllib.request.Request(_info_url(), data=data, headers=headers, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
-                body = json.load(response)
-            return body
+                return json.load(response)
         except urllib.error.HTTPError as exc:
             if exc.code == 429 and attempt < retries:
                 time.sleep(1.5 * (attempt + 1))

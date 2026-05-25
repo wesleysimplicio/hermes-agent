@@ -523,13 +523,12 @@ def strip_think_blocks(agent, content: str) -> str:
     #     unterminated <function name="..."> because a truncated tail
     #     during streaming may still be valuable to the user; matches
     #     OpenClaw's intentional asymmetry.)
-    content = re.sub(
+    return re.sub(
         r'</(?:tool_call|tool_calls|tool_result|function_call|function_calls|function)>\s*',
         '',
         content,
         flags=re.IGNORECASE,
     )
-    return content
 
 
 
@@ -1547,7 +1546,7 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
             merge=function_args.get("merge", False),
             store=agent._todo_store,
         )
-    elif function_name == "session_search":
+    if function_name == "session_search":
         session_db = agent._get_session_db_for_recall()
         if not session_db:
             from hermes_state import format_session_db_unavailable
@@ -1564,7 +1563,7 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
             db=session_db,
             current_session_id=agent.session_id,
         )
-    elif function_name == "memory":
+    if function_name == "memory":
         target = function_args.get("target", "memory")
         from tools.memory_tool import memory_tool as _memory_tool
         result = _memory_tool(
@@ -1589,25 +1588,24 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
             except Exception:
                 pass
         return result
-    elif agent._memory_manager and agent._memory_manager.has_tool(function_name):
+    if agent._memory_manager and agent._memory_manager.has_tool(function_name):
         return agent._memory_manager.handle_tool_call(function_name, function_args)
-    elif function_name == "clarify":
+    if function_name == "clarify":
         from tools.clarify_tool import clarify_tool as _clarify_tool
         return _clarify_tool(
             question=function_args.get("question", ""),
             choices=function_args.get("choices"),
             callback=agent.clarify_callback,
         )
-    elif function_name == "delegate_task":
+    if function_name == "delegate_task":
         return agent._dispatch_delegate_task(function_args)
-    else:
-        return _ra().handle_function_call(
-            function_name, function_args, effective_task_id,
-            tool_call_id=tool_call_id,
-            session_id=agent.session_id or "",
-            enabled_tools=list(agent.valid_tool_names) if agent.valid_tool_names else None,
-            skip_pre_tool_call_hook=True,
-        )
+    return _ra().handle_function_call(
+        function_name, function_args, effective_task_id,
+        tool_call_id=tool_call_id,
+        session_id=agent.session_id or "",
+        enabled_tools=list(agent.valid_tool_names) if agent.valid_tool_names else None,
+        skip_pre_tool_call_hook=True,
+    )
 
 
 

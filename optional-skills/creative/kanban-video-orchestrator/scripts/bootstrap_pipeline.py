@@ -193,12 +193,11 @@ def render_brief(plan: dict) -> str:
         out = out.replace("{{" + k + "}}", str(v))
 
     # Scene + deliv tables: replace the placeholder row in the template
-    out = re.sub(
+    return re.sub(
         r"\|\s*1\s*\|\s*0:00–0:0X.+?\n\|\s*2\s*\|.+?\n",
         scene_table + "\n",
         out, flags=re.DOTALL,
     )
-    return out
 
 
 def render_team_md(plan: dict) -> str:
@@ -395,9 +394,8 @@ def render_setup_sh(plan: dict, brief_md: str, team_md: str) -> str:
     out = out.replace("{{BRIEF_CONTENTS}}", brief_md)
     out = out.replace("{{TEAM_CONTENTS}}", team_md)
     out = out.replace("{{TASTE_WRITES}}", taste_writes)
-    out = out.replace("{{ASSET_COPIES}}", asset_copies)
+    return out.replace("{{ASSET_COPIES}}", asset_copies)
 
-    return out
 
 
 def render_soul_md(team_member: dict, plan: dict) -> str:
@@ -457,8 +455,7 @@ def render_soul_md(team_member: dict, plan: dict) -> str:
         team_member.get("role_rules", "_(see TEAM.md and brief.md)_")
     )
     out = out.replace("{{COMMON_RULES}}", common_rules)
-    out = out.replace("{{COMMON_COMMANDS}}", common_commands)
-    return out
+    return out.replace("{{COMMON_COMMANDS}}", common_commands)
 
 
 def main():

@@ -255,7 +255,7 @@ def main():
         response = input("\n   Continue testing with current backend? (y/n): ")
         if response.lower() != 'y':
             print("Aborting.")
-            return
+            return None
     
     results = {}
     
@@ -264,7 +264,7 @@ def main():
     
     if not results['requirements']:
         print("\n❌ Requirements not met. Cannot continue with other tests.")
-        return
+        return None
     
     results['simple_command'] = test_simple_command()
     results['python_execution'] = test_python_execution()

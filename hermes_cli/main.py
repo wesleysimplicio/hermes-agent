@@ -192,7 +192,7 @@ def _apply_profile_override() -> None:
             profile_name = argv[i + 1]
             consume = 2
             break
-        elif arg.startswith("--profile="):
+        if arg.startswith("--profile="):
             profile_name = arg.split("=", 1)[1]
             consume = 1
             break
@@ -260,7 +260,7 @@ def _apply_profile_override() -> None:
                     start = i + 1  # +1 because argv is sys.argv[1:]
                     sys.argv = sys.argv[:start] + sys.argv[start + consume :]
                     break
-                elif arg.startswith("--profile="):
+                if arg.startswith("--profile="):
                     start = i + 1
                     sys.argv = sys.argv[:start] + sys.argv[start + 1 :]
                     break
@@ -7138,14 +7138,13 @@ def _stash_local_changes_if_needed(git_cmd: list[str], cwd: Path) -> Optional[st
         cwd=cwd,
         check=True,
     )
-    stash_ref = subprocess.run(
+    return subprocess.run(
         git_cmd + ["rev-parse", "--verify", "refs/stash"],
         cwd=cwd,
         capture_output=True,
         text=True,
         check=True,
     ).stdout.strip()
-    return stash_ref
 
 
 def _resolve_stash_selector(

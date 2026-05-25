@@ -82,8 +82,7 @@ def _import_platform_module(name: str) -> ModuleType:
     # Make sure the project root is on sys.path so relative imports work
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(PROJECT_ROOT))
-    module = importlib.import_module(f"plugins.platforms.{name}")
-    return module
+    return importlib.import_module(f"plugins.platforms.{name}")
 
 
 @pytest.mark.parametrize("platform_name", _PLATFORM_NAMES)

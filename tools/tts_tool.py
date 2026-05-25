@@ -1079,8 +1079,7 @@ def _apply_xai_auto_speech_tags(text: str) -> str:
     clean = re.sub(r"\n\s*\n+", " [pause] ", clean)
     clean = re.sub(r"\s*\n\s*", " ", clean)
     clean = _XAI_FIRST_SENTENCE_RE.sub(r"\1 [pause] ", clean, count=1)
-    clean = re.sub(r"\s{2,}", " ", clean).strip()
-    return clean
+    return re.sub(r"\s{2,}", " ", clean).strip()
 
 
 def _generate_xai_tts(text: str, output_path: str, tts_config: Dict[str, Any]) -> str:
@@ -1259,31 +1258,30 @@ def _generate_minimax_tts(text: str, output_path: str, tts_config: Dict[str, Any
             f.write(audio_bytes)
         return output_path
 
-    else:
-        # text_to_speech returns raw audio directly
-        content_type = response.headers.get("Content-Type", "")
+    # text_to_speech returns raw audio directly
+    content_type = response.headers.get("Content-Type", "")
 
-        if "audio/" in content_type:
-            with open(output_path, "wb") as f:
-                f.write(response.content)
-            return output_path
+    if "audio/" in content_type:
+        with open(output_path, "wb") as f:
+            f.write(response.content)
+        return output_path
 
-        # Fallback: try parsing as JSON
-        try:
-            result = response.json()
-            base_resp = result.get("base_resp", {})
-            status_code = base_resp.get("status_code", -1)
-            if status_code != 0:
-                status_msg = base_resp.get("status_msg", "unknown error")
-                raise RuntimeError(f"MiniMax TTS API error (code {status_code}): {status_msg}")
-        except Exception:
-            response.raise_for_status()
-            raise RuntimeError(
-                f"MiniMax TTS returned unexpected Content-Type '{content_type}' "
-                f"({len(response.content)} bytes)"
-            )
+    # Fallback: try parsing as JSON
+    try:
+        result = response.json()
+        base_resp = result.get("base_resp", {})
+        status_code = base_resp.get("status_code", -1)
+        if status_code != 0:
+            status_msg = base_resp.get("status_msg", "unknown error")
+            raise RuntimeError(f"MiniMax TTS API error (code {status_code}): {status_msg}")
+    except Exception:
+        response.raise_for_status()
+        raise RuntimeError(
+            f"MiniMax TTS returned unexpected Content-Type '{content_type}' "
+            f"({len(response.content)} bytes)"
+        )
 
-        raise RuntimeError("MiniMax TTS returned no audio data")
+    raise RuntimeError("MiniMax TTS returned no audio data")
 
 
 # ===========================================================================

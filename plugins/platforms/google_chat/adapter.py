@@ -291,12 +291,11 @@ def _redact_sensitive(text: str) -> str:
         "projects/<redacted>/topics/<redacted>",
         text,
     )
-    text = re.sub(
+    return re.sub(
         r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.iam\.gserviceaccount\.com",
         "<sa>@<project>.iam.gserviceaccount.com",
         text,
     )
-    return text
 
 
 def _mime_for_message_type(mime: str) -> MessageType:

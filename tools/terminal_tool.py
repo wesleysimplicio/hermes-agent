@@ -485,12 +485,11 @@ def _prompt_for_sudo_password(timeout_seconds: int = 45) -> str:
             print()
             sys.stdout.flush()
             return password
-        else:
-            print("\n  ⏱ Timeout - continuing without sudo")
-            print("    (Press Enter to dismiss)")
-            print()
-            sys.stdout.flush()
-            return ""
+        print("\n  ⏱ Timeout - continuing without sudo")
+        print("    (Press Enter to dismiss)")
+        print()
+        sys.stdout.flush()
+        return ""
             
     except (EOFError, KeyboardInterrupt):
         print()
@@ -1138,7 +1137,7 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
     if env_type == "local":
         return _LocalEnvironment(cwd=cwd, timeout=timeout)
     
-    elif env_type == "docker":
+    if env_type == "docker":
         return _DockerEnvironment(
             image=image, cwd=cwd, timeout=timeout,
             cpu=cpu, memory=memory, disk=disk,
@@ -1152,14 +1151,14 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             extra_args=docker_extra_args,
         )
     
-    elif env_type == "singularity":
+    if env_type == "singularity":
         return _SingularityEnvironment(
             image=image, cwd=cwd, timeout=timeout,
             cpu=cpu, memory=memory, disk=disk,
             persistent_filesystem=persistent, task_id=task_id,
         )
     
-    elif env_type == "modal":
+    if env_type == "modal":
         sandbox_kwargs = {}
         if cpu > 0:
             sandbox_kwargs["cpu"] = cpu
@@ -1211,7 +1210,7 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             persistent_filesystem=persistent, task_id=task_id,
         )
     
-    elif env_type == "daytona":
+    if env_type == "daytona":
         # Lazy import so daytona SDK is only required when backend is selected.
         from tools.environments.daytona import DaytonaEnvironment as _DaytonaEnvironment
         return _DaytonaEnvironment(
@@ -1220,7 +1219,7 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             persistent_filesystem=persistent, task_id=task_id,
         )
 
-    elif env_type == "vercel_sandbox":
+    if env_type == "vercel_sandbox":
         from tools.environments.vercel_sandbox import (
             VercelSandboxEnvironment as _VercelSandboxEnvironment,
         )
@@ -1235,7 +1234,7 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             task_id=task_id,
         )
 
-    elif env_type == "ssh":
+    if env_type == "ssh":
         if not ssh_config or not ssh_config.get("host") or not ssh_config.get("user"):
             raise ValueError("SSH environment requires ssh_host and ssh_user to be configured")
         return _SSHEnvironment(
@@ -1247,11 +1246,10 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             timeout=timeout,
         )
 
-    else:
-        raise ValueError(
-            f"Unknown environment type: {env_type}. Use 'local', 'docker', "
-            f"'singularity', 'modal', 'daytona', 'vercel_sandbox', or 'ssh'"
-        )
+    raise ValueError(
+        f"Unknown environment type: {env_type}. Use 'local', 'docker', "
+        f"'singularity', 'modal', 'daytona', 'vercel_sandbox', or 'ssh'"
+    )
 
 
 def _cleanup_inactive_envs(lifetime_seconds: int = 300):
@@ -1565,8 +1563,7 @@ def _strip_quotes(command: str) -> str:
     # Remove double-quoted strings (handle escaped quotes)
     result = re.sub(r'"(?:[^"\\]|\\.)*"', '""', result)
     # Remove backtick-quoted strings
-    result = re.sub(r"`[^`]*`", "``", result)
-    return result
+    return re.sub(r"`[^`]*`", "``", result)
 
 
 _LONG_LIVED_FOREGROUND_PATTERNS = (
@@ -2185,7 +2182,7 @@ def check_terminal_requirements() -> bool:
         if env_type == "local":
             return True
 
-        elif env_type == "docker":
+        if env_type == "docker":
             from tools.environments.docker import find_docker
             docker = find_docker()
             if not docker:
@@ -2194,14 +2191,14 @@ def check_terminal_requirements() -> bool:
             result = subprocess.run([docker, "version"], capture_output=True, timeout=5)
             return result.returncode == 0
 
-        elif env_type == "singularity":
+        if env_type == "singularity":
             executable = shutil.which("apptainer") or shutil.which("singularity")
             if executable:
                 result = subprocess.run([executable, "--version"], capture_output=True, timeout=5)
                 return result.returncode == 0
             return False
 
-        elif env_type == "ssh":
+        if env_type == "ssh":
             if not config.get("ssh_host") or not config.get("ssh_user"):
                 logger.error(
                     "SSH backend selected but TERMINAL_SSH_HOST and TERMINAL_SSH_USER "
@@ -2210,7 +2207,7 @@ def check_terminal_requirements() -> bool:
                 return False
             return True
 
-        elif env_type == "modal":
+        if env_type == "modal":
             modal_state = _get_modal_backend_state(config.get("modal_mode"))
             if modal_state["selected_backend"] == "managed":
                 return True
@@ -2231,7 +2228,7 @@ def check_terminal_requirements() -> bool:
                         "TERMINAL_MODAL_MODE=direct/auto."
                     )
                     return False
-                elif modal_state["mode"] == "direct":
+                if modal_state["mode"] == "direct":
                     if managed_nous_tools_enabled():
                         logger.error(
                             "Modal backend selected with TERMINAL_MODAL_MODE=direct, but no direct "
@@ -2245,19 +2242,18 @@ def check_terminal_requirements() -> bool:
                             "TERMINAL_MODAL_MODE=auto."
                         )
                     return False
+                if managed_nous_tools_enabled():
+                    logger.error(
+                        "Modal backend selected but no direct Modal credentials/config or managed "
+                        "tool gateway was found. Configure Modal, set up the managed gateway, "
+                        "or choose a different TERMINAL_ENV."
+                    )
                 else:
-                    if managed_nous_tools_enabled():
-                        logger.error(
-                            "Modal backend selected but no direct Modal credentials/config or managed "
-                            "tool gateway was found. Configure Modal, set up the managed gateway, "
-                            "or choose a different TERMINAL_ENV."
-                        )
-                    else:
-                        logger.error(
-                            "Modal backend selected but no direct Modal credentials/config was found. "
-                            "Configure Modal or choose a different TERMINAL_ENV."
-                        )
-                    return False
+                    logger.error(
+                        "Modal backend selected but no direct Modal credentials/config was found. "
+                        "Configure Modal or choose a different TERMINAL_ENV."
+                    )
+                return False
 
             if importlib.util.find_spec("modal") is None:
                 logger.error("modal is required for direct modal terminal backend: pip install modal")
@@ -2265,20 +2261,19 @@ def check_terminal_requirements() -> bool:
 
             return True
 
-        elif env_type == "vercel_sandbox":
+        if env_type == "vercel_sandbox":
             return _check_vercel_sandbox_requirements(config)
 
-        elif env_type == "daytona":
+        if env_type == "daytona":
             from daytona import Daytona  # noqa: F401 — SDK presence check
             return os.getenv("DAYTONA_API_KEY") is not None
 
-        else:
-            logger.error(
-                "Unknown TERMINAL_ENV '%s'. Use one of: local, docker, singularity, "
-                "modal, daytona, vercel_sandbox, ssh.",
-                env_type,
-            )
-            return False
+        logger.error(
+            "Unknown TERMINAL_ENV '%s'. Use one of: local, docker, singularity, "
+            "modal, daytona, vercel_sandbox, ssh.",
+            env_type,
+        )
+        return False
     except Exception as e:
         logger.error("Terminal requirements check failed: %s", e, exc_info=True)
         return False

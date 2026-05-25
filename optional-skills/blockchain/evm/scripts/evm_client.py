@@ -486,8 +486,7 @@ def _keccak256(data: bytes) -> bytes:
             # Iota
             state[0] ^= RC[rnd]
     # Squeeze
-    out = b"".join(state[i].to_bytes(8, "little") for i in range(4))
-    return out
+    return b"".join(state[i].to_bytes(8, "little") for i in range(4))
 
 
 def _selector(sig: str) -> str:

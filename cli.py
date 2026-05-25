@@ -2356,8 +2356,7 @@ def _strip_leaked_bracketed_paste_wrappers(text: str) -> str:
     text = re.sub(r"(^|[\s\n>:\]\)])\[200~", r"\1", text)
     text = re.sub(r"\[201~(?=$|[\s\n<\[\(\):;.,!?])", "", text)
     text = re.sub(r"(^|[\s\n>:\]\)])00~", r"\1", text)
-    text = re.sub(r"01~(?=$|[\s\n<\[\(\):;.,!?])", "", text)
-    return text
+    return re.sub(r"01~(?=$|[\s\n<\[\(\):;.,!?])", "", text)
 
 
 # Cursor Position Report (CPR / DSR) response, format ``ESC[<row>;<col>R``.
@@ -5382,9 +5381,8 @@ class HermesCLI:
             idx = int(ref) - 1  # 1-indexed for user
             if 0 <= idx < len(checkpoints):
                 return checkpoints[idx]["hash"]
-            else:
-                print(f"  Invalid checkpoint number. Use 1-{len(checkpoints)}.")
-                return None
+            print(f"  Invalid checkpoint number. Use 1-{len(checkpoints)}.")
+            return None
         except ValueError:
             # Treat as a git hash
             return ref
@@ -8105,7 +8103,7 @@ class HermesCLI:
                 _cprint(f"  {_DIM}✗ Unknown argument: {_escape(_args)}. Use /exit --delete to also remove session history.{_RST}")
                 return True
             return False
-        elif canonical == "help":
+        if canonical == "help":
             self.show_help()
         elif canonical == "profile":
             self._handle_profile_command()
@@ -8128,7 +8126,7 @@ class HermesCLI:
                 "The current conversation history will be discarded.",
                 cmd_original=cmd_original,
             ) is None:
-                return
+                return None
             self.new_session(silent=True)
             _clear_output_history()
             # Clear terminal screen.  Inside the TUI, Rich's console.clear()
@@ -8262,7 +8260,7 @@ class HermesCLI:
                 "The current conversation history will be discarded.",
                 cmd_original=cmd_original,
             ) is None:
-                return
+                return None
             self.new_session(title=title)
         elif canonical == "resume":
             self._handle_resume_command(cmd_original)
@@ -8289,7 +8287,7 @@ class HermesCLI:
                 "This removes the last user/assistant exchange from history.",
                 cmd_original=cmd_original,
             ) is None:
-                return
+                return None
             self.undo_last()
         elif canonical == "branch":
             self._handle_branch_command(cmd_original)
@@ -8470,8 +8468,7 @@ class HermesCLI:
                         user_args = cmd_original[len(base_cmd):].strip()
                         aliased_command = f"{target} {user_args}".strip()
                         return self.process_command(aliased_command)
-                    else:
-                        self._console_print(f"[bold red]Quick command '{base_cmd}' has no target defined[/]")
+                    self._console_print(f"[bold red]Quick command '{base_cmd}' has no target defined[/]")
                 else:
                     self._console_print(f"[bold red]Quick command '{base_cmd}' has unsupported type (supported: 'exec', 'alias')[/]")
             # Check for plugin-registered slash commands

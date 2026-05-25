@@ -24,8 +24,7 @@ def _make_adapter():
     from gateway.config import PlatformConfig
 
     config = PlatformConfig(enabled=True, token="test-key")
-    adapter = APIServerAdapter(config)
-    return adapter
+    return APIServerAdapter(config)
 
 
 def _make_request():

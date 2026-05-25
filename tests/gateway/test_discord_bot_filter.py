@@ -51,7 +51,7 @@ class TestDiscordBotFilter(unittest.TestCase):
             allow = allow_bots.lower().strip()
             if allow == "none":
                 return False
-            elif allow == "mentions":
+            if allow == "mentions":
                 if not client_user or client_user not in message.mentions:
                     return False
             # "all" falls through

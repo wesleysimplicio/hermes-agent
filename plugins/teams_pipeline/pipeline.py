@@ -409,22 +409,19 @@ class TeamsMeetingPipeline:
             job = self._persist_job(job, summary_payload=summary_payload.to_dict())
 
             await self._write_sinks(job, summary_payload)
-            job = self._persist_job(job, status="completed")
-            return job
+            return self._persist_job(job, status="completed")
         except TeamsPipelineRetryableError as exc:
-            job = self._persist_job(
+            return self._persist_job(
                 job,
                 status="retry_scheduled",
                 error_info={"message": str(exc), "retryable": True},
             )
-            return job
         except Exception as exc:
-            job = self._persist_job(
+            return self._persist_job(
                 job,
                 status="failed",
                 error_info={"message": str(exc), "type": type(exc).__name__},
             )
-            return job
 
     def _coerce_job(self, job_or_id: TeamsMeetingPipelineJob | str) -> TeamsMeetingPipelineJob:
         if isinstance(job_or_id, TeamsMeetingPipelineJob):

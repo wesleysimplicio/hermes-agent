@@ -1315,8 +1315,7 @@ class MatrixAdapter(BasePlatformAdapter):
     def format_message(self, content: str) -> str:
         """Pass-through — Matrix supports standard Markdown natively."""
         # Strip image markdown; media is uploaded separately.
-        content = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r"\2", content)
-        return content
+        return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", r"\2", content)
 
     # ------------------------------------------------------------------
     # File helpers

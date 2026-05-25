@@ -4154,9 +4154,9 @@ def _is_service_installed() -> bool:
     """Check if the gateway is installed as a system service."""
     if supports_systemd_services():
         return get_systemd_unit_path(system=False).exists() or get_systemd_unit_path(system=True).exists()
-    elif is_macos():
+    if is_macos():
         return get_launchd_plist_path().exists()
-    elif is_windows():
+    if is_windows():
         from hermes_cli import gateway_windows
         return gateway_windows.is_installed()
     return False
@@ -4191,7 +4191,7 @@ def _is_service_running() -> bool:
                 pass
 
         return False
-    elif is_macos() and get_launchd_plist_path().exists():
+    if is_macos() and get_launchd_plist_path().exists():
         try:
             result = subprocess.run(
                 ["launchctl", "list", get_launchd_label()],

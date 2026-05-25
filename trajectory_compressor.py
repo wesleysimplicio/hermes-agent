@@ -636,6 +636,7 @@ Write only the summary, starting with "[CONTEXT SUMMARY]:" prefix."""
                 else:
                     # Fallback: create a basic summary
                     return "[CONTEXT SUMMARY]: [Summary generation failed - previous turns contained tool calls and responses that have been compressed to save context space.]"
+        return None
     
     async def _generate_summary_async(self, content: str, metrics: TrajectoryMetrics) -> str:
         """
@@ -705,6 +706,7 @@ Write only the summary, starting with "[CONTEXT SUMMARY]:" prefix."""
                 else:
                     # Fallback: create a basic summary
                     return "[CONTEXT SUMMARY]: [Summary generation failed - previous turns contained tool calls and responses that have been compressed to save context space.]"
+        return None
     
     def compress_trajectory(
         self,

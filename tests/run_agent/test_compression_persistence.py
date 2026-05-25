@@ -36,7 +36,7 @@ class TestFlushAfterCompression:
     def _make_agent(self, session_db):
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             from run_agent import AIAgent
-            agent = AIAgent(
+            return AIAgent(
                 api_key="test-key",
                 base_url="https://openrouter.ai/api/v1",
                 model="test/model",
@@ -46,7 +46,6 @@ class TestFlushAfterCompression:
                 skip_context_files=True,
                 skip_memory=True,
             )
-        return agent
 
     def test_flush_after_compression_with_long_history(self):
         """The actual bug: conversation_history longer than compressed messages.

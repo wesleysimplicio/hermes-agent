@@ -3627,7 +3627,7 @@ def resolve_provider_client(
                        "directly supported", provider)
         return None, None
 
-    elif pconfig.auth_type == "aws_sdk":
+    if pconfig.auth_type == "aws_sdk":
         # AWS SDK providers (Bedrock) — use the Anthropic Bedrock client via
         # boto3's credential chain (IAM roles, SSO, env vars, instance metadata).
         try:
@@ -3660,7 +3660,7 @@ def resolve_provider_client(
         return (_to_async_client(client, final_model, is_vision=is_vision) if async_mode
                 else (client, final_model))
 
-    elif pconfig.auth_type in {"oauth_device_code", "oauth_external"}:
+    if pconfig.auth_type in {"oauth_device_code", "oauth_external"}:
         # OAuth providers — route through their specific try functions
         if provider == "nous":
             return resolve_provider_client("nous", model, async_mode)

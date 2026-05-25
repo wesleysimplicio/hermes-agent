@@ -368,10 +368,9 @@ def _get_file_ops(task_id: str = "default") -> ShellFileOperations:
             if task_id in _active_environments:
                 _last_activity[task_id] = time.time()
                 return cached
-            else:
-                # Environment was cleaned up -- invalidate stale cache entry
-                with _file_ops_lock:
-                    _file_ops_cache.pop(task_id, None)
+            # Environment was cleaned up -- invalidate stale cache entry
+            with _file_ops_lock:
+                _file_ops_cache.pop(task_id, None)
 
     # Need to ensure the environment exists before building file_ops.
     # Acquire per-task lock so only one thread creates the sandbox.
@@ -680,7 +679,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
                 "path": path,
                 "already_read": count,
             }, ensure_ascii=False)
-        elif count >= 3:
+        if count >= 3:
             result_dict["_warning"] = (
                 f"You have read this exact file region {count} times consecutively. "
                 "The content has not changed since your last read. Use the information you already have. "

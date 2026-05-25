@@ -196,21 +196,20 @@ def test_current_implementation():
         print("\n❌ ISSUE: No checkpoint updates observed during run")
         print("   This suggests checkpoints are only saved at the end")
         return False
-    elif len(snapshots) == 1:
+    if len(snapshots) == 1:
         print("\n⚠️  WARNING: Only 1 checkpoint update (likely at the end)")
         print("   This confirms the bug - no incremental checkpointing")
         return False
-    else:
-        print(f"\n✅ GOOD: Multiple checkpoint updates ({len(snapshots)}) observed")
-        print("   Checkpointing appears to be incremental")
-        
-        # Show timeline
-        print("\n📈 Checkpoint Timeline:")
-        for i, snapshot in enumerate(snapshots, 1):
-            print(f"   {i}. [{snapshot['elapsed_seconds']:6.2f}s] "
-                  f"{snapshot['completed_count']} prompts completed")
-        
-        return True
+    print(f"\n✅ GOOD: Multiple checkpoint updates ({len(snapshots)}) observed")
+    print("   Checkpointing appears to be incremental")
+    
+    # Show timeline
+    print("\n📈 Checkpoint Timeline:")
+    for i, snapshot in enumerate(snapshots, 1):
+        print(f"   {i}. [{snapshot['elapsed_seconds']:6.2f}s] "
+              f"{snapshot['completed_count']} prompts completed")
+    
+    return True
 
 
 def test_interruption_and_resume():
@@ -299,9 +298,8 @@ def test_interruption_and_resume():
         if final_completed == 15:
             print("\n✅ PASS: Resume successfully completed all prompts")
             return True
-        else:
-            print(f"\n❌ FAIL: Expected 15 completed, got {final_completed}")
-            return False
+        print(f"\n❌ FAIL: Expected 15 completed, got {final_completed}")
+        return False
             
     except Exception as e:
         print(f"❌ Error during test: {e}")
@@ -318,7 +316,7 @@ def test_simulated_crash():
     print("=" * 70)
     print("\n📝 This test would require running in a subprocess and killing it...")
     print("   Skipping for safety - manual testing recommended")
-    return None
+    return
 
 
 def print_test_plan():

@@ -674,7 +674,7 @@ class ShellFileOperations(FileOperations):
                 home = result.stdout.strip()
                 if path == '~':
                     return home
-                elif path.startswith('~/'):
+                if path.startswith('~/'):
                     return home + path[1:]  # Replace ~ with home
                 # ~username format - extract and validate username before
                 # letting shell expand it (prevent shell injection via
@@ -1163,8 +1163,7 @@ class ShellFileOperations(FileOperations):
             return PatchResult(error=f"Failed to parse patch: {parse_error}")
         
         # Apply operations
-        result = apply_v4a_operations(operations, self)
-        return result
+        return apply_v4a_operations(operations, self)
     
     def _check_lint(self, path: str, content: Optional[str] = None) -> LintResult:
         """
@@ -1569,9 +1568,8 @@ class ShellFileOperations(FileOperations):
         
         if target == "files":
             return self._search_files(pattern, path, limit, offset)
-        else:
-            return self._search_content(pattern, path, file_glob, limit, offset, 
-                                        output_mode, context)
+        return self._search_content(pattern, path, file_glob, limit, offset, 
+                                    output_mode, context)
     
     def _search_files(self, pattern: str, path: str, limit: int, offset: int) -> SearchResult:
         """Search for files by name pattern (glob-like)."""
@@ -1705,15 +1703,14 @@ class ShellFileOperations(FileOperations):
         if self._has_command('rg'):
             return self._search_with_rg(pattern, path, file_glob, limit, offset, 
                                         output_mode, context)
-        elif self._has_command('grep'):
+        if self._has_command('grep'):
             return self._search_with_grep(pattern, path, file_glob, limit, offset,
                                           output_mode, context)
-        else:
-            # Neither rg nor grep available (Windows without Git Bash, etc.)
-            return SearchResult(
-                error="Content search requires ripgrep (rg) or grep. "
-                      "Install ripgrep: https://github.com/BurntSushi/ripgrep#installation"
-            )
+        # Neither rg nor grep available (Windows without Git Bash, etc.)
+        return SearchResult(
+            error="Content search requires ripgrep (rg) or grep. "
+                  "Install ripgrep: https://github.com/BurntSushi/ripgrep#installation"
+        )
     
     def _search_with_rg(self, pattern: str, path: str, file_glob: Optional[str],
                         limit: int, offset: int, output_mode: str, context: int) -> SearchResult:
@@ -1759,7 +1756,7 @@ class ShellFileOperations(FileOperations):
             page = all_files[offset:offset + limit]
             return SearchResult(files=page, total_count=total)
         
-        elif output_mode == "count":
+        if output_mode == "count":
             counts = {}
             for line in result.stdout.strip().split('\n'):
                 if ':' in line:
@@ -1771,47 +1768,46 @@ class ShellFileOperations(FileOperations):
                             pass
             return SearchResult(counts=counts, total_count=sum(counts.values()))
         
-        else:
-            # Parse content matches and context lines.
-            # rg match lines:   "file:lineno:content"  (colon separator)
-            # rg context lines: "file-lineno-content"   (dash separator)
-            # rg group seps:    "--"
-            # Note: on Windows, paths contain drive letters (e.g. C:\path),
-            # so naive split(":") breaks. Use regex to handle both platforms.
-            _match_re = re.compile(r'^([A-Za-z]:)?(.*?):(\d+):(.*)$')
-            matches = []
-            for line in result.stdout.strip().split('\n'):
-                if not line or line == "--":
-                    continue
-                
-                # Try match line first (colon-separated: file:line:content)
-                m = _match_re.match(line)
-                if m:
+        # Parse content matches and context lines.
+        # rg match lines:   "file:lineno:content"  (colon separator)
+        # rg context lines: "file-lineno-content"   (dash separator)
+        # rg group seps:    "--"
+        # Note: on Windows, paths contain drive letters (e.g. C:\path),
+        # so naive split(":") breaks. Use regex to handle both platforms.
+        _match_re = re.compile(r'^([A-Za-z]:)?(.*?):(\d+):(.*)$')
+        matches = []
+        for line in result.stdout.strip().split('\n'):
+            if not line or line == "--":
+                continue
+
+            # Try match line first (colon-separated: file:line:content)
+            m = _match_re.match(line)
+            if m:
+                matches.append(SearchMatch(
+                    path=(m.group(1) or '') + m.group(2),
+                    line_number=int(m.group(3)),
+                    content=m.group(4)[:500]
+                ))
+                continue
+
+            # Try context line (dash-separated: file-line-content)
+            # Only attempt if context was requested to avoid false positives
+            if context > 0:
+                parsed = _parse_search_context_line(line)
+                if parsed:
                     matches.append(SearchMatch(
-                        path=(m.group(1) or '') + m.group(2),
-                        line_number=int(m.group(3)),
-                        content=m.group(4)[:500]
+                        path=parsed[0],
+                        line_number=parsed[1],
+                        content=parsed[2][:500]
                     ))
-                    continue
-                
-                # Try context line (dash-separated: file-line-content)
-                # Only attempt if context was requested to avoid false positives
-                if context > 0:
-                    parsed = _parse_search_context_line(line)
-                    if parsed:
-                        matches.append(SearchMatch(
-                            path=parsed[0],
-                            line_number=parsed[1],
-                            content=parsed[2][:500]
-                        ))
-            
-            total = len(matches)
-            page = matches[offset:offset + limit]
-            return SearchResult(
-                matches=page,
-                total_count=total,
-                truncated=total > offset + limit
-            )
+
+        total = len(matches)
+        page = matches[offset:offset + limit]
+        return SearchResult(
+            matches=page,
+            total_count=total,
+            truncated=total > offset + limit
+        )
     
     def _search_with_grep(self, pattern: str, path: str, file_glob: Optional[str],
                           limit: int, offset: int, output_mode: str, context: int) -> SearchResult:
@@ -1858,7 +1854,7 @@ class ShellFileOperations(FileOperations):
             page = all_files[offset:offset + limit]
             return SearchResult(files=page, total_count=total)
         
-        elif output_mode == "count":
+        if output_mode == "count":
             counts = {}
             for line in result.stdout.strip().split('\n'):
                 if ':' in line:
@@ -1870,41 +1866,40 @@ class ShellFileOperations(FileOperations):
                             pass
             return SearchResult(counts=counts, total_count=sum(counts.values()))
         
-        else:
-            # grep match lines:   "file:lineno:content" (colon)
-            # grep context lines: "file-lineno-content"  (dash)
-            # grep group seps:    "--"
-            # Note: on Windows, paths contain drive letters (e.g. C:\path),
-            # so naive split(":") breaks. Use regex to handle both platforms.
-            _match_re = re.compile(r'^([A-Za-z]:)?(.*?):(\d+):(.*)$')
-            matches = []
-            for line in result.stdout.strip().split('\n'):
-                if not line or line == "--":
-                    continue
-                
-                m = _match_re.match(line)
-                if m:
-                    matches.append(SearchMatch(
-                        path=(m.group(1) or '') + m.group(2),
-                        line_number=int(m.group(3)),
-                        content=m.group(4)[:500]
-                    ))
-                    continue
-                
-                if context > 0:
-                    parsed = _parse_search_context_line(line)
-                    if parsed:
-                        matches.append(SearchMatch(
-                            path=parsed[0],
-                            line_number=parsed[1],
-                            content=parsed[2][:500]
-                        ))
+        # grep match lines:   "file:lineno:content" (colon)
+        # grep context lines: "file-lineno-content"  (dash)
+        # grep group seps:    "--"
+        # Note: on Windows, paths contain drive letters (e.g. C:\path),
+        # so naive split(":") breaks. Use regex to handle both platforms.
+        _match_re = re.compile(r'^([A-Za-z]:)?(.*?):(\d+):(.*)$')
+        matches = []
+        for line in result.stdout.strip().split('\n'):
+            if not line or line == "--":
+                continue
 
-            
-            total = len(matches)
-            page = matches[offset:offset + limit]
-            return SearchResult(
-                matches=page,
-                total_count=total,
-                truncated=total > offset + limit
-            )
+            m = _match_re.match(line)
+            if m:
+                matches.append(SearchMatch(
+                    path=(m.group(1) or '') + m.group(2),
+                    line_number=int(m.group(3)),
+                    content=m.group(4)[:500]
+                ))
+                continue
+
+            if context > 0:
+                parsed = _parse_search_context_line(line)
+                if parsed:
+                    matches.append(SearchMatch(
+                        path=parsed[0],
+                        line_number=parsed[1],
+                        content=parsed[2][:500]
+                    ))
+
+
+        total = len(matches)
+        page = matches[offset:offset + limit]
+        return SearchResult(
+            matches=page,
+            total_count=total,
+            truncated=total > offset + limit
+        )

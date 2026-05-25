@@ -400,7 +400,7 @@ def test_install_with_optional_fallback_honors_custom_group(monkeypatch):
         calls.append(cmd)
         if cmd[-1] == ".[termux-all]":
             raise CalledProcessError(returncode=1, cmd=cmd)
-        return None
+        return
 
     monkeypatch.setattr(hermes_main, "_run_install_with_heartbeat", fake_run_with_heartbeat)
 

@@ -508,8 +508,7 @@ class TestSessionStoreRewriteTranscript:
         import hermes_state
         monkeypatch.setattr(hermes_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         config = GatewayConfig()
-        s = SessionStore(sessions_dir=tmp_path, config=config)
-        return s
+        return SessionStore(sessions_dir=tmp_path, config=config)
 
     def test_rewrite_replaces_transcript(self, store, tmp_path):
         session_id = "test_session_1"

@@ -1782,7 +1782,7 @@ class SlackAdapter(BasePlatformAdapter):
             allow_bots = str(allow_bots).lower().strip()
             if allow_bots == "none":
                 return
-            elif allow_bots == "mentions":
+            if allow_bots == "mentions":
                 text_check = event.get("text", "")
                 if self._bot_user_id and f"<@{self._bot_user_id}>" not in text_check:
                     return
@@ -2917,9 +2917,8 @@ class SlackAdapter(BasePlatformAdapter):
                     if audio:
                         from gateway.platforms.base import cache_audio_from_bytes
                         return cache_audio_from_bytes(response.content, ext)
-                    else:
-                        from gateway.platforms.base import cache_image_from_bytes
-                        return cache_image_from_bytes(response.content, ext)
+                    from gateway.platforms.base import cache_image_from_bytes
+                    return cache_image_from_bytes(response.content, ext)
                 except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
                     if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code < 429:
                         raise
@@ -2929,6 +2928,7 @@ class SlackAdapter(BasePlatformAdapter):
                         await asyncio.sleep(1.5 * (attempt + 1))
                         continue
                     raise
+        return None
 
     async def _download_slack_file_bytes(self, url: str, team_id: str = "") -> bytes:
         """Download a Slack file and return raw bytes, with retry."""
@@ -2963,6 +2963,7 @@ class SlackAdapter(BasePlatformAdapter):
                         await asyncio.sleep(1.5 * (attempt + 1))
                         continue
                     raise
+        return None
 
     # ── Channel mention gating ─────────────────────────────────────────────
 

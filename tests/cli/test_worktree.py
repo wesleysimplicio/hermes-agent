@@ -174,7 +174,7 @@ def _cleanup_worktree(info):
     repo_root = info["repo_root"]
 
     if not Path(wt_path).exists():
-        return
+        return None
 
     if _has_unpushed_commits(wt_path, timeout=10):
         return False  # Did not clean up — has unpushed commits

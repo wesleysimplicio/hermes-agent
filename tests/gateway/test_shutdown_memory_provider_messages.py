@@ -37,8 +37,7 @@ def _mock_dotenv(monkeypatch):
 def _make_runner():
     from gateway.run import GatewayRunner
 
-    runner = object.__new__(GatewayRunner)
-    return runner
+    return object.__new__(GatewayRunner)
 
 
 # A lightweight stand-in for AIAgent so ``isinstance(..., list)`` correctly

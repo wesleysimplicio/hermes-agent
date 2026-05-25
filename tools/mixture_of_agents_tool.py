@@ -176,6 +176,7 @@ async def _run_reference_model_safe(
                 error_msg = f"{model} failed after {max_retries} attempts: {error_str}"
                 logger.error("%s", error_msg, exc_info=True)
                 return model, error_msg, False
+    return None
 
 
 async def _run_aggregator_model(

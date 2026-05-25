@@ -415,9 +415,8 @@ class HomeAssistantAdapter(BasePlatformAdapter):
                 ) as resp:
                     if resp.status < 300:
                         return SendResult(success=True, message_id=uuid.uuid4().hex[:12])
-                    else:
-                        body = await resp.text()
-                        return SendResult(success=False, error=f"HTTP {resp.status}: {body}")
+                    body = await resp.text()
+                    return SendResult(success=False, error=f"HTTP {resp.status}: {body}")
             else:
                 async with aiohttp.ClientSession() as session:
                     async with session.post(
@@ -428,9 +427,8 @@ class HomeAssistantAdapter(BasePlatformAdapter):
                     ) as resp:
                         if resp.status < 300:
                             return SendResult(success=True, message_id=uuid.uuid4().hex[:12])
-                        else:
-                            body = await resp.text()
-                            return SendResult(success=False, error=f"HTTP {resp.status}: {body}")
+                        body = await resp.text()
+                        return SendResult(success=False, error=f"HTTP {resp.status}: {body}")
 
         except asyncio.TimeoutError:
             return SendResult(success=False, error="Timeout sending notification to HA")

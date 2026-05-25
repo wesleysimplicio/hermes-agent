@@ -3718,7 +3718,7 @@ def refresh_xai_oauth_pure(
             code="xai_refresh_missing_access_token",
             relogin_required=True,
         )
-    updated = {
+    return {
         "access_token": refreshed_access,
         "refresh_token": str(payload.get("refresh_token") or refresh_token).strip(),
         "id_token": str(payload.get("id_token") or "").strip(),
@@ -3726,7 +3726,6 @@ def refresh_xai_oauth_pure(
         "token_type": str(payload.get("token_type") or "Bearer").strip() or "Bearer",
         "last_refresh": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
-    return updated
 
 
 def _refresh_xai_oauth_tokens(
@@ -6164,7 +6163,7 @@ def _prompt_model_selection(
         print()
         if idx < len(ordered):
             return ordered[idx]
-        elif idx == len(ordered):
+        if idx == len(ordered):
             custom = input("Enter model name: ").strip()
             return custom if custom else None
         return None
@@ -6196,10 +6195,10 @@ def _prompt_model_selection(
             idx = int(choice)
             if 1 <= idx <= n:
                 return ordered[idx - 1]
-            elif idx == n + 1:
+            if idx == n + 1:
                 custom = input("Enter model name: ").strip()
                 return custom if custom else None
-            elif idx == n + 2:
+            if idx == n + 2:
                 return None
             print(f"Please enter 1-{n + 2}")
         except ValueError:
@@ -6742,13 +6741,12 @@ def _codex_device_code_login() -> Dict[str, Any]:
                 if poll_resp.status_code == 200:
                     code_resp = poll_resp.json()
                     break
-                elif poll_resp.status_code in {403, 404}:
+                if poll_resp.status_code in {403, 404}:
                     continue  # User hasn't completed login yet
-                else:
-                    raise AuthError(
-                        f"Device auth polling returned status {poll_resp.status_code}.",
-                        provider="openai-codex", code="device_code_poll_error",
-                    )
+                raise AuthError(
+                    f"Device auth polling returned status {poll_resp.status_code}.",
+                    provider="openai-codex", code="device_code_poll_error",
+                )
     except KeyboardInterrupt:
         print("\nLogin cancelled.")
         raise SystemExit(130)

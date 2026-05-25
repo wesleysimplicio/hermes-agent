@@ -489,8 +489,7 @@ def _validate_teams_service_url(raw: str) -> Optional[str]:
         return None
     if parsed.hostname not in _ALLOWED_TEAMS_SERVICE_HOSTS:
         return None
-    normalized = raw if raw.endswith("/") else raw + "/"
-    return normalized
+    return raw if raw.endswith("/") else raw + "/"
 
 
 async def _standalone_send(
@@ -814,7 +813,7 @@ class TeamsAdapter(BasePlatformAdapter):
         if conv_ref and self._app:
             activity = MessageActivityInput().add_card(card)
             return await self._app.activity_sender.send(activity, conv_ref)
-        elif self._app:
+        if self._app:
             return await self._app.send(chat_id, card)
         return None
 

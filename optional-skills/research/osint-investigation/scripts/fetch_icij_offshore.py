@@ -92,8 +92,7 @@ def _match(needle_norm: str, hay: str) -> bool:
 def _normalize_query(s: str) -> str:
     s = s.upper()
     s = re.sub(r"[^\w\s]", " ", s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def fetch(
