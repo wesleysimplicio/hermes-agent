@@ -2,10 +2,11 @@
 
 import json
 import threading
+import time
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.registry import ToolRegistry, discover_builtin_tools
+from tools.registry import ToolRegistry, _module_registers_tools, discover_builtin_tools
 
 
 def _dummy_handler(args, **kwargs):
@@ -289,43 +290,19 @@ class TestCheckFnExceptionHandling:
 
 
 class TestBuiltinDiscovery:
-    def test_matches_previous_manual_builtin_tool_set(self):
-        expected = {
-            "tools.browser_cdp_tool",
-            "tools.browser_dialog_tool",
-            "tools.browser_tool",
-            "tools.clarify_tool",
-            "tools.code_execution_tool",
-            "tools.computer_use_tool",
-            "tools.cronjob_tools",
-            "tools.delegate_tool",
-            "tools.discord_tool",
-            "tools.feishu_doc_tool",
-            "tools.feishu_drive_tool",
-            "tools.file_tools",
-            "tools.homeassistant_tool",
-            "tools.image_generation_tool",
-            "tools.kanban_tools",
-            "tools.memory_tool",
-            "tools.mixture_of_agents_tool",
-            "tools.process_registry",
-            "tools.rl_training_tool",
-            "tools.send_message_tool",
-            "tools.session_search_tool",
-            "tools.skill_manager_tool",
-            "tools.skills_tool",
-            "tools.terminal_tool",
-            "tools.todo_tool",
-            "tools.tts_tool",
-            "tools.vision_tools",
-            "tools.web_tools",
-            "tools.yuanbao_tools",
-        }
+    def test_discovers_all_real_self_registering_builtin_tool_modules(self):
+        tools_dir = Path(__file__).resolve().parents[2] / "tools"
+        expected = [
+            f"tools.{path.stem}"
+            for path in sorted(tools_dir.glob("*.py"))
+            if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
+            and _module_registers_tools(path)
+        ]
 
         with patch("tools.registry.importlib.import_module"):
-            imported = discover_builtin_tools(Path(__file__).resolve().parents[2] / "tools")
+            imported = discover_builtin_tools(tools_dir)
 
-        assert set(imported) == expected
+        assert imported == expected
 
     def test_imports_only_self_registering_modules(self, tmp_path):
         tools_dir = tmp_path / "tools"
@@ -343,6 +320,24 @@ class TestBuiltinDiscovery:
 
         assert imported == ["tools.alpha"]
         mock_import.assert_called_once_with("tools.alpha")
+
+    def test_ignores_indented_register_calls(self, tmp_path):
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        (tools_dir / "__init__.py").write_text("", encoding="utf-8")
+        (tools_dir / "registry.py").write_text("", encoding="utf-8")
+        (tools_dir / "helper.py").write_text(
+            "from tools.registry import registry\n"
+            "def install_later():\n"
+            "    registry.register(name='late', toolset='x', schema={}, handler=lambda *_a, **_k: '{}')\n",
+            encoding="utf-8",
+        )
+
+        with patch("tools.registry.importlib.import_module") as mock_import:
+            imported = discover_builtin_tools(tools_dir)
+
+        assert imported == []
+        mock_import.assert_not_called()
 
     def test_skips_mcp_tool_even_if_it_registers(self, tmp_path):
         tools_dir = tmp_path / "tools"
@@ -362,6 +357,55 @@ class TestBuiltinDiscovery:
 
         assert imported == ["tools.alpha"]
         mock_import.assert_called_once_with("tools.alpha")
+
+    def test_default_discovery_uses_cache_after_first_scan(self, tmp_path, monkeypatch):
+        cache_path = tmp_path / "builtin_tool_discovery.json"
+        monkeypatch.setattr("tools.registry._builtin_tool_cache_path", lambda: cache_path)
+
+        with patch("tools.registry.importlib.import_module"):
+            first = discover_builtin_tools()
+
+        assert first
+        assert cache_path.exists()
+
+        def fail_scan(_path):
+            raise AssertionError("cache miss caused source scan")
+
+        monkeypatch.setattr("tools.registry._module_registers_tools", fail_scan)
+        with patch("tools.registry.importlib.import_module"):
+            second = discover_builtin_tools()
+
+        assert second == first
+
+    def test_cache_miss_source_scan_uses_parallel_workers(self, tmp_path, monkeypatch):
+        tools_dir = tmp_path / "tools"
+        tools_dir.mkdir()
+        (tools_dir / "__init__.py").write_text("", encoding="utf-8")
+        for idx in range(10):
+            (tools_dir / f"tool_{idx}.py").write_text(
+                "from tools.registry import registry\n"
+                "registry.register(name='t', toolset='x', schema={}, handler=lambda *_a, **_k: '{}')\n",
+                encoding="utf-8",
+            )
+
+        seen_threads = set()
+
+        def fake_registers(_path):
+            seen_threads.add(threading.get_ident())
+            time.sleep(0.01)
+            return True
+
+        monkeypatch.setattr("tools.registry._module_registers_tools", fake_registers)
+        monkeypatch.setattr("tools.registry._TOOL_DISCOVERY_PARALLEL_THRESHOLD", 2)
+        monkeypatch.setattr("tools.registry._TOOL_DISCOVERY_MAX_WORKERS", 4)
+        monkeypatch.setattr("tools.registry._TOOL_DISCOVERY_PARALLEL_MIN_BYTES", 0)
+
+        with patch("tools.registry.importlib.import_module") as mock_import:
+            imported = discover_builtin_tools(tools_dir)
+
+        assert imported == [f"tools.tool_{idx}" for idx in range(10)]
+        assert mock_import.call_count == 10
+        assert len(seen_threads) > 1
 
 
 class TestEmojiMetadata:

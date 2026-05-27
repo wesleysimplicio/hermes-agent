@@ -14,7 +14,7 @@
 
 **The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
 
-Use any model you want — [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai) (200+ models), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `hermes model` — no code changes, no lock-in.
+Use any model you want — [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai) (AI-native cloud for Model API, Agent Sandbox, and GPU Cloud), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `hermes model` — no code changes, no lock-in.
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
@@ -23,8 +23,84 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 <tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
 <tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
 <tr><td><b>Runs anywhere, not just your laptop</b></td><td>Seven terminal backends — local, Docker, SSH, Singularity, Modal, Daytona, and Vercel Sandbox. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
-<tr><td><b>Research-ready</b></td><td>Batch trajectory generation, Atropos RL environments, trajectory compression for training the next generation of tool-calling models.</td></tr>
+<tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
 </table>
+
+---
+
+## Hermes Agent 100X Fast - Performance Comparisons
+
+This branch documents a measured performance pass focused on startup hot paths,
+tool discovery, SQLite session persistence, TUI MCP reloads, adaptive
+parallelism, delegation config reuse, parallel guard fast paths, model metadata
+disk caching, and runtime local-endpoint probe avoidance. The numbers below are
+local Windows benchmark results from `scripts/benchmark_startup_perf.py` and
+`scripts/benchmark_runtime_usage.py`; they are measurements for this branch, not
+universal guarantees.
+
+Full PR documentation:
+
+- [Upstream PR draft](docs/hermes-performance-upstream-pr.md)
+- [100X Fast implementation notes](docs/hermes-agent-100x-fast-pr.md)
+- [Regression log and next-version playbook](docs/hermes-100x-fast-regression-log.md)
+- [Reapply playbook for future Hermes updates](docs/hermes-100x-fast-reapply-playbook.md)
+- [Runtime performance investigation](docs/runtime-performance-investigation-2026-05-15.md)
+
+### 100X Visual Summary
+
+These are the latest GPT-image-2 visuals for the 100X pass. They are the
+canonical README images for this branch.
+
+![GPT-image-2 Hermes Agent 100X Fast before/after hero](docs/assets/100x-fast/generated/gpt-image-100x-hero-before-after.png)
+
+![GPT-image-2 Hermes Agent 100X Fast runtime stack](docs/assets/100x-fast/generated/gpt-image-100x-runtime-stack.png)
+
+![GPT-image-2 Hermes Agent 100X Fast video cover](docs/assets/100x-fast/generated/gpt-image-100x-video-cover.png)
+
+### Launch Video
+
+The MP4 is the narrated release cut with voiceover, music, captions, and motion
+graphics. The GIF preview appears first so the README always shows movement
+inline, even where embedded MP4 playback is limited.
+
+![Hermes Agent 100X Fast launch video animated preview](docs/assets/100x-fast/video/hermes-100x-fast-launch-preview.gif)
+
+<video controls poster="docs/assets/100x-fast/video/hermes-100x-fast-poster.png" width="100%">
+  <source src="docs/assets/100x-fast/video/hermes-100x-fast-launch.mp4" type="video/mp4">
+</video>
+
+![Hermes Agent 100X Fast video poster](docs/assets/100x-fast/video/hermes-100x-fast-poster.png)
+
+### What Changed
+
+The current benchmark story is centered on the paths users feel while sending
+messages, launching tasks, delegating work, and waiting on resource-heavy
+runtime checks:
+
+- Metadata cache: `0.4211s` for 100 lookup resets over 500 models in the local benchmark.
+- Session writes: `37.74x` faster by batching SQLite persistence work.
+- Endpoint startup: `9.25x` faster for dead numeric loopback probe fast-fail.
+- Parallel tools: `5.20x` faster for independent I/O-bound tool batches.
+- Startup discovery: `2x-3x` class improvements from fingerprinted caches and reduced repeated work.
+
+Detailed comparison assets are still kept under `docs/assets/100x-fast/` for
+PR review, but the README now highlights the newest 100X GPT-image-2 campaign
+visuals directly inline.
+
+### Research To Code
+
+This runtime pass cross-checked the official Hermes docs for the
+[agent loop](https://hermes-agent.nousresearch.com/docs/developer-guide/agent-loop/),
+[tools runtime](https://hermes-agent.nousresearch.com/docs/developer-guide/tools-runtime),
+[delegation](https://hermes-agent.nousresearch.com/docs/guides/delegation-patterns/),
+and [context compression](https://hermes-agent.nousresearch.com/docs/developer-guide/context-compression-and-caching/).
+The research logic comes from efficient LLM systems work such as
+[FrugalGPT](https://arxiv.org/abs/2305.05176),
+[LLMLingua](https://arxiv.org/abs/2310.05736),
+[vLLM/PagedAttention](https://arxiv.org/abs/2309.06180), and
+[RouteLLM](https://arxiv.org/abs/2406.18665): route cheap first, compress or
+cache stable work, batch tiny writes, and avoid probes that cannot produce
+signal.
 
 ---
 
@@ -43,7 +119,7 @@ curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scri
 Run this in PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex
+iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
 ```
 
 The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  Hermes uses this bundled Git Bash to run shell commands.
@@ -175,8 +251,6 @@ uv pip install -e ".[all,dev]"
 scripts/run_tests.sh
 ```
 
-> **RL Training (optional):** The RL/Atropos integration (`environments/`) — see [`CONTRIBUTING.md`](https://github.com/NousResearch/hermes-agent/blob/main/CONTRIBUTING.md#development-setup) for the full setup.
-
 ---
 
 ## Community
@@ -184,6 +258,7 @@ scripts/run_tests.sh
 - 💬 [Discord](https://discord.gg/NousResearch)
 - 📚 [Skills Hub](https://agentskills.io)
 - 🐛 [Issues](https://github.com/NousResearch/hermes-agent/issues)
+- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Hermes and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
 - 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Hermes Agent and OpenClaw on the same WeChat account.
 
 ---

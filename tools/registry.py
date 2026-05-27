@@ -14,29 +14,24 @@ Import chain (circular-import safe):
     run_agent.py, cli.py, batch_runner.py, etc.
 """
 
-import ast
 import importlib
 import json
 import logging
+import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
 
-def _is_registry_register_call(node: ast.AST) -> bool:
-    """Return True when *node* is a ``registry.register(...)`` call expression."""
-    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
-        return False
-    func = node.value.func
-    return (
-        isinstance(func, ast.Attribute)
-        and func.attr == "register"
-        and isinstance(func.value, ast.Name)
-        and func.value.id == "registry"
-    )
+_TOP_LEVEL_REGISTER_RE = re.compile(r"(?m)^registry\.register\s*\(")
+_BUILTIN_TOOL_DISCOVERY_CACHE_VERSION = 1
+_TOOL_DISCOVERY_PARALLEL_THRESHOLD = 8
+_TOOL_DISCOVERY_MAX_WORKERS = 8
+_TOOL_DISCOVERY_PARALLEL_MIN_BYTES = 5_000_000
 
 
 def _module_registers_tools(module_path: Path) -> bool:
@@ -47,22 +42,131 @@ def _module_registers_tools(module_path: Path) -> bool:
     """
     try:
         source = module_path.read_text(encoding="utf-8")
-        tree = ast.parse(source, filename=str(module_path))
-    except (OSError, SyntaxError):
+    except OSError:
         return False
 
-    return any(_is_registry_register_call(stmt) for stmt in tree.body)
+    return _TOP_LEVEL_REGISTER_RE.search(source) is not None
+
+
+def _candidate_tool_paths(tools_path: Path) -> List[Path]:
+    try:
+        candidates = sorted(tools_path.glob("*.py"))
+    except OSError:
+        return []
+    return [
+        path
+        for path in candidates
+        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
+    ]
+
+
+def _should_parallel_scan_tool_sources(candidates: List[Path]) -> bool:
+    if len(candidates) < _TOOL_DISCOVERY_PARALLEL_THRESHOLD:
+        return False
+    total_bytes = 0
+    for path in candidates:
+        try:
+            total_bytes += path.stat().st_size
+        except OSError:
+            return False
+    return total_bytes >= _TOOL_DISCOVERY_PARALLEL_MIN_BYTES
+
+
+def _discover_registering_tool_modules(tools_path: Path) -> List[str]:
+    candidates = _candidate_tool_paths(tools_path)
+
+    def scan(path: Path) -> tuple[Path, bool]:
+        return path, _module_registers_tools(path)
+
+    if _should_parallel_scan_tool_sources(candidates):
+        max_workers = min(_TOOL_DISCOVERY_MAX_WORKERS, len(candidates))
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            scanned = list(pool.map(scan, candidates))
+    else:
+        scanned = [scan(path) for path in candidates]
+
+    return [f"tools.{path.stem}" for path, registers in scanned if registers]
+
+
+def _builtin_tool_cache_path() -> Optional[Path]:
+    try:
+        from hermes_constants import get_hermes_home
+
+        path = get_hermes_home() / "cache" / "builtin_tool_discovery.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+    except Exception:
+        return None
+
+
+def _tool_discovery_fingerprint(tools_path: Path) -> Optional[List[list]]:
+    fingerprint: List[list] = []
+    for path in _candidate_tool_paths(tools_path):
+        try:
+            stat = path.stat()
+        except OSError:
+            return None
+        fingerprint.append([path.name, stat.st_mtime_ns, stat.st_size])
+    return fingerprint
+
+
+def _read_tool_discovery_cache(
+    tools_path: Path,
+    fingerprint: List[list],
+) -> Optional[List[str]]:
+    cache_path = _builtin_tool_cache_path()
+    if cache_path is None or not cache_path.exists():
+        return None
+    try:
+        payload = json.loads(cache_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if payload.get("version") != _BUILTIN_TOOL_DISCOVERY_CACHE_VERSION:
+        return None
+    if payload.get("tools_path") != str(tools_path):
+        return None
+    if payload.get("fingerprint") != fingerprint:
+        return None
+    modules = payload.get("modules")
+    if not isinstance(modules, list) or not all(isinstance(m, str) for m in modules):
+        return None
+    return modules
+
+
+def _write_tool_discovery_cache(
+    tools_path: Path,
+    fingerprint: List[list],
+    module_names: List[str],
+) -> None:
+    cache_path = _builtin_tool_cache_path()
+    if cache_path is None:
+        return
+    payload = {
+        "version": _BUILTIN_TOOL_DISCOVERY_CACHE_VERSION,
+        "tools_path": str(tools_path),
+        "fingerprint": fingerprint,
+        "modules": module_names,
+    }
+    try:
+        cache_path.write_text(json.dumps(payload, separators=(",", ":")), encoding="utf-8")
+    except Exception:
+        logger.debug("Could not write built-in tool discovery cache", exc_info=True)
 
 
 def discover_builtin_tools(tools_dir: Optional[Path] = None) -> List[str]:
     """Import built-in self-registering tool modules and return their module names."""
     tools_path = Path(tools_dir) if tools_dir is not None else Path(__file__).resolve().parent
-    module_names = [
-        f"tools.{path.stem}"
-        for path in sorted(tools_path.glob("*.py"))
-        if path.name not in {"__init__.py", "registry.py", "mcp_tool.py"}
-        and _module_registers_tools(path)
-    ]
+    use_cache = tools_dir is None
+    fingerprint = _tool_discovery_fingerprint(tools_path) if use_cache else None
+    module_names = (
+        _read_tool_discovery_cache(tools_path, fingerprint)
+        if use_cache and fingerprint is not None
+        else None
+    )
+    if module_names is None:
+        module_names = _discover_registering_tool_modules(tools_path)
+        if use_cache and fingerprint is not None:
+            _write_tool_discovery_cache(tools_path, fingerprint, module_names)
 
     imported: List[str] = []
     for mod_name in module_names:
@@ -80,12 +184,12 @@ class ToolEntry:
     __slots__ = (
         "name", "toolset", "schema", "handler", "check_fn",
         "requires_env", "is_async", "description", "emoji",
-        "max_result_size_chars",
+        "max_result_size_chars", "dynamic_schema_overrides",
     )
 
     def __init__(self, name, toolset, schema, handler, check_fn,
                  requires_env, is_async, description, emoji,
-                 max_result_size_chars=None):
+                 max_result_size_chars=None, dynamic_schema_overrides=None):
         self.name = name
         self.toolset = toolset
         self.schema = schema
@@ -96,6 +200,14 @@ class ToolEntry:
         self.description = description
         self.emoji = emoji
         self.max_result_size_chars = max_result_size_chars
+        # Optional zero-arg callable returning a dict of schema overrides
+        # applied at get_definitions() time. Use for fields that depend on
+        # runtime config (e.g. delegate_task's description must reflect the
+        # user's current delegation.max_concurrent_children / max_spawn_depth
+        # so the model isn't told the wrong limits). The callable is invoked
+        # on every get_definitions() call; results are merged shallow on top
+        # of the base schema before the {"type": "function", ...} wrap.
+        self.dynamic_schema_overrides = dynamic_schema_overrides
 
 
 # ---------------------------------------------------------------------------
@@ -235,8 +347,17 @@ class ToolRegistry:
         description: str = "",
         emoji: str = "",
         max_result_size_chars: int | float | None = None,
+        dynamic_schema_overrides: Callable = None,
+        override: bool = False,
     ):
-        """Register a tool.  Called at module-import time by each tool file."""
+        """Register a tool.  Called at module-import time by each tool file.
+
+        ``override=True`` is an explicit opt-in for plugins that intend to
+        replace an existing built-in tool implementation (e.g. swap the
+        default browser tool for a headed-Chrome CDP backend). Without it,
+        registrations that would shadow an existing tool from a different
+        toolset are rejected to prevent accidental overwrites.
+        """
         with self._lock:
             existing = self._tools.get(name)
             if existing and existing.toolset != toolset:
@@ -251,13 +372,22 @@ class ToolRegistry:
                         "Tool '%s': MCP toolset '%s' overwriting MCP toolset '%s'",
                         name, toolset, existing.toolset,
                     )
+                elif override:
+                    # Explicit plugin opt-in: replace the existing tool.
+                    # Logged at INFO so the override is auditable in agent.log.
+                    logger.info(
+                        "Tool '%s': toolset '%s' overriding existing toolset '%s' "
+                        "(override=True opt-in)",
+                        name, toolset, existing.toolset,
+                    )
                 else:
                     # Reject shadowing — prevent plugins/MCP from overwriting
                     # built-in tools or vice versa.
                     logger.error(
                         "Tool registration REJECTED: '%s' (toolset '%s') would "
-                        "shadow existing tool from toolset '%s'. Deregister the "
-                        "existing tool first if this is intentional.",
+                        "shadow existing tool from toolset '%s'. Pass "
+                        "override=True to register() if the replacement is "
+                        "intentional, or deregister the existing tool first.",
                         name, toolset, existing.toolset,
                     )
                     return
@@ -272,6 +402,7 @@ class ToolRegistry:
                 description=description or schema.get("description", ""),
                 emoji=emoji,
                 max_result_size_chars=max_result_size_chars,
+                dynamic_schema_overrides=dynamic_schema_overrides,
             )
             if check_fn and toolset not in self._toolset_checks:
                 self._toolset_checks[toolset] = check_fn
@@ -337,6 +468,22 @@ class ToolRegistry:
                     continue
             # Ensure schema always has a "name" field — use entry.name as fallback
             schema_with_name = {**entry.schema, "name": entry.name}
+            # Apply runtime-dynamic overrides (e.g. delegate_task description
+            # depends on current delegation.max_concurrent_children /
+            # max_spawn_depth). Caller side (model_tools.get_tool_definitions)
+            # already keys its memo on config.yaml mtime + size, so changes
+            # to delegation.* in config invalidate the cache automatically.
+            if entry.dynamic_schema_overrides is not None:
+                try:
+                    overrides = entry.dynamic_schema_overrides()
+                    if isinstance(overrides, dict):
+                        schema_with_name.update(overrides)
+                except Exception as exc:
+                    logger.warning(
+                        "dynamic_schema_overrides for tool %s raised %s; "
+                        "using static schema",
+                        name, exc,
+                    )
             result.append({"type": "function", "function": schema_with_name})
         return result
 
@@ -361,7 +508,16 @@ class ToolRegistry:
             return entry.handler(args, **kwargs)
         except Exception as e:
             logger.exception("Tool %s dispatch error: %s", name, e)
-            return json.dumps({"error": f"Tool execution failed: {type(e).__name__}: {e}"})
+            # Route through the sanitizer so framing tokens / CDATA / fences
+            # in exception strings don't reach the model as structural noise.
+            # See model_tools._sanitize_tool_error for rationale.
+            raw = f"Tool execution failed: {type(e).__name__}: {e}"
+            try:
+                from model_tools import _sanitize_tool_error
+                sanitized = _sanitize_tool_error(raw)
+            except Exception:
+                sanitized = raw  # defensive: never let the sanitizer block error propagation
+            return json.dumps({"error": sanitized})
 
     # ------------------------------------------------------------------
     # Query helpers  (replace redundant dicts in model_tools.py)

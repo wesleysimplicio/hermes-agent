@@ -213,6 +213,31 @@ class TestMessageStorage:
         messages = db.get_messages("s1")
         assert messages[0]["tool_calls"] == tool_calls
 
+    def test_append_messages_batches_session_counter_updates(self, db):
+        db.create_session(session_id="s1", source="cli")
+        tool_calls = [
+            {"id": "call_1", "function": {"name": "web_search", "arguments": "{}"}},
+            {"id": "call_2", "function": {"name": "read_file", "arguments": "{}"}},
+        ]
+
+        ids = db.append_messages(
+            "s1",
+            [
+                {"role": "user", "content": "Hello"},
+                {"role": "assistant", "content": "", "tool_calls": tool_calls},
+                {"role": "tool", "content": "ok", "tool_name": "web_search"},
+            ],
+        )
+
+        assert len(ids) == 3
+        messages = db.get_messages("s1")
+        assert [m["role"] for m in messages] == ["user", "assistant", "tool"]
+        assert messages[0]["content"] == "Hello"
+        assert messages[1]["tool_calls"] == tool_calls
+        session = db.get_session("s1")
+        assert session["message_count"] == 3
+        assert session["tool_call_count"] == 2
+
     def test_multimodal_list_content_round_trip(self, db):
         """Multimodal ``content`` (list of parts) must survive the SQLite
         round-trip.  sqlite3 cannot bind Python lists directly, so the DB
@@ -266,6 +291,23 @@ class TestMessageStorage:
                 "SELECT content FROM messages WHERE session_id = ?", ("s1",)
             ).fetchone()
         assert row["content"] == "plain text"
+
+    def test_replace_messages_persists_tool_name(self, db):
+        """`replace_messages` (used by /retry, /undo, /compress) must write
+        tool_name to the DB for messages built by make_tool_result_message."""
+        from agent.tool_dispatch_helpers import make_tool_result_message
+        db.create_session(session_id="s1", source="cli")
+        db.replace_messages(
+            "s1",
+            [
+                {"role": "user", "content": "do something"},
+                make_tool_result_message("web_search", "some results", "c1"),
+            ],
+        )
+
+        msgs = db.get_messages("s1")
+        tool_msg = next(m for m in msgs if m["role"] == "tool")
+        assert tool_msg["tool_name"] == "web_search"
 
     def test_replace_messages_handles_multimodal_content(self, db):
         """`replace_messages` (used by /retry, /undo, /compress) must also
@@ -956,6 +998,39 @@ class TestCJKSearchFallback:
         assert len(results) == 2
         session_ids = {r["session_id"] for r in results}
         assert session_ids == {"s1", "s2"}
+
+    def test_cjk_or_combined_short_tokens_returns_results(self, db):
+        """Regression test for #20494.
+
+        OR-combined 2-char CJK tokens (e.g. "广西 OR 桂林 OR 漓江 OR 旅游")
+        previously returned 0 results because _count_cjk of the whole query
+        was >=3 (8 chars here), selecting the trigram path, but each individual
+        token is only 2 CJK chars and trigram requires >=3 chars per token.
+        The per-token check must route such queries to the LIKE fallback.
+        """
+        db.create_session(session_id="s1", source="cli")
+        db.create_session(session_id="s2", source="telegram")
+        db.create_session(session_id="s3", source="cli")
+        db.append_message("s1", role="user", content="广西是个好地方，去过桂林")
+        db.append_message("s2", role="user", content="漓江风景很美，值得旅游")
+        db.append_message("s3", role="user", content="unrelated English content")
+
+        results = db.search_messages("广西 OR 桂林 OR 漓江 OR 旅游")
+        session_ids = {r["session_id"] for r in results}
+        assert "s1" in session_ids, "广西/桂林 terms not matched"
+        assert "s2" in session_ids, "漓江/旅游 terms not matched"
+        assert "s3" not in session_ids, "unrelated message must not match"
+
+    def test_cjk_short_token_or_query_preserves_filters(self, db):
+        """Source filter applies correctly in the short-token LIKE path (#20494)."""
+        db.create_session(session_id="s1", source="cli")
+        db.create_session(session_id="s2", source="telegram")
+        db.append_message("s1", role="user", content="广西旅游攻略cli")
+        db.append_message("s2", role="user", content="广西旅游攻略telegram")
+
+        results = db.search_messages("广西 OR 旅游", source_filter=["telegram"])
+        assert len(results) == 1
+        assert results[0]["source"] == "telegram"
 
 
 # =========================================================================
