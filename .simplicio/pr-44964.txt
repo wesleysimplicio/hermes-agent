@@ -1,0 +1,1 @@
+Fix #44964: The /sessions CLI command only shows `source=cli` sessions — TUI and other sources hidden
