@@ -538,6 +538,17 @@ def strip_think_blocks(agent, content: str) -> str:
         content,
         flags=re.IGNORECASE,
     )
+    # 4. Repair markdown URLs corrupted with a duplicated scheme prefix (#25744).
+    #    Some models (Gemma 4 huihui Q4_K_S abliterated) intermittently emit
+    #    ``[Title](httpshttps://...)`` or ``[Title](httphttp://...)`` inside
+    #    markdown link targets, making URLs unclickable. The pattern is
+    #    unambiguous — no legitimate URI scheme starts with ``httpshttps``.
+    content = re.sub(
+        r'\bhttps?(https?://)',
+        r'\1',
+        content,
+        flags=re.IGNORECASE,
+    )
     return content
 
 
