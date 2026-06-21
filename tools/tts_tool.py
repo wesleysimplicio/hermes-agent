@@ -150,6 +150,17 @@ def _import_kittentts():
     return KittenTTS
 
 
+def _import_kokoro():
+    """Lazy import Kokoro TTS. Returns KPipeline or raises ImportError.
+
+    Kokoro (hexgrad/Kokoro-82M) is a lightweight 82M multilingual TTS
+    model that runs on CPU without GPU or API key. 15+ languages.
+    Install: pip install kokoro
+    """
+    from kokoro import KPipeline
+    return KPipeline
+
+
 def _import_piper():
     """Lazy import Piper. Returns the PiperVoice class or raises ImportError.
 
@@ -173,6 +184,9 @@ DEFAULT_ELEVENLABS_STREAMING_MODEL_ID = "eleven_flash_v2_5"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini-tts"
 DEFAULT_KITTENTTS_MODEL = "KittenML/kitten-tts-nano-0.8-int8"  # 25MB
 DEFAULT_KITTENTTS_VOICE = "Jasper"
+DEFAULT_KOKORO_MODEL = "hexgrad/Kokoro-82M"
+DEFAULT_KOKORO_VOICE = "af_heart"
+DEFAULT_KOKORO_LANG = "en-us"
 DEFAULT_PIPER_VOICE = "en_US-lessac-medium"  # balanced size/quality
 DEFAULT_OPENAI_VOICE = "alloy"
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
@@ -390,6 +404,7 @@ BUILTIN_TTS_PROVIDERS = frozenset({
     "gemini",
     "neutts",
     "kittentts",
+    "kokoro",
     "piper",
 })
 
@@ -2068,6 +2083,7 @@ def _generate_piper_tts(text: str, output_path: str, tts_config: Dict[str, Any])
 
 # Module-level cache for KittenTTS model instance
 _kittentts_model_cache: Dict[str, Any] = {}
+_kokoro_pipeline_cache: Dict[str, Any] = {}
 
 
 def _generate_kittentts(text: str, output_path: str, tts_config: Dict[str, Any]) -> str:
@@ -2120,6 +2136,152 @@ def _generate_kittentts(text: str, output_path: str, tts_config: Dict[str, Any])
             os.remove(wav_path)
         else:
             # No ffmpeg — rename the WAV to the expected path
+            os.rename(wav_path, output_path)
+
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# Kokoro language auto-routing
+# ---------------------------------------------------------------------------
+# Kokoro supports these lang_codes: de, en-us, es, fr, hi, it, ja, ko, nl,
+# pl, pt, ru, tr, zh.  Arabic (ar), Hebrew (he), and Indonesian (id) are
+# NOT supported — those use Meta MMS TTS (facebook/mms-tts-*) instead.
+KOKORO_LANG_MAP: Dict[str, str] = {
+    "en": "en-us",
+    "pt": "pt",
+    "es": "es",
+    "fr": "fr",
+    "de": "de",
+    "it": "it",
+    "nl": "nl",
+    "pl": "pl",
+    "tr": "tr",
+    "ru": "ru",
+    "hi": "hi",
+    "ja": "ja",
+    "ko": "ko",
+    "zh": "zh",
+}
+
+
+def _kokoro_lang_for_locale(locale: str) -> str:
+    """Map a locale / ISO-639-1 code to the nearest Kokoro lang_code.
+
+    Accepts full locale codes (``pt-BR``, ``zh-CN``) or bare ISO 639-1
+    two-letter codes (``en``, ``pt``).  Falls back to
+    ``DEFAULT_KOKORO_LANG`` (``"en-us"``) when unsupported.
+    """
+    if not locale:
+        return DEFAULT_KOKORO_LANG
+    code = locale.strip().lower().replace("_", "-")
+    # Direct match -- e.g. "en-us"
+    if code in KOKORO_LANG_MAP:
+        return KOKORO_LANG_MAP[code]
+    # Primary language component -- e.g. "pt-BR" -> "pt"
+    primary = code.split("-")[0]
+    if primary in KOKORO_LANG_MAP:
+        return KOKORO_LANG_MAP[primary]
+    return DEFAULT_KOKORO_LANG
+
+
+def _resolve_kokoro_lang(tts_config: Dict[str, Any]) -> str:
+    """Resolve the Kokoro TTS ``lang_code`` with auto-detection.
+
+    Resolution order:
+      1. ``tts.kokoro.lang`` -- explicit user config (unless set to ``auto``).
+      2. ``stt.language`` -- the STT language (user's spoken language).
+      3. ``ui.language`` -- the UI language preference.
+      4. ``DEFAULT_KOKORO_LANG`` (``"en-us"``) as final fallback.
+
+    Returns a Kokoro-compatible ``lang_code`` string.
+    """
+    kr_config = tts_config.get("kokoro", {})
+    if isinstance(kr_config, dict):
+        explicit = kr_config.get("lang", "")
+        if explicit and explicit.strip().lower() != "auto":
+            return explicit
+
+    # Auto-detect from the broader Hermes config
+    try:
+        from hermes_cli.config import load_config
+        full_config = load_config()
+
+        # 1) STT language -- strongest signal (the user's spoken language)
+        stt_cfg = full_config.get("stt", {})
+        if isinstance(stt_cfg, dict):
+            stt_lang = stt_cfg.get("language", "")
+            if stt_lang:
+                return _kokoro_lang_for_locale(stt_lang)
+
+        # 2) UI language -- weaker but better than a hardcoded default
+        ui_lang = full_config.get("language", "") or \
+                  full_config.get("ui", {}).get("language", "")
+        if ui_lang:
+            return _kokoro_lang_for_locale(ui_lang)
+    except Exception:
+        logger.debug("Config read failed in _resolve_kokoro_lang", exc_info=True)
+
+    return DEFAULT_KOKORO_LANG
+
+
+def _generate_kokoro(text: str, output_path: str, tts_config: Dict[str, Any]) -> str:
+    """Generate speech using Kokoro 82M TTS (local, multilingual, 82M params).
+
+    Kokoro is a lightweight TTS engine that runs on CPU without GPU or API key.
+    Supports 14 languages: pt, en, es, fr, de, it, nl, pl, tr, ru, hi, ja, ko, zh.
+    Language is auto-detected from Hermes config (``tts.kokoro.lang``, or
+    ``stt.language``, or ``ui.language``) so the user doesn't have to set it
+    per-call.
+
+    Args:
+        text: Text to convert to speech.
+        output_path: Where to save the audio file.
+        tts_config: TTS config dict.
+
+    Returns:
+        Path to the saved audio file.
+    """
+    KPipeline = _import_kokoro()
+    kr_config = tts_config.get("kokoro", {})
+    model = kr_config.get("model", DEFAULT_KOKORO_MODEL)
+    voice = kr_config.get("voice", DEFAULT_KOKORO_VOICE)
+    lang = _resolve_kokoro_lang(tts_config)
+
+    global _kokoro_pipeline_cache
+    cache_key = f"{model}:{lang}"
+    if cache_key not in _kokoro_pipeline_cache:
+        logger.info("[Kokoro] Loading pipeline: model=%s lang=%s", model, lang)
+        _kokoro_pipeline_cache[cache_key] = KPipeline(lang_code=lang, model=model)
+        logger.info("[Kokoro] Pipeline loaded successfully")
+
+    pipeline = _kokoro_pipeline_cache[cache_key]
+
+    import numpy as np
+    all_audio = []
+    sample_rate = 24000
+    for result in pipeline(text, voice=voice):
+        all_audio.append(result.audio)
+
+    if not all_audio:
+        raise RuntimeError("Kokoro produced no audio output")
+
+    audio = np.concatenate(all_audio) if len(all_audio) > 1 else all_audio[0]
+
+    import soundfile as sf
+    wav_path = output_path
+    if not output_path.endswith(".wav"):
+        wav_path = output_path.rsplit(".", 1)[0] + ".wav"
+
+    sf.write(wav_path, audio, sample_rate)
+
+    if wav_path != output_path:
+        ffmpeg = shutil.which("ffmpeg")
+        if ffmpeg:
+            conv_cmd = [ffmpeg, "-i", wav_path, "-y", "-loglevel", "error", output_path]
+            subprocess.run(conv_cmd, check=True, timeout=30, stdin=subprocess.DEVNULL)
+            os.remove(wav_path)
+        else:
             os.rename(wav_path, output_path)
 
     return output_path
@@ -2318,6 +2480,18 @@ def text_to_speech_tool(
                 }, ensure_ascii=False)
             logger.info("Generating speech with KittenTTS (local, ~25MB)...")
             _generate_kittentts(text, file_str, tts_config)
+
+        elif provider == "kokoro":
+            try:
+                _import_kokoro()
+            except ImportError:
+                return json.dumps({
+                    "success": False,
+                    "error": "Kokoro provider selected but 'kokoro' package not installed. "
+                             "Install: pip install kokoro"
+                }, ensure_ascii=False)
+            logger.info("Generating speech with Kokoro TTS (local, multilingual)...")
+            _generate_kokoro(text, file_str, tts_config)
 
         elif provider == "piper":
             try:
