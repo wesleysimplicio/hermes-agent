@@ -1338,10 +1338,21 @@ def get_gateway_runtime_snapshot(system: bool = False) -> GatewayRuntimeSnapshot
         )
 
     if is_macos():
+        service_installed = get_launchd_plist_path().exists()
+        service_running = _probe_launchd_service_running()
+        if service_running:
+            manager = "launchd"
+        elif gateway_pids:
+            # A live PID exists but launchd isn't the one running it — either
+            # there's no service at all, or the service is installed-but-stopped
+            # and this PID is a manual/tmux/nohup run launchd doesn't own.
+            manager = "manual process"
+        else:
+            manager = "launchd" if service_installed else "manual process"
         return GatewayRuntimeSnapshot(
-            manager="launchd",
-            service_installed=get_launchd_plist_path().exists(),
-            service_running=_probe_launchd_service_running(),
+            manager=manager,
+            service_installed=service_installed,
+            service_running=service_running,
             gateway_pids=gateway_pids,
             service_scope="launchd",
         )

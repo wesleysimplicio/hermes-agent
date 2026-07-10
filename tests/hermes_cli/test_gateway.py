@@ -280,6 +280,67 @@ def test_s6_runtime_snapshot_reports_supervised_service(monkeypatch, tmp_path):
     assert snapshot.gateway_pids == (123,)
 
 
+def _macos_snapshot(monkeypatch, *, service_installed, service_running, pids):
+    monkeypatch.setattr(gateway, "is_termux", lambda: False)
+    monkeypatch.setattr(gateway, "supports_systemd_services", lambda: False)
+    monkeypatch.setattr(gateway, "is_macos", lambda: True)
+    monkeypatch.setattr(gateway, "find_gateway_pids", lambda: pids)
+    monkeypatch.setattr(
+        gateway,
+        "get_launchd_plist_path",
+        lambda: SimpleNamespace(exists=lambda: service_installed),
+    )
+    monkeypatch.setattr(gateway, "_probe_launchd_service_running", lambda: service_running)
+    return gateway.get_gateway_runtime_snapshot()
+
+
+def test_macos_runtime_snapshot_reports_launchd_when_service_running(monkeypatch):
+    # Case 2: live launchd service -> "launchd".
+    snapshot = _macos_snapshot(
+        monkeypatch, service_installed=True, service_running=True, pids=[123]
+    )
+    assert snapshot.manager == "launchd"
+
+
+def test_macos_runtime_snapshot_reports_manual_for_unmanaged_pid(monkeypatch):
+    # Case 1: manual PID only, no plist installed -> "manual process".
+    snapshot = _macos_snapshot(
+        monkeypatch, service_installed=False, service_running=False, pids=[123]
+    )
+    assert snapshot.manager == "manual process"
+
+
+def test_macos_runtime_snapshot_reports_manual_for_stopped_service_with_pid(monkeypatch):
+    # Case 3: plist installed but stopped, yet a PID is alive -> that PID is
+    # not launchd-owned, so the label must say "manual process" (the
+    # installed-but-not-managing mismatch is surfaced separately via
+    # ``has_process_service_mismatch``).
+    snapshot = _macos_snapshot(
+        monkeypatch, service_installed=True, service_running=False, pids=[123]
+    )
+    assert snapshot.manager == "manual process"
+    assert snapshot.has_process_service_mismatch is True
+
+
+def test_macos_runtime_snapshot_reports_launchd_for_stopped_service_with_no_pid(monkeypatch):
+    # Case 4: plist installed but stopped, nothing running -> still
+    # structurally "launchd" (just currently down).
+    snapshot = _macos_snapshot(
+        monkeypatch, service_installed=True, service_running=False, pids=()
+    )
+    assert snapshot.manager == "launchd"
+    assert snapshot.running is False
+
+
+def test_macos_runtime_snapshot_reports_manual_when_nothing_installed_or_running(monkeypatch):
+    # Case 5: no service, no PID -> neutral "manual process" state.
+    snapshot = _macos_snapshot(
+        monkeypatch, service_installed=False, service_running=False, pids=()
+    )
+    assert snapshot.manager == "manual process"
+    assert snapshot.running is False
+
+
 def test_running_under_gateway_supervisor_markers(monkeypatch):
     _clear_supervisor_markers(monkeypatch)
     assert gateway._running_under_gateway_supervisor() is False
