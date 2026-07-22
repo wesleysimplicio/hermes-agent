@@ -3787,6 +3787,7 @@ class TestStartupTimeoutPhaseDetail:
         import threading
         from typing import Any, cast
         from unittest.mock import MagicMock
+        from tools.computer_use import cua_backend
         from tools.computer_use.cua_backend import _CuaDriverSession
 
         session = cast(Any, _CuaDriverSession.__new__(_CuaDriverSession))
@@ -3803,7 +3804,10 @@ class TestStartupTimeoutPhaseDetail:
 
         import asyncio
         from unittest.mock import patch as _patch
-        with _patch.object(session._ready_event, "wait", return_value=False), \
+        with _patch.object(
+            cua_backend.threading, "Event", return_value=session._ready_event
+        ), \
+             _patch.object(session._ready_event, "wait", return_value=False), \
              _patch.object(asyncio, "run_coroutine_threadsafe", return_value=MagicMock()), \
              _patch.object(_CuaDriverSession, "_lifecycle_coro", lambda self: None):
             try:
@@ -3819,6 +3823,7 @@ class TestStartupTimeoutPhaseDetail:
         from typing import Any, cast
         from unittest.mock import MagicMock, patch as _patch
         import asyncio
+        from tools.computer_use import cua_backend
         from tools.computer_use.cua_backend import _CuaDriverSession
 
         session = cast(Any, _CuaDriverSession.__new__(_CuaDriverSession))
@@ -3832,7 +3837,10 @@ class TestStartupTimeoutPhaseDetail:
         fake_bridge._loop = MagicMock()
         session._bridge = fake_bridge
 
-        with _patch.object(session._ready_event, "wait", return_value=False), \
+        with _patch.object(
+            cua_backend.threading, "Event", return_value=session._ready_event
+        ), \
+             _patch.object(session._ready_event, "wait", return_value=False), \
              _patch.object(asyncio, "run_coroutine_threadsafe", return_value=MagicMock()), \
              _patch.object(_CuaDriverSession, "_lifecycle_coro", lambda self: None):
             try:
